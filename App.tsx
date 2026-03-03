@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, Platform, ScrollView } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -7,7 +7,12 @@ import Animated, {
   interpolate,
   Extrapolation,
   interpolateColor,
-  runOnJS
+  runOnJS,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withDelay,
+  Easing
 } from 'react-native-reanimated';
 import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
 
@@ -22,9 +27,10 @@ const PRODUCTS = [
     description: 'Discover a world of radiant skin with our ultra-sensitive glow & correct serum. We believe in the power of dermal-grade botanicals to bring you luminous skin.',
     price: '₹4,150',
     size: '30 ml (1.0 fl oz)',
-    theme: { bgCenter: '#FFDF00', bgEdge: '#4A3300', bg: '#0b161e', glow1: '#FFF275', glow2: '#FFD700', text: '#FFFFFF', accent: '#FFDF00' },
+    theme: { text: '#108cbaff', subText: '#0b0b0bff', accent: '#3d3d3dff', shadow: 'rgba(229, 0, 0, 0.6)', alignClass: 'flex-start', textAlign: 'left' as const },
     benefits: ['Correct Tone.', 'Boost Glow.', 'Stay Calm.'],
-    image: require('./assets/product2.png') // Gold bottle
+    image: require('./assets/product2.png'), // Gold bottle
+    bgImage: require('./assets/bg_face_serum.png')
   },
   {
     id: 2,
@@ -34,9 +40,10 @@ const PRODUCTS = [
     description: 'Dermal-Grade Botanical Formula. Weightless Smoothness, Natural Shine. Zero Silicone Feel. Your hair, perfected.',
     price: '₹2,100',
     size: '30 ml (1.0 fl oz)',
-    theme: { bgCenter: '#005F73', bgEdge: '#001a24', bg: '#031926', glow1: '#00B4D8', glow2: '#0077B6', text: '#FFFFFF', accent: '#48CAE4' },
+    theme: { text: '#211700', subText: '#4A3300', accent: '#0D0800', shadow: 'rgba(255,255,255,0.4)', alignClass: 'center', textAlign: 'center' as const },
     benefits: ['Weightless.', 'Natural Shine.', 'Zero Silicone.'],
-    image: require('./assets/product1.png') // Black pump bottle
+    image: require('./assets/product1.png'), // Black pump bottle
+    bgImage: require('./assets/bg_hair_serum.png')
   },
   {
     id: 3,
@@ -46,13 +53,14 @@ const PRODUCTS = [
     description: 'Dermal-Grade Botanical Formula. Gentle, Overnight Restoration. Your skin, renewed.',
     price: '₹2,100',
     size: '30g (1.0 oz)',
-    theme: { bgCenter: '#632532', bgEdge: '#1a060a', bg: '#2b1016', glow1: '#FFB5A7', glow2: '#F08080', text: '#FFFFFF', accent: '#FFB5A7' },
+    theme: { text: '#6c0e0eff', subText: '#000000ff', accent: '#972020ff', shadow: 'rgba(87, 27, 51, 0.7)', alignClass: 'flex-end', textAlign: 'right' as const },
     benefits: ['Repair Overnight.', 'Restore Calm.', 'Wake Up Renewed.'],
-    image: require('./assets/product3.png') // Pink jar
+    image: require('./assets/product3.png'), // Pink jar
+    bgImage: require('./assets/bg_restoration_cream.png')
   }
 ];
 
-const RadialBackground = ({ product, index, scrollX }: any) => {
+const BackgroundImageLayer = ({ product, index, scrollX }: any) => {
   const bgOpacityStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollX.value,
@@ -63,16 +71,208 @@ const RadialBackground = ({ product, index, scrollX }: any) => {
     return { opacity };
   });
 
-  if (Platform.OS !== 'web' || index >= 2) return null;
+  return (
+    <Animated.Image
+      source={product.bgImage}
+      style={[StyleSheet.absoluteFillObject, bgOpacityStyle, { width: '100%', height: '100%' }]}
+      resizeMode="stretch"
+    />
+  );
+};
+
+const FloatingPetals = ({ scrollX, index, source }: any) => {
+  const yOffset1 = useSharedValue(0);
+  const yOffset2 = useSharedValue(0);
+
+  React.useEffect(() => {
+    yOffset1.value = withRepeat(
+      withSequence(
+        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    yOffset2.value = withDelay(1500, withRepeat(
+      withSequence(
+        withTiming(-30, { duration: 3500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 3500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    ));
+  }, []);
+
+  const petalsStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * width, index * width, (index + 0.5) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.5, 0, -width * 0.5],
+      Extrapolation.CLAMP
+    );
+    return { opacity, transform: [{ translateX }] };
+  });
+
+  const petal1Style = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset1.value }] }));
+  const petal2Style = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset2.value }] }));
 
   return (
-    <Animated.View
-      style={[
-        StyleSheet.absoluteFillObject,
-        bgOpacityStyle,
-        { backgroundImage: `radial-gradient(circle at 40% 50%, ${product.theme.bgCenter} 0%, ${product.theme.bgEdge} 80%)` } as any
-      ]}
-    />
+    <Animated.View style={[StyleSheet.absoluteFillObject, petalsStyle]} pointerEvents="none">
+      <Animated.Image
+        source={source || require('./assets/petals.png')}
+        style={[styles.floatingPetalSmall, petal1Style]}
+        resizeMode="contain"
+      />
+      <Animated.Image
+        source={source || require('./assets/petals.png')}
+        style={[styles.floatingPetalBig, petal2Style]}
+        resizeMode="contain"
+      />
+    </Animated.View>
+  );
+};
+
+const FloatingBubbles = ({ scrollX, index, source }: any) => {
+  const yOffset1 = useSharedValue(0);
+  const yOffset2 = useSharedValue(0);
+
+  React.useEffect(() => {
+    yOffset1.value = withRepeat(
+      withSequence(
+        withTiming(-15, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    yOffset2.value = withDelay(1000, withRepeat(
+      withSequence(
+        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    ));
+  }, []);
+
+  const bubblesStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * width, index * width, (index + 0.5) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.5, 0, -width * 0.5],
+      Extrapolation.CLAMP
+    );
+    return { opacity, transform: [{ translateX }], zIndex: 30 };
+  });
+
+  const bubble1Style = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset1.value }] }));
+  const bubble2Style = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset2.value }] }));
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFillObject, bubblesStyle]} pointerEvents="none">
+      <Animated.Image
+        source={source || require('./assets/bubble.png')}
+        style={[styles.floatingBubbleLeft, bubble1Style]}
+        resizeMode="contain"
+      />
+      <Animated.Image
+        source={source || require('./assets/bubble.png')}
+        style={[styles.floatingBubbleRight, bubble2Style]}
+        resizeMode="contain"
+      />
+    </Animated.View>
+  );
+};
+
+const FloatingGoldenBubbles = ({ scrollX, index }: any) => {
+  const yOffset1 = useSharedValue(0);
+  const yOffset2 = useSharedValue(0);
+
+  React.useEffect(() => {
+    yOffset1.value = withRepeat(
+      withSequence(
+        withTiming(-15, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    yOffset2.value = withDelay(1000, withRepeat(
+      withSequence(
+        withTiming(-20, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    ));
+  }, []);
+
+  const bubblesStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * width, index * width, (index + 0.5) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.5, 0, -width * 0.5],
+      Extrapolation.CLAMP
+    );
+    return { opacity, transform: [{ translateX }], zIndex: 30 };
+  });
+
+  const b1 = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset1.value }] }));
+  const b2 = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset2.value }] }));
+  const b3 = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset1.value }] }));
+  const b4 = useAnimatedStyle(() => ({ transform: [{ translateY: yOffset2.value }] }));
+
+  // Flare animation
+  const flareStyle = useAnimatedStyle(() => {
+    // Pulse scale and opacity
+    const scale = interpolate(yOffset1.value, [-15, 0], [1.1, 0.9]);
+    const flareOpacity = interpolate(yOffset1.value, [-15, 0], [1, 0.7]);
+    return {
+      transform: [{ scale }],
+      opacity: flareOpacity,
+    };
+  });
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFillObject, bubblesStyle]} pointerEvents="none">
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG1, b1]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG2, b2]} resizeMode="contain" />
+
+      {/* Moving Realistic Lens Flare tied to the top-right of G2 */}
+      <Animated.View style={[styles.lensFlareContainer, b2, flareStyle]}>
+        <View style={styles.flareCenterHub}>
+          {/* Starburst rays */}
+          <View style={[styles.flareRay, { transform: [{ rotate: '0deg' }] }]} />
+          <View style={[styles.flareRay, { transform: [{ rotate: '90deg' }] }]} />
+          <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '45deg' }] }]} />
+          <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '-45deg' }] }]} />
+
+          {/* Bright Core */}
+          <View style={styles.flareCore} />
+        </View>
+      </Animated.View>
+
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG3, b3]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG4, b4]} resizeMode="contain" />
+    </Animated.View>
   );
 };
 
@@ -80,6 +280,7 @@ export default function App() {
   const scrollRef = React.useRef<any>(null);
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection'>('product');
 
   const handleIndexChange = (newIndex: number) => {
     setCurrentIndex((prev) => prev !== newIndex ? newIndex : prev);
@@ -92,49 +293,17 @@ export default function App() {
     },
   });
 
-  // Use native CSS radial gradients on Web for the ultimate smooth 2-color center outward look.
-  const bgAnimatedStyle = useAnimatedStyle(() => {
+  // Dynamic base floor shadow adapting to themes
+  const podiumShadowStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       scrollX.value,
       [0, width, width * 2],
-      [PRODUCTS[0].theme.bg, PRODUCTS[1].theme.bg, PRODUCTS[2].theme.bg]
+      ['rgba(0, 150, 255, 0.6)', 'rgba(255, 170, 0, 0.6)', 'rgba(255, 120, 150, 0.6)']
     );
     return { backgroundColor };
   });
 
-  const orb1Style = useAnimatedStyle(() => {
-    const translateX = interpolate(
-      scrollX.value,
-      [0, width, width * 2],
-      [width * 0.1, -width * 0.2, width * 0.3]
-    );
-    const backgroundColor = interpolateColor(
-      scrollX.value,
-      [0, width, width * 2],
-      [PRODUCTS[0].theme.glow1, PRODUCTS[1].theme.glow1, PRODUCTS[2].theme.glow1]
-    );
-    return { transform: [{ translateX }], backgroundColor };
-  });
-
-  const orb2Style = useAnimatedStyle(() => {
-    const translateX = interpolate(
-      scrollX.value,
-      [0, width, width * 2],
-      [-width * 0.2, width * 0.4, -width * 0.1]
-    );
-    const translateY = interpolate(
-      scrollX.value,
-      [0, width, width * 2],
-      [height * 0.1, -height * 0.2, height * 0.3]
-    );
-    const backgroundColor = interpolateColor(
-      scrollX.value,
-      [0, width, width * 2],
-      [PRODUCTS[0].theme.glow2, PRODUCTS[1].theme.glow2, PRODUCTS[2].theme.glow2]
-    );
-    return { transform: [{ translateX }, { translateY }], backgroundColor };
-  });
-
+  // Removed old animated radial gradients and orbs in favor of full-screen background images.
   const PageContent = ({ product, index }: any) => {
     const pageStyle = useAnimatedStyle(() => {
       const opacity = interpolate(
@@ -162,13 +331,13 @@ export default function App() {
 
         <Animated.View style={[styles.contentGrid, pageStyle]}>
           {/* Left Content (Text) */}
-          <View style={styles.leftCol}>
-            <Text style={[styles.title, { color: product.theme.accent }]}>{product.title}</Text>
-            <View style={styles.separator} />
-            <Text style={styles.subtitle}>{product.subtitle}</Text>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.size}>{product.size}</Text>
-            <Text style={styles.description}>{product.description}</Text>
+          <View style={[styles.leftCol, { alignItems: product.theme.alignClass as any }]}>
+            <Text style={[styles.title, { color: product.theme.accent, textAlign: product.theme.textAlign, textShadowColor: product.theme.shadow }]}>{product.title}</Text>
+            <View style={[styles.separator, { backgroundColor: product.theme.accent }]} />
+            <Text style={[styles.subtitle, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.subtitle}</Text>
+            <Text style={[styles.productName, { color: product.theme.text, textAlign: product.theme.textAlign }]}>{product.name}</Text>
+            <Text style={[styles.size, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.size}</Text>
+            <Text style={[styles.description, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.description}</Text>
           </View>
 
           {/* Center Space for Image to avoid overlap */}
@@ -201,20 +370,9 @@ export default function App() {
   };
 
   return (
-    <Animated.View style={[styles.container, bgAnimatedStyle]}>
+    <View style={styles.container}>
 
-      {/* GLOWING ORBS */}
-      <Animated.View style={[styles.glowOrb, styles.orb1, orb1Style]} />
-      <Animated.View style={[styles.glowOrb, styles.orb2, orb2Style]} />
-
-      {/* Fixed Radial Gradient Layers for Pages 1 and 2 (Eliminates Scroll Edge Tearing) */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {PRODUCTS.map((product, index) => (
-          <RadialBackground key={`bg-${product.id}`} product={product} index={index} scrollX={scrollX} />
-        ))}
-      </View>
-
-      {/* Navbar (Fixed) */}
+      {/* Navbar (Fixed - always visible) */}
       <View style={styles.navbar}>
         <Image
           source={require('./assets/logo.png')}
@@ -222,8 +380,12 @@ export default function App() {
           resizeMode="contain"
         />
         <View style={styles.navLinks}>
-          <Text style={styles.navLinkActive}>Product</Text>
-          <Text style={styles.navLink}>Collection</Text>
+          <TouchableOpacity onPress={() => setCurrentPage('product')}>
+            <Text style={currentPage === 'product' ? styles.navLinkActive : styles.navLink}>Product</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentPage('collection')}>
+            <Text style={currentPage === 'collection' ? styles.navLinkActive : styles.navLink}>Collection</Text>
+          </TouchableOpacity>
           <Text style={styles.navLink}>Our Story</Text>
           <Text style={styles.navLink}>Contact</Text>
         </View>
@@ -237,159 +399,266 @@ export default function App() {
         </View>
       </View>
 
-      {/* Main Horizontal Scrollable Area */}
-      <Animated.ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        style={StyleSheet.absoluteFill}
-      >
-        {PRODUCTS.map((product, index) => (
-          <PageContent key={product.id} product={product} index={index} />
-        ))}
-      </Animated.ScrollView>
+      {/* ===== PRODUCT PAGE ===== */}
+      {currentPage === 'product' && (
+        <>
+          {/* BACKGROUND IMAGES */}
+          <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+            {PRODUCTS.map((product, index) => (
+              <BackgroundImageLayer key={`bg-${product.id}`} product={product} index={index} scrollX={scrollX} />
+            ))}
+          </View>
 
-      {/* Shared Absolute Product Image Container */}
-      <View style={styles.centerProductWrapper} pointerEvents="none">
-        {PRODUCTS.map((product, index) => {
+          {/* FLOATING PETALS AND BUBBLES FOR FACE SERUM & NIGHT CREAM */}
+          <FloatingPetals scrollX={scrollX} index={0} source={require('./assets/blue_petals.png')} />
+          <FloatingBubbles scrollX={scrollX} index={0} source={require('./assets/blue_bubblu_kutti.png')} />
+          <FloatingGoldenBubbles scrollX={scrollX} index={1} />
+          <FloatingPetals scrollX={scrollX} index={2} />
+          <FloatingBubbles scrollX={scrollX} index={2} />
 
-          // Image Animation
-          const prodAnimatedStyle = useAnimatedStyle(() => {
-            const opacity = interpolate(
-              scrollX.value,
-              [(index - 0.7) * width, index * width, (index + 0.7) * width],
-              [0, 1, 0],
-              Extrapolation.CLAMP
-            );
+          {/* Main Horizontal Scrollable Area */}
+          <Animated.ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            style={StyleSheet.absoluteFill}
+          >
+            {PRODUCTS.map((product, index) => (
+              <PageContent key={product.id} product={product} index={index} />
+            ))}
+          </Animated.ScrollView>
 
-            const translateX = interpolate(
-              scrollX.value,
-              [(index - 1) * width, index * width, (index + 1) * width],
-              [width * 0.85, 0, -width * 0.85],
-              Extrapolation.CLAMP
-            );
+          {/* Shared Absolute Product Image Container */}
+          <View style={styles.centerProductWrapper} pointerEvents="none">
 
-            const rotate = interpolate(
-              scrollX.value,
-              [(index - 1) * width, index * width, (index + 1) * width],
-              [15, 0, -15],
-              Extrapolation.CLAMP
-            );
+            {/* STATIC CENTER PODIUM WITH DYNAMIC AMBIENT SHADOWS */}
+            <Animated.View style={[styles.podiumContainer]}>
+              <Animated.View style={[styles.podiumFloorShadow, podiumShadowStyle]} />
 
-            // Base scales for the 3 distinct items. Item 2 (Hair Serum) is enlarged significantly as requested.
-            const baseScales = [1, 1.35, 1];
-            const currentBaseScale = baseScales[index];
-
-            const scale = interpolate(
-              scrollX.value,
-              [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
-              [currentBaseScale * 0.4, currentBaseScale * 0.7, currentBaseScale, currentBaseScale * 0.7, currentBaseScale * 0.4],
-              Extrapolation.CLAMP
-            );
-
-            return {
-              opacity,
-              transform: [
-                { translateX },
-                { scale },
-                { rotate: `${rotate}deg` },
-              ]
-            };
-          });
-
-          // Accurate Realistic Shadow beneath the bottle
-          const shadowStyle = useAnimatedStyle(() => {
-            const opacity = interpolate(
-              scrollX.value,
-              [(index - 0.5) * width, index * width, (index + 0.5) * width],
-              [0, 0.7, 0],
-              Extrapolation.CLAMP
-            );
-
-            const translateX = interpolate(
-              scrollX.value,
-              [(index - 1) * width, index * width, (index + 1) * width],
-              [width * 0.85, 0, -width * 0.85],
-              Extrapolation.CLAMP
-            );
-
-            const scale = interpolate(
-              scrollX.value,
-              [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
-              [0.3, 0.6, 1, 0.6, 0.3],
-              Extrapolation.CLAMP
-            );
-
-            // Shift shadow slightly right to simulate lighting from top-left, and dynamic Y positioning based on bottle height
-            const translateYPositions = [height * 0.28, height * 0.35, height * 0.20]; // Product 2 needs lower shadow due to increased scale
-
-            return {
-              opacity,
-              transform: [
-                { translateX: translateX + 15 },
-                { translateY: translateYPositions[index] }, // Push right under the base of the image
-                { scaleX: scale * 1.5 },
-                { scaleY: scale * 0.25 }
-              ]
-            };
-          });
-
-          return (
-            <React.Fragment key={product.id}>
-              {/* Elliptical Shadow */}
-              <Animated.View style={[styles.productShadow, shadowStyle]} />
-
-              <Animated.Image
-                source={product.image}
-                style={[styles.productImage, prodAnimatedStyle]}
+              <Image
+                source={require('./assets/podium_custom.png')}
+                style={styles.podiumImage}
                 resizeMode="contain"
               />
-            </React.Fragment>
-          );
-        })}
-      </View>
+            </Animated.View>
 
-      {/* Global Foreground Glass Elements (Arrows) */}
-      <View style={styles.overlayControls} pointerEvents="box-none">
-        {currentIndex > 0 ? (
-          <View style={styles.navArrowWrapper}>
-            <TouchableOpacity
-              style={styles.navArrow}
-              onPress={() => {
-                const target = Math.max(0, Math.round(scrollX.value / width) - 1);
-                scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-              }}>
-              <ChevronLeft color="#fff" size={32} />
-            </TouchableOpacity>
+            {PRODUCTS.map((product, index) => {
+
+              // Image Animation
+              const prodAnimatedStyle = useAnimatedStyle(() => {
+                const opacity = interpolate(
+                  scrollX.value,
+                  [(index - 0.7) * width, index * width, (index + 0.7) * width],
+                  [0, 1, 0],
+                  Extrapolation.CLAMP
+                );
+
+                const translateX = interpolate(
+                  scrollX.value,
+                  [(index - 1) * width, index * width, (index + 1) * width],
+                  [width * 0.85, 0, -width * 0.85],
+                  Extrapolation.CLAMP
+                );
+
+                const rotate = interpolate(
+                  scrollX.value,
+                  [(index - 1) * width, index * width, (index + 1) * width],
+                  [15, 0, -15],
+                  Extrapolation.CLAMP
+                );
+
+                // Base scales for the 3 distinct items. Item 2 (Hair Serum) is enlarged significantly as requested.
+                const baseScales = [1, 1.35, 1];
+                const currentBaseScale = baseScales[index];
+
+                const scale = interpolate(
+                  scrollX.value,
+                  [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+                  [currentBaseScale * 0.4, currentBaseScale * 0.7, currentBaseScale, currentBaseScale * 0.7, currentBaseScale * 0.4],
+                  Extrapolation.CLAMP
+                );
+
+                // Fine-tuned Y-axis offsets per product to place them flush on top of the podium
+                // Moved UP to sit precisely on the marble line without cutting into the text.
+                const baseTranslateY = [height * -0.02, height * -0.01, height * 0.025][index];//product 1,2,3
+
+                // Nudging the first product slightly to the left relative to the center
+                const baseTranslateX = [-5, -20, -6][index];
+
+                return {
+                  opacity,
+                  transform: [
+                    { translateX: translateX + baseTranslateX },
+                    { translateY: baseTranslateY },
+                    { scale },
+                    { rotate: `${rotate}deg` },
+                  ]
+                };
+              });
+
+              // Accurate Realistic Shadow beneath the bottle
+              const shadowStyle = useAnimatedStyle(() => {
+                const opacity = interpolate(
+                  scrollX.value,
+                  [(index - 0.5) * width, index * width, (index + 0.5) * width],
+                  [0, 0.7, 0],
+                  Extrapolation.CLAMP
+                );
+
+                const translateX = interpolate(
+                  scrollX.value,
+                  [(index - 1) * width, index * width, (index + 1) * width],
+                  [width * 0.85, 0, -width * 0.85],
+                  Extrapolation.CLAMP
+                );
+
+                const scale = interpolate(
+                  scrollX.value,
+                  [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+                  [0.3, 0.6, 1, 0.6, 0.3],
+                  Extrapolation.CLAMP
+                );
+
+                // Accurate, extremely tight contact shadow perfectly mapped onto the podium surface
+                const translateYPositions = [height * 0.224, height * 0.225, height * 0.22];
+                const baseTranslateX = [-20, -2, -10][index];
+
+                // Show the contact shadow for all pages
+                // Night cream jar (index 2) is wider, so we scale X a bit more
+                const shadowScaleX = index === 2 ? scale * 1.1 : scale * 0.8;
+                const shadowScaleY = scale * 0.15;
+
+                return {
+                  opacity,
+                  transform: [
+                    { translateX: translateX + baseTranslateX },
+                    { translateY: translateYPositions[index] },
+                    { scaleX: shadowScaleX },
+                    { scaleY: shadowScaleY } // Flat tight contact shadow
+                  ]
+                };
+              });
+
+              return (
+                <React.Fragment key={product.id}>
+                  {/* Elliptical Shadow */}
+                  <Animated.View style={[styles.productShadow, shadowStyle]} />
+
+                  <Animated.Image
+                    source={product.image}
+                    style={[styles.productImage, prodAnimatedStyle]}
+                    resizeMode="contain"
+                  />
+                </React.Fragment>
+              );
+            })}
           </View>
-        ) : <View style={styles.navArrowHidden} />}
 
-        {currentIndex < PRODUCTS.length - 1 ? (
-          <View style={styles.navArrowWrapper}>
-            <TouchableOpacity
-              style={styles.navArrow}
-              onPress={() => {
-                const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
-                scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-              }}>
-              <ChevronRight color="#fff" size={32} />
-            </TouchableOpacity>
+          {/* Global Foreground Glass Elements (Arrows) */}
+          <View style={styles.overlayControls} pointerEvents="box-none">
+            {currentIndex > 0 ? (
+              <View style={styles.navArrowWrapper}>
+                <TouchableOpacity
+                  style={styles.navArrow}
+                  onPress={() => {
+                    const target = Math.max(0, Math.round(scrollX.value / width) - 1);
+                    scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                  }}>
+                  <ChevronLeft color="#fff" size={32} />
+                </TouchableOpacity>
+              </View>
+            ) : <View style={styles.navArrowHidden} />}
+
+            {currentIndex < PRODUCTS.length - 1 ? (
+              <View style={styles.navArrowWrapper}>
+                <TouchableOpacity
+                  style={styles.navArrow}
+                  onPress={() => {
+                    const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
+                    scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                  }}>
+                  <ChevronRight color="#fff" size={32} />
+                </TouchableOpacity>
+              </View>
+            ) : <View style={styles.navArrowHidden} />}
           </View>
-        ) : <View style={styles.navArrowHidden} />}
-      </View>
 
-      {/* Bottom Legal / Trust Footer */}
-      <View style={styles.footer} pointerEvents="none">
-        <Sparkles color="#ffffff" size={16} style={{ marginRight: 8, opacity: 0.5 }} />
-        <Text style={styles.footerText}>
-          Dermal-Grade Botanical Formula. ISO & GMP Certified. Made in India.
-        </Text>
-      </View>
+          {/* Bottom Legal / Trust Footer */}
+          <View style={styles.footer} pointerEvents="none">
+            <Sparkles color="#ffffff" size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+            <Text style={styles.footerText}>
+              Dermal-Grade Botanical Formula. ISO & GMP Certified. Made in India.
+            </Text>
+          </View>
+        </>
+      )}
 
-    </Animated.View>
+      {/* ===== COLLECTION PAGE ===== */}
+      {currentPage === 'collection' && (
+        <ScrollView style={cStyles.collectionScroll} contentContainerStyle={cStyles.collectionContent}>
+          {/* Hero Section */}
+          <View style={cStyles.heroSection}>
+            <View style={cStyles.heroGoldLine} />
+            <Text style={cStyles.heroLabel}>DALUXE SKINCARE</Text>
+            <Text style={cStyles.heroTitle}>The Collection</Text>
+            <Text style={cStyles.heroSubtitle}>Dermal-Grade Botanical Formulas crafted for luminous, healthy skin.</Text>
+            <View style={cStyles.heroGoldLine} />
+          </View>
+
+          {/* Product Grid */}
+          <View style={cStyles.productGrid}>
+            {PRODUCTS.map((product, index) => (
+              <TouchableOpacity
+                key={product.id}
+                style={cStyles.productCard}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setCurrentPage('product');
+                  setTimeout(() => {
+                    scrollRef.current?.scrollTo({ x: index * width, y: 0, animated: false });
+                    setCurrentIndex(index);
+                  }, 100);
+                }}
+              >
+                {/* Card glow accent */}
+                <View style={[cStyles.cardGlow, { backgroundColor: product.theme.shadow }]} />
+
+                {/* Product Image */}
+                <View style={cStyles.cardImageWrapper}>
+                  <Image source={product.image} style={cStyles.cardImage} resizeMode="contain" />
+                </View>
+
+                {/* Card Info */}
+                <View style={cStyles.cardInfo}>
+                  <Text style={cStyles.cardCategory}>{product.subtitle}</Text>
+                  <Text style={cStyles.cardName}>{product.name}</Text>
+                  <View style={cStyles.cardDivider} />
+                  <Text style={cStyles.cardDesc} numberOfLines={2}>{product.description}</Text>
+                  <View style={cStyles.cardFooter}>
+                    <Text style={cStyles.cardPrice}>{product.price}</Text>
+                    <View style={cStyles.cardBtn}>
+                      <Text style={cStyles.cardBtnText}>View</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Bottom Trust Footer */}
+          <View style={cStyles.collectionFooter}>
+            <Sparkles color="#C9A84C" size={16} style={{ marginRight: 8, opacity: 0.7 }} />
+            <Text style={cStyles.collectionFooterText}>
+              Dermal-Grade Botanical Formula. ISO & GMP Certified. Made in India.
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
+    </View>
   );
 }
 
@@ -397,32 +666,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    overflow: 'hidden',
   },
-  glowOrb: {
-    position: 'absolute',
-    borderRadius: 9999,
-    opacity: 0.8,
-    ...Platform.select({ web: { filter: 'blur(150px)' } })
-  },
-  orb1: {
-    width: width * 0.6,
-    height: width * 0.6,
-    top: '-10%',
-    left: '-10%',
-  },
-  orb2: {
-    width: width * 0.5,
-    height: width * 0.5,
-    bottom: '-10%',
-    right: '-5%',
-  },
+
   navbar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 100,
+    zIndex: 1000,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -505,7 +756,6 @@ const styles = StyleSheet.create({
     lineHeight: 78,
     marginBottom: 20,
     letterSpacing: -2,
-    textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 10,
   },
@@ -652,6 +902,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
+    transform: [{ translateX: 40 }], // Shifted slightly right to balance the text on the left
+  },
+  podiumContainer: {
+    position: 'absolute',
+    top: height * 0.60, // Positioned solidly in the lower half of the viewport
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  podiumImage: {
+    width: width * 0.65, // Slight width increase to support the squash
+    height: width * 0.65 * (468 / 1380),
+    maxWidth: 550,
+    maxHeight: 550 * (468 / 1380),
+    transform: [{ scaleY: 0.85 }] // Squashes the 3D cylinder to correctly match the bottle camera perspective angle
+  },
+  podiumFloorShadow: {
+    position: 'absolute',
+    bottom: -15, // Sit just underneath the podium visually
+    width: width * 0.5,
+    maxWidth: 420,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: '#000',
+    ...Platform.select({ web: { filter: 'blur(30px)' } }),
+    opacity: 0.8, // Slightly stronger for depth blending
   },
   productImage: {
     position: 'absolute',
@@ -661,11 +936,11 @@ const styles = StyleSheet.create({
   },
   productShadow: {
     position: 'absolute',
-    width: 250,
-    height: 50,
+    width: 180, // Tighter width for contact point
+    height: 40,
     backgroundColor: '#000000',
     borderRadius: 999,
-    ...Platform.select({ web: { filter: 'blur(20px)' } }),
+    ...Platform.select({ web: { filter: 'blur(10px)' } }), // Sharper blur for physical contact
   },
   overlayControls: {
     position: 'absolute',
@@ -707,6 +982,290 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     opacity: 0.5,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  floatingPetalSmall: {
+    position: 'absolute',
+    left: '33%',
+    top: '53%',
+    width: 180,
+    height: 180,
+    opacity: 0.85,
+  },
+  floatingPetalBig: {
+    position: 'absolute',
+    right: '23%',
+    top: '20%',
+    width: 290,
+    height: 290,
+    opacity: 0.95,
+    transform: [{ rotate: '15deg' }],
+  },
+  floatingBubbleLeft: {
+    position: 'absolute',
+    left: '29%',
+    top: '20%',
+    width: 300,
+    height: 300,
+    opacity: 0.9,
+  },
+  floatingBubbleRight: {
+    position: 'absolute',
+    right: '29.9%',
+    top: '59%',
+    width: 190,
+    height: 190,
+    opacity: 0.95,
+    zIndex: 9999,
+    ...Platform.select({ web: { filter: 'blur(0.9px)' } }),
+  },
+  floatingBubbleG1: {
+    position: 'absolute',
+    left: '55%',
+    top: '12%',
+    width: 150,
+    height: 150,
+    opacity: 0.9,
+    ...Platform.select({ web: { filter: 'blur(0.9px)' } }),
+  },
+  floatingBubbleG2: {
+    position: 'absolute',
+    right: '48%',
+    top: '22%',
+    width: 240,
+    height: 240,
+    opacity: 0.95,
+    zIndex: 35,
+    ...Platform.select({ web: { filter: 'blur(0.5px)' } }),
+  },
+  floatingBubbleG3: {
+    position: 'absolute',
+    left: '29%',
+    top: '43%',
+    width: 310,
+    height: 310,
+    opacity: 0.85,
+  },
+  floatingBubbleG4: {
+    position: 'absolute',
+    right: '31%',
+    top: '62%',
+    width: 200,
+    height: 200,
+    opacity: 0.9,
+    zIndex: 40,
+    ...Platform.select({ web: { filter: 'blur(0.9px)' } }),
+  },
+  lensFlareContainer: {
+    position: 'absolute',
+    right: '48%',
+    top: '22%',
+    width: 240,
+    height: 240,
+    zIndex: 50,
+  },
+  flareCenterHub: {
+    position: 'absolute',
+    top: 98,
+    right: 105, // Target the top right curve of the glowing gold bubble
+    width: 0,
+    height: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  flareCore: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+    ...Platform.select({ web: { filter: 'blur(2px)' } }),
+  },
+  flareRay: {
+    position: 'absolute',
+    width: 250,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    ...Platform.select({ web: { filter: 'blur(1px)' } }),
+  },
+
+});
+
+// ===== COLLECTION PAGE STYLES =====
+const cStyles = StyleSheet.create({
+  collectionScroll: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0a0a0a',
+    zIndex: 10,
+  },
+  collectionContent: {
+    paddingTop: Platform.OS === 'web' ? 120 : 140,
+    paddingBottom: 60,
+    alignItems: 'center',
+  },
+  heroSection: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  heroGoldLine: {
+    width: 80,
+    height: 2,
+    backgroundColor: '#C9A84C',
+    marginVertical: 20,
+    borderRadius: 1,
+  },
+  heroLabel: {
+    color: '#C9A84C',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 6,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 56,
+    fontWeight: '800',
+    letterSpacing: -2,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+    fontWeight: '300',
+    textAlign: 'center',
+    maxWidth: 500,
+    lineHeight: 24,
+  },
+  productGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 30,
+    paddingHorizontal: 40,
+    maxWidth: 1200,
+  },
+  productCard: {
+    width: 340,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px)',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        cursor: 'pointer',
+      }
+    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    elevation: 15,
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: -40,
+    left: '50%',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    opacity: 0.15,
+    ...Platform.select({ web: { filter: 'blur(60px)' } }),
+  },
+  cardImageWrapper: {
+    height: 320,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 30,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  cardImage: {
+    width: '70%',
+    height: '90%',
+  },
+  cardInfo: {
+    padding: 24,
+    gap: 8,
+  },
+  cardCategory: {
+    color: '#C9A84C',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    opacity: 0.9,
+  },
+  cardName: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 3,
+  },
+  cardDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: 'rgba(201,168,76,0.4)',
+    marginVertical: 8,
+    borderRadius: 1,
+  },
+  cardDesc: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '300',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  cardPrice: {
+    color: '#ffffff',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  cardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+  },
+  cardBtnText: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  collectionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 60,
+    paddingVertical: 20,
+  },
+  collectionFooterText: {
+    color: 'rgba(201,168,76,0.5)',
+    fontSize: 12,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
