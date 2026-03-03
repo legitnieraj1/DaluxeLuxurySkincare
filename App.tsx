@@ -15,6 +15,7 @@ import Animated, {
   Easing
 } from 'react-native-reanimated';
 import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
+import CollectionPage from './CollectionPage';
 
 const { height, width } = Dimensions.get('window');
 
@@ -598,64 +599,15 @@ export default function App() {
 
       {/* ===== COLLECTION PAGE ===== */}
       {currentPage === 'collection' && (
-        <ScrollView style={cStyles.collectionScroll} contentContainerStyle={cStyles.collectionContent}>
-          {/* Hero Section */}
-          <View style={cStyles.heroSection}>
-            <View style={cStyles.heroGoldLine} />
-            <Text style={cStyles.heroLabel}>DALUXE SKINCARE</Text>
-            <Text style={cStyles.heroTitle}>The Collection</Text>
-            <Text style={cStyles.heroSubtitle}>Dermal-Grade Botanical Formulas crafted for luminous, healthy skin.</Text>
-            <View style={cStyles.heroGoldLine} />
-          </View>
-
-          {/* Product Grid */}
-          <View style={cStyles.productGrid}>
-            {PRODUCTS.map((product, index) => (
-              <TouchableOpacity
-                key={product.id}
-                style={cStyles.productCard}
-                activeOpacity={0.85}
-                onPress={() => {
-                  setCurrentPage('product');
-                  setTimeout(() => {
-                    scrollRef.current?.scrollTo({ x: index * width, y: 0, animated: false });
-                    setCurrentIndex(index);
-                  }, 100);
-                }}
-              >
-                {/* Card glow accent */}
-                <View style={[cStyles.cardGlow, { backgroundColor: product.theme.shadow }]} />
-
-                {/* Product Image */}
-                <View style={cStyles.cardImageWrapper}>
-                  <Image source={product.image} style={cStyles.cardImage} resizeMode="contain" />
-                </View>
-
-                {/* Card Info */}
-                <View style={cStyles.cardInfo}>
-                  <Text style={cStyles.cardCategory}>{product.subtitle}</Text>
-                  <Text style={cStyles.cardName}>{product.name}</Text>
-                  <View style={cStyles.cardDivider} />
-                  <Text style={cStyles.cardDesc} numberOfLines={2}>{product.description}</Text>
-                  <View style={cStyles.cardFooter}>
-                    <Text style={cStyles.cardPrice}>{product.price}</Text>
-                    <View style={cStyles.cardBtn}>
-                      <Text style={cStyles.cardBtnText}>View</Text>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Bottom Trust Footer */}
-          <View style={cStyles.collectionFooter}>
-            <Sparkles color="#C9A84C" size={16} style={{ marginRight: 8, opacity: 0.7 }} />
-            <Text style={cStyles.collectionFooterText}>
-              Dermal-Grade Botanical Formula. ISO & GMP Certified. Made in India.
-            </Text>
-          </View>
-        </ScrollView>
+        <CollectionPage
+          onNavigateToProduct={(index: number) => {
+            setCurrentPage('product');
+            setTimeout(() => {
+              scrollRef.current?.scrollTo({ x: index * width, y: 0, animated: false });
+              setCurrentIndex(index);
+            }, 100);
+          }}
+        />
       )}
 
     </View>
@@ -1097,176 +1049,3 @@ const styles = StyleSheet.create({
 
 });
 
-// ===== COLLECTION PAGE STYLES =====
-const cStyles = StyleSheet.create({
-  collectionScroll: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#0a0a0a',
-    zIndex: 10,
-  },
-  collectionContent: {
-    paddingTop: Platform.OS === 'web' ? 120 : 140,
-    paddingBottom: 60,
-    alignItems: 'center',
-  },
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  heroGoldLine: {
-    width: 80,
-    height: 2,
-    backgroundColor: '#C9A84C',
-    marginVertical: 20,
-    borderRadius: 1,
-  },
-  heroLabel: {
-    color: '#C9A84C',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 6,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    color: '#ffffff',
-    fontSize: 56,
-    fontWeight: '800',
-    letterSpacing: -2,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 16,
-    fontWeight: '300',
-    textAlign: 'center',
-    maxWidth: 500,
-    lineHeight: 24,
-  },
-  productGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 30,
-    paddingHorizontal: 40,
-    maxWidth: 1200,
-  },
-  productCard: {
-    width: 340,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        backdropFilter: 'blur(20px)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        cursor: 'pointer',
-      }
-    }),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 40,
-    elevation: 15,
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: -40,
-    left: '50%',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    opacity: 0.15,
-    ...Platform.select({ web: { filter: 'blur(60px)' } }),
-  },
-  cardImageWrapper: {
-    height: 320,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 30,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-  },
-  cardImage: {
-    width: '70%',
-    height: '90%',
-  },
-  cardInfo: {
-    padding: 24,
-    gap: 8,
-  },
-  cardCategory: {
-    color: '#C9A84C',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    opacity: 0.9,
-  },
-  cardName: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: 3,
-  },
-  cardDivider: {
-    width: 40,
-    height: 2,
-    backgroundColor: 'rgba(201,168,76,0.4)',
-    marginVertical: 8,
-    borderRadius: 1,
-  },
-  cardDesc: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '300',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  cardPrice: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  cardBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-  },
-  cardBtnText: {
-    color: '#000',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  collectionFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 60,
-    paddingVertical: 20,
-  },
-  collectionFooterText: {
-    color: 'rgba(201,168,76,0.5)',
-    fontSize: 12,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-});
