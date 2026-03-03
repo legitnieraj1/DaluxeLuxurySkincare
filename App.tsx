@@ -277,6 +277,181 @@ const FloatingGoldenBubbles = ({ scrollX, index }: any) => {
   );
 };
 
+const PageContent = ({ product, index, scrollX }: any) => {
+  const pageStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.6) * width, index * width, (index + 0.6) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [80, 0, -80],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      opacity,
+      transform: [{ translateX }],
+    };
+  });
+
+  return (
+    <View style={[styles.pageContainer, { width }]}>
+
+      <Animated.View style={[styles.contentGrid, pageStyle]}>
+        {/* Left Content (Text) */}
+        <View style={[styles.leftCol, { alignItems: product.theme.alignClass as any }]}>
+          <Text style={[styles.title, { color: product.theme.accent, textAlign: product.theme.textAlign, textShadowColor: product.theme.shadow }]}>{product.title}</Text>
+          <View style={[styles.separator, { backgroundColor: product.theme.accent }]} />
+          <Text style={[styles.subtitle, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.subtitle}</Text>
+          <Text style={[styles.productName, { color: product.theme.text, textAlign: product.theme.textAlign }]}>{product.name}</Text>
+          <Text style={[styles.size, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.size}</Text>
+          <Text style={[styles.description, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.description}</Text>
+        </View>
+
+        {/* Center Space for Image to avoid overlap */}
+        <View style={styles.centerSpace} />
+
+        {/* Right Content (E-Commerce Actions) - Aligned to corner per request */}
+        <View style={styles.rightCol}>
+          <View style={styles.rightContentWrapper}>
+            <View style={styles.benefitsContainer}>
+              {product.benefits.map((benefit: string, i: number) => (
+                <View key={i} style={styles.benefitRow}>
+                  <Sparkles color={product.theme.accent} size={14} style={{ marginRight: 8 }} />
+                  <Text style={styles.benefitText}>{benefit}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.priceActionGroup}>
+              <Text style={[styles.price, { color: product.theme.accent }]}>{product.price}</Text>
+
+              <TouchableOpacity style={styles.buyBtn}>
+                <Text style={styles.buyBtnText}>Purchase Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Animated.View>
+    </View>
+  );
+};
+
+const ProductItem = ({ product, index, scrollX }: any) => {
+  // Image Animation
+  const prodAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.7) * width, index * width, (index + 0.7) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.85, 0, -width * 0.85],
+      Extrapolation.CLAMP
+    );
+
+    const rotate = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [15, 0, -15],
+      Extrapolation.CLAMP
+    );
+
+    // Base scales for the 3 distinct items. Item 2 (Hair Serum) is enlarged significantly as requested.
+    const baseScales = [1, 1.35, 1];
+    const currentBaseScale = baseScales[index];
+
+    const scale = interpolate(
+      scrollX.value,
+      [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+      [currentBaseScale * 0.4, currentBaseScale * 0.7, currentBaseScale, currentBaseScale * 0.7, currentBaseScale * 0.4],
+      Extrapolation.CLAMP
+    );
+
+    // Fine-tuned Y-axis offsets per product to place them flush on top of the podium
+    // Moved UP to sit precisely on the marble line without cutting into the text.
+    const baseTranslateY = [height * -0.02, height * -0.01, height * 0.025][index];//product 1,2,3
+
+    // Nudging the first product slightly to the left relative to the center
+    const baseTranslateX = [-5, -20, -6][index];
+
+    return {
+      opacity,
+      transform: [
+        { translateX: translateX + baseTranslateX },
+        { translateY: baseTranslateY },
+        { scale },
+        { rotate: `${rotate}deg` },
+      ]
+    };
+  });
+
+  // Accurate Realistic Shadow beneath the bottle
+  const shadowStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * width, index * width, (index + 0.5) * width],
+      [0, 0.7, 0],
+      Extrapolation.CLAMP
+    );
+
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.85, 0, -width * 0.85],
+      Extrapolation.CLAMP
+    );
+
+    const scale = interpolate(
+      scrollX.value,
+      [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+      [0.3, 0.6, 1, 0.6, 0.3],
+      Extrapolation.CLAMP
+    );
+
+    // Accurate, extremely tight contact shadow perfectly mapped onto the podium surface
+    const translateYPositions = [height * 0.224, height * 0.225, height * 0.22];
+    const baseTranslateX = [-20, -2, -10][index];
+
+    // Show the contact shadow for all pages
+    // Night cream jar (index 2) is wider, so we scale X a bit more
+    const shadowScaleX = index === 2 ? scale * 1.1 : scale * 0.8;
+    const shadowScaleY = scale * 0.15;
+
+    return {
+      opacity,
+      transform: [
+        { translateX: translateX + baseTranslateX },
+        { translateY: translateYPositions[index] },
+        { scaleX: shadowScaleX },
+        { scaleY: shadowScaleY } // Flat tight contact shadow
+      ]
+    };
+  });
+
+  return (
+    <React.Fragment key={product.id}>
+      {/* Elliptical Shadow */}
+      <Animated.View style={[styles.productShadow, shadowStyle]} />
+
+      <Animated.Image
+        source={product.image}
+        style={[styles.productImage, prodAnimatedStyle]}
+        resizeMode="contain"
+      />
+    </React.Fragment>
+  );
+};
+
 export default function App() {
   const scrollRef = React.useRef<any>(null);
   const scrollX = useSharedValue(0);
@@ -303,72 +478,6 @@ export default function App() {
     );
     return { backgroundColor };
   });
-
-  // Removed old animated radial gradients and orbs in favor of full-screen background images.
-  const PageContent = ({ product, index }: any) => {
-    const pageStyle = useAnimatedStyle(() => {
-      const opacity = interpolate(
-        scrollX.value,
-        [(index - 0.6) * width, index * width, (index + 0.6) * width],
-        [0, 1, 0],
-        Extrapolation.CLAMP
-      );
-
-      const translateX = interpolate(
-        scrollX.value,
-        [(index - 1) * width, index * width, (index + 1) * width],
-        [80, 0, -80],
-        Extrapolation.CLAMP
-      );
-
-      return {
-        opacity,
-        transform: [{ translateX }],
-      };
-    });
-
-    return (
-      <View style={[styles.pageContainer, { width }]}>
-
-        <Animated.View style={[styles.contentGrid, pageStyle]}>
-          {/* Left Content (Text) */}
-          <View style={[styles.leftCol, { alignItems: product.theme.alignClass as any }]}>
-            <Text style={[styles.title, { color: product.theme.accent, textAlign: product.theme.textAlign, textShadowColor: product.theme.shadow }]}>{product.title}</Text>
-            <View style={[styles.separator, { backgroundColor: product.theme.accent }]} />
-            <Text style={[styles.subtitle, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.subtitle}</Text>
-            <Text style={[styles.productName, { color: product.theme.text, textAlign: product.theme.textAlign }]}>{product.name}</Text>
-            <Text style={[styles.size, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.size}</Text>
-            <Text style={[styles.description, { color: product.theme.subText, textAlign: product.theme.textAlign }]}>{product.description}</Text>
-          </View>
-
-          {/* Center Space for Image to avoid overlap */}
-          <View style={styles.centerSpace} />
-
-          {/* Right Content (E-Commerce Actions) - Aligned to corner per request */}
-          <View style={styles.rightCol}>
-            <View style={styles.rightContentWrapper}>
-              <View style={styles.benefitsContainer}>
-                {product.benefits.map((benefit: string, i: number) => (
-                  <View key={i} style={styles.benefitRow}>
-                    <Sparkles color={product.theme.accent} size={14} style={{ marginRight: 8 }} />
-                    <Text style={styles.benefitText}>{benefit}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.priceActionGroup}>
-                <Text style={[styles.price, { color: product.theme.accent }]}>{product.price}</Text>
-
-                <TouchableOpacity style={styles.buyBtn}>
-                  <Text style={styles.buyBtnText}>Purchase Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -428,7 +537,7 @@ export default function App() {
             style={StyleSheet.absoluteFill}
           >
             {PRODUCTS.map((product, index) => (
-              <PageContent key={product.id} product={product} index={index} />
+              <PageContent key={product.id} product={product} index={index} scrollX={scrollX} />
             ))}
           </Animated.ScrollView>
 
@@ -446,116 +555,9 @@ export default function App() {
               />
             </Animated.View>
 
-            {PRODUCTS.map((product, index) => {
-
-              // Image Animation
-              const prodAnimatedStyle = useAnimatedStyle(() => {
-                const opacity = interpolate(
-                  scrollX.value,
-                  [(index - 0.7) * width, index * width, (index + 0.7) * width],
-                  [0, 1, 0],
-                  Extrapolation.CLAMP
-                );
-
-                const translateX = interpolate(
-                  scrollX.value,
-                  [(index - 1) * width, index * width, (index + 1) * width],
-                  [width * 0.85, 0, -width * 0.85],
-                  Extrapolation.CLAMP
-                );
-
-                const rotate = interpolate(
-                  scrollX.value,
-                  [(index - 1) * width, index * width, (index + 1) * width],
-                  [15, 0, -15],
-                  Extrapolation.CLAMP
-                );
-
-                // Base scales for the 3 distinct items. Item 2 (Hair Serum) is enlarged significantly as requested.
-                const baseScales = [1, 1.35, 1];
-                const currentBaseScale = baseScales[index];
-
-                const scale = interpolate(
-                  scrollX.value,
-                  [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
-                  [currentBaseScale * 0.4, currentBaseScale * 0.7, currentBaseScale, currentBaseScale * 0.7, currentBaseScale * 0.4],
-                  Extrapolation.CLAMP
-                );
-
-                // Fine-tuned Y-axis offsets per product to place them flush on top of the podium
-                // Moved UP to sit precisely on the marble line without cutting into the text.
-                const baseTranslateY = [height * -0.02, height * -0.01, height * 0.025][index];//product 1,2,3
-
-                // Nudging the first product slightly to the left relative to the center
-                const baseTranslateX = [-5, -20, -6][index];
-
-                return {
-                  opacity,
-                  transform: [
-                    { translateX: translateX + baseTranslateX },
-                    { translateY: baseTranslateY },
-                    { scale },
-                    { rotate: `${rotate}deg` },
-                  ]
-                };
-              });
-
-              // Accurate Realistic Shadow beneath the bottle
-              const shadowStyle = useAnimatedStyle(() => {
-                const opacity = interpolate(
-                  scrollX.value,
-                  [(index - 0.5) * width, index * width, (index + 0.5) * width],
-                  [0, 0.7, 0],
-                  Extrapolation.CLAMP
-                );
-
-                const translateX = interpolate(
-                  scrollX.value,
-                  [(index - 1) * width, index * width, (index + 1) * width],
-                  [width * 0.85, 0, -width * 0.85],
-                  Extrapolation.CLAMP
-                );
-
-                const scale = interpolate(
-                  scrollX.value,
-                  [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
-                  [0.3, 0.6, 1, 0.6, 0.3],
-                  Extrapolation.CLAMP
-                );
-
-                // Accurate, extremely tight contact shadow perfectly mapped onto the podium surface
-                const translateYPositions = [height * 0.224, height * 0.225, height * 0.22];
-                const baseTranslateX = [-20, -2, -10][index];
-
-                // Show the contact shadow for all pages
-                // Night cream jar (index 2) is wider, so we scale X a bit more
-                const shadowScaleX = index === 2 ? scale * 1.1 : scale * 0.8;
-                const shadowScaleY = scale * 0.15;
-
-                return {
-                  opacity,
-                  transform: [
-                    { translateX: translateX + baseTranslateX },
-                    { translateY: translateYPositions[index] },
-                    { scaleX: shadowScaleX },
-                    { scaleY: shadowScaleY } // Flat tight contact shadow
-                  ]
-                };
-              });
-
-              return (
-                <React.Fragment key={product.id}>
-                  {/* Elliptical Shadow */}
-                  <Animated.View style={[styles.productShadow, shadowStyle]} />
-
-                  <Animated.Image
-                    source={product.image}
-                    style={[styles.productImage, prodAnimatedStyle]}
-                    resizeMode="contain"
-                  />
-                </React.Fragment>
-              );
-            })}
+            {PRODUCTS.map((product, index) => (
+              <ProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
+            ))}
           </View>
 
           {/* Global Foreground Glass Elements (Arrows) */}
