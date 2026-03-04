@@ -26,6 +26,8 @@ import Animated, {
   FadeOut,
   SlideInRight,
   SlideOutRight,
+  interpolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -333,8 +335,9 @@ const IconForType = ({ type, color, size = 18 }: { type: string; color: string; 
 // ════════════════════════════════════════════════
 // COLLECTION HERO SPLASH
 // ════════════════════════════════════════════════
-const CollectionHero = () => {
+const CollectionHero = ({ scrollY }: { scrollY?: any }) => {
   const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.1);
 
   useEffect(() => {
     // Subtle, luxurious slow-breathing zoom
@@ -346,10 +349,30 @@ const CollectionHero = () => {
       -1,
       true
     );
+    // Floating light reflection effect opacity drift
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.4, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.1, { duration: 6000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+  const animatedStyle = useAnimatedStyle(() => {
+    // Parallax scroll effect: The image moves down slower than the page scroll
+    const translateY = scrollY ? interpolate(scrollY.value, [-200, 0, 1000], [-100, 0, 400], Extrapolation.CLAMP) : 0;
+    return {
+      transform: [
+        { translateY },
+        { scale: scale.value }
+      ],
+    };
+  });
+
+  const reflectionStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
   }));
 
   return (
@@ -360,15 +383,30 @@ const CollectionHero = () => {
           style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: 'center' } as any })]}
           resizeMode="cover"
         />
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.1)' }]} pointerEvents="none" />
+        {/* Cinematic Vignette Overlays */}
+        {/* Soft edge darkening */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.15)', 'transparent', 'transparent', 'rgba(0,0,0,0.2)']}
+          locations={[0, 0.2, 0.8, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        {/* Light overlay for overall readability */}
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.05)' }]} pointerEvents="none" />
+
+        {/* Animated Light Reflection overlays - feeling "alive" */}
+        <Animated.View style={[StyleSheet.absoluteFillObject, g.lightReflectionLayer, reflectionStyle]} pointerEvents="none" />
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={g.splashTextContent}>
-        <Text style={g.splashOverline}>DISCOVER</Text>
-        <Text style={g.splashTitle}>THE D A LUXE COLLECTION</Text>
-        <Text style={g.splashSubtitle}>
-          Dermal-Grade Botanical Skincare{'\n'}Designed for Sensitive Perfection.
-        </Text>
+      <Animated.View entering={FadeInUp.delay(300).duration(1000)} style={g.splashTextContent}>
+        {/* Glassmorphism backing behind text */}
+        <View style={g.glassBackdrop}>
+          <Text style={g.splashOverline}>DISCOVER</Text>
+          <Text style={g.splashTitle}>THE D A LUXE COLLECTION</Text>
+          <Text style={g.splashSubtitle}>
+            Dermal-Grade Botanical Skincare{'\n'}Designed for Sensitive Perfection.
+          </Text>
+        </View>
       </Animated.View>
     </View>
   );
@@ -382,16 +420,18 @@ const CollectionGrid = ({
   setActiveCategory,
   products,
   onSelectProduct,
+  scrollY,
 }: {
   activeCategory: string;
   setActiveCategory: (c: string) => void;
   products: ProductType[];
   onSelectProduct: (p: ProductType) => void;
+  scrollY?: any;
 }) => {
   return (
     <>
       {/* Splash Hero Introduction */}
-      <CollectionHero />
+      <CollectionHero scrollY={scrollY} />
 
       {/* Hero */}
       <View style={g.hero}>
@@ -404,16 +444,19 @@ const CollectionGrid = ({
         {/* Category Selector */}
         <Animated.View entering={FadeInUp.delay(300).duration(500)} style={g.categoryRow}>
           {CATEGORIES.map((cat) => (
-            <TouchableOpacity
+            <Pressable
               key={cat.id}
-              style={[g.categoryBtn, activeCategory === cat.id && g.categoryBtnActive]}
+              style={({ hovered }: any) => [
+                g.categoryBtn,
+                activeCategory === cat.id && g.categoryBtnActive,
+                hovered && activeCategory !== cat.id && Platform.OS === 'web' && g.categoryBtnHovered,
+              ]}
               onPress={() => setActiveCategory(cat.id)}
-              activeOpacity={0.7}
             >
               <Text style={[g.categoryBtnText, activeCategory === cat.id && g.categoryBtnTextActive]}>
                 {cat.label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </Animated.View>
       </View>
@@ -912,6 +955,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY }: Collect
             setActiveCategory={setActiveCategory}
             products={filteredProducts}
             onSelectProduct={openProduct}
+            scrollY={scrollY}
           />
         )}
 
@@ -998,35 +1042,49 @@ const g = StyleSheet.create({
   },
   splashTextContent: {
     position: 'absolute',
-    top: '55%', // pushed right down to the lower center
-
+    top: '50%', // Re-positioned for the glass bounding box
     left: 0,
     right: 0,
     alignItems: 'center',
     paddingHorizontal: 20,
     zIndex: 10,
   },
+  glassBackdrop: {
+    paddingVertical: 40,
+    paddingHorizontal: 50,
+    borderRadius: 8,
+    backgroundColor: 'rgba(250, 247, 242, 0.45)', // very soft cream glass
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    ...Platform.select({ web: { backdropFilter: 'blur(10px)', boxShadow: '0 8px 32px rgba(0,0,0,0.06)' } as any }),
+  },
+  lightReflectionLayer: {
+    backgroundColor: 'rgba(255, 250, 240, 0.3)', // Warm soft amber light layer
+    ...Platform.select({ web: { filter: 'blur(60px)', background: 'radial-gradient(circle at 60% 40%, rgba(255, 230, 200, 0.6) 0%, transparent 60%)' } as any }),
+  },
   splashOverline: {
     color: '#333333',
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 10,
-    marginBottom: 16,
+    fontSize: 13,
+    fontWeight: '400',
+    letterSpacing: 12, // High fashion editorial spacing
+    marginBottom: 20,
     textAlign: 'center',
   },
   splashTitle: {
     color: '#1a1a1a',
-    fontSize: Platform.OS === 'web' && SW > 768 ? 54 : 36,
+    fontSize: Platform.OS === 'web' && SW > 768 ? 58 : 36, // Slightly larger elegant
     fontWeight: '300',
-    letterSpacing: 4,
+    letterSpacing: 8, // Wider letter spacing for high fashion look
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
     ...Platform.select({ web: { fontFamily: SERIF } as any }),
   },
   splashSubtitle: {
-    color: '#444444',
-    fontSize: 16,
+    color: '#333',
+    fontSize: 15,
     fontWeight: '300',
+    letterSpacing: 1,
     lineHeight: 28,
     textAlign: 'center',
     maxWidth: 500,
@@ -1034,12 +1092,13 @@ const g = StyleSheet.create({
 
   hero: {
     width: '100%', alignItems: 'center',
-    paddingVertical: 30, paddingHorizontal: 40,
+    paddingVertical: 60, // Increased for breathable empty space
+    paddingHorizontal: 40,
   },
-  heroInner: { alignItems: 'center' },
+  heroInner: { alignItems: 'center', marginVertical: 20 },
   heroGoldLine: {
-    width: 60, height: 1.5, backgroundColor: GOLD,
-    marginVertical: 14, borderRadius: 1,
+    width: 80, height: 1, backgroundColor: GOLD, // Thinner, more elegant
+    marginVertical: 20, borderRadius: 1,
   },
   heroLabel: {
     color: GOLD, fontSize: 14, fontWeight: '500',
@@ -1056,38 +1115,74 @@ const g = StyleSheet.create({
   },
   categoryRow: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
-    gap: 8, marginTop: 28,
+    gap: 12, marginTop: 35, marginBottom: 20
   },
   categoryBtn: {
-    paddingHorizontal: 22, paddingVertical: 10, borderRadius: 0,
-    borderWidth: 1, borderColor: BORDER,
-    ...Platform.select({ web: { cursor: 'pointer', transition: 'all 0.2s ease' } as any }),
+    paddingHorizontal: 28, paddingVertical: 12, borderRadius: 30, // Luxury Pill
+    backgroundColor: 'rgba(255,255,255,0.7)', // Frosted glass surface
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.03)',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+      } as any
+    }),
+  },
+  categoryBtnHovered: {
+    ...Platform.select({
+      web: {
+        transform: 'translateY(-3px)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+      } as any
+    }),
+    backgroundColor: '#fff',
   },
   categoryBtnActive: {
-    backgroundColor: TEXT_PRIMARY, borderColor: TEXT_PRIMARY,
+    backgroundColor: '#1a1a1a',
+    borderColor: '#1a1a1a',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 20px rgba(10,10,10,0.2)'
+      } as any
+    }),
   },
   categoryBtnText: {
-    color: TEXT_SECONDARY, fontSize: 11, fontWeight: '500', letterSpacing: 2,
+    color: TEXT_MUTED, fontSize: 11, fontWeight: '500', letterSpacing: 2,
   },
   categoryBtnTextActive: { color: WHITE },
 
   grid: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
-    gap: 24, paddingHorizontal: 40, maxWidth: 1300,
-    alignSelf: 'center', width: '100%', marginTop: 20,
+    gap: 32, // Increase gap for more high-fashion breathable space
+    paddingHorizontal: 40, maxWidth: 1300,
+    alignSelf: 'center', width: '100%', marginTop: 30, marginBottom: 60,
   },
   card: {
-    width: 290, backgroundColor: WHITE, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.04)',
-    ...Platform.select({ web: { cursor: 'pointer', transition: 'all 0.3s ease' } as any }),
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 16, elevation: 3,
+    width: 290, backgroundColor: WHITE, overflow: 'visible', // Visible overflow to let shadows bloom out
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 8, // Soft bounding box curve
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)' // Super smooth easing
+      } as any
+    }),
+    shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.03, shadowRadius: 30, elevation: 3,
   },
   cardHovered: {
-    ...Platform.select({ web: { boxShadow: '0 12px 40px rgba(0,0,0,0.08)' } as any }),
-    borderColor: GOLD_BORDER,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 25px 50px rgba(0,0,0,0.06)',
+        transform: 'translateY(-6px) scale(1.02)'
+      } as any
+    }),
+    borderColor: 'transparent',
   },
   cardImageArea: {
     height: 320, justifyContent: 'center', alignItems: 'center',
+    borderTopLeftRadius: 8, borderTopRightRadius: 8,
   },
   cardImage: { width: '55%', height: '80%' },
   cardInfo: {
