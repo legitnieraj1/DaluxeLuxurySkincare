@@ -134,6 +134,7 @@ const COLLECTION_PRODUCTS = [
       { text: 'Perfect for sensitive skin! Cleans well without any dryness or tightness.', author: 'Ananya R.', rating: 5 },
       { text: 'Light gel formula that hydrates and gives a fresh radiant look every morning.', author: 'Deepika S.', rating: 5 },
     ],
+    storyImage: require('./assets/facewash_story.jpg'),
   },
   {
     id: 'hairserum',
@@ -308,7 +309,7 @@ const COLLECTION_PRODUCTS = [
   },
 ];
 
-type ProductType = typeof COLLECTION_PRODUCTS[0];
+type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any };
 type CartItem = { product: ProductType; quantity: number };
 
 const CATEGORIES = [
@@ -573,9 +574,9 @@ const ProductLandingPage = ({
 
         <View style={d.heroRow}>
           {/* Product Image */}
-          <Animated.View entering={FadeInLeft.duration(500)} style={d.heroImageCol}>
-            <View style={[d.heroImageBg, { backgroundColor: product.themeBg }]}>
-              <Image source={product.image} style={d.heroImage} resizeMode="contain" />
+          <Animated.View entering={FadeInLeft.duration(600).delay(100)} style={d.heroImageCol}>
+            <View style={[d.heroImageBg, { backgroundColor: 'transparent', overflow: 'hidden' }]}>
+              <Image source={product.image} style={[d.heroImage, { width: '100%', height: '100%' }]} resizeMode="cover" />
             </View>
           </Animated.View>
 
@@ -634,8 +635,8 @@ const ProductLandingPage = ({
 
       {/* ── Section 3: Product Story ── */}
       <View style={d.storySection}>
-        <View style={[d.storyImageCol, { backgroundColor: product.themeBg }]}>
-          <Image source={product.image} style={d.storyImage} resizeMode="contain" />
+        <View style={[d.storyImageCol, { backgroundColor: 'transparent' }]}>
+          <Image source={product.storyImage || product.image} style={d.storyImage} resizeMode="cover" />
         </View>
         <View style={d.storyTextCol}>
           <Text style={d.storyTitle}>{product.storyTitle}</Text>
@@ -1259,8 +1260,9 @@ const d = StyleSheet.create({
   heroImageCol: { flex: 1, minWidth: 300, maxWidth: 480 },
   heroImageBg: {
     width: '100%', aspectRatio: 0.85, justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden', borderRadius: 8,
   },
-  heroImage: { width: '60%', height: '80%' },
+  heroImage: { width: '100%', height: '100%' },
   heroInfoCol: { flex: 1, minWidth: 300, paddingTop: 20 },
   heroSubtitle: {
     color: TEXT_MUTED, fontSize: 11, fontWeight: '500',
@@ -1332,8 +1334,9 @@ const d = StyleSheet.create({
   storyImageCol: {
     flex: 1, minWidth: 300, minHeight: 400,
     justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
   },
-  storyImage: { width: '45%', height: '70%' },
+  storyImage: { width: '100%', height: '100%' },
   storyTextCol: {
     flex: 1, minWidth: 300, padding: 60, justifyContent: 'center',
     backgroundColor: WHITE,
