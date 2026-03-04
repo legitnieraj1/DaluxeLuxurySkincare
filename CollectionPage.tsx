@@ -357,7 +357,7 @@ const CollectionHero = () => {
       <Animated.View style={[g.splashImageWrapper, animatedStyle]}>
         <Image
           source={require('./assets/splash_hero.jpg')}
-          style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: '80% 50%' } as any })]}
+          style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: 'center' } as any })]}
           resizeMode="cover"
         />
       </Animated.View>
@@ -957,7 +957,7 @@ const main = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingTop: Platform.OS === 'web' ? 110 : 130,
+    paddingTop: 0, // Removed padding so hero reaches the top under transparent navbar
   },
   floatingCart: {
     position: 'absolute', bottom: 100, right: 30, zIndex: 100,
@@ -997,7 +997,7 @@ const g = StyleSheet.create({
   },
   splashTextContent: {
     position: 'absolute',
-    top: '12%',
+    top: '20%', // pushed further down to clear the transparent navbar
     left: 0,
     right: 0,
     alignItems: 'center',

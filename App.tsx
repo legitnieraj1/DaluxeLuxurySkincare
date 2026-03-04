@@ -641,7 +641,7 @@ export default function App() {
     <View style={styles.container}>
 
       {/* Navbar (Fixed - always visible) */}
-      <View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'rgba(250,247,242,0.97)', ...Platform.select({ web: { backdropFilter: 'blur(16px)' } }) }]}>
+      <View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }]}>
         <Image
           source={require('./assets/logo.png')}
           style={isMobile ? mobileStyles.logo : styles.logo}
