@@ -476,8 +476,8 @@ const CollectionGrid = ({
               onPress={() => onSelectProduct(product)}
             >
               {/* Product Image */}
-              <View style={[g.cardImageArea, { backgroundColor: product.themeBg }]}>
-                <Image source={product.image} style={g.cardImage} resizeMode="contain" />
+              <View style={[g.cardImageArea, { backgroundColor: 'transparent' }]}>
+                <Image source={product.image} style={g.cardImage} resizeMode="cover" />
               </View>
 
               {/* Card Info */}
@@ -1182,9 +1182,9 @@ const g = StyleSheet.create({
   },
   cardImageArea: {
     height: 320, justifyContent: 'center', alignItems: 'center',
-    borderTopLeftRadius: 8, borderTopRightRadius: 8,
+    borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden'
   },
-  cardImage: { width: '55%', height: '80%' },
+  cardImage: { width: '100%', height: '100%' },
   cardInfo: {
     padding: 24, alignItems: 'center',
   },
