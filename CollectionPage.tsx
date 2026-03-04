@@ -379,7 +379,7 @@ const CollectionHero = ({ scrollY }: { scrollY?: any }) => {
     <View style={g.splashHeroContainer}>
       <Animated.View style={[g.splashImageWrapper, animatedStyle]}>
         <Image
-          source={require('./assets/splash_hero.jpg')}
+          source={require('./assets/hero_background_new.jpg')}
           style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: 'center' } as any })]}
           resizeMode="cover"
         />
