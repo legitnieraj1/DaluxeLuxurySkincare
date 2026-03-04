@@ -360,6 +360,7 @@ const CollectionHero = () => {
           style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: 'center' } as any })]}
           resizeMode="cover"
         />
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.1)' }]} pointerEvents="none" />
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(300).duration(800)} style={g.splashTextContent}>
