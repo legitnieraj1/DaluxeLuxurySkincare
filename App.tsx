@@ -14,10 +14,11 @@ import Animated, {
   withDelay,
   Easing
 } from 'react-native-reanimated';
-import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
+import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X } from 'lucide-react-native';
 import CollectionPage from './CollectionPage';
 
 const { height, width } = Dimensions.get('window');
+const isMobile = width < 768;
 
 const PRODUCTS = [
   {
@@ -277,6 +278,59 @@ const FloatingGoldenBubbles = ({ scrollX, index }: any) => {
   );
 };
 
+const MobilePageContent = ({ product, index, scrollX }: any) => {
+  const pageStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.6) * width, index * width, (index + 0.6) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [60, 0, -60],
+      Extrapolation.CLAMP
+    );
+    return { opacity, transform: [{ translateX }] };
+  });
+
+  return (
+    <View style={[mobileStyles.pageContainer, { width }]}>
+      <Animated.View style={[mobileStyles.contentWrapper, pageStyle]}>
+        {/* Top Text Section */}
+        <View style={mobileStyles.topTextSection}>
+          <Text style={[mobileStyles.title, { color: product.theme.accent, textShadowColor: product.theme.shadow }]}>{product.title}</Text>
+          <View style={[mobileStyles.separator, { backgroundColor: product.theme.accent }]} />
+          <Text style={[mobileStyles.subtitle, { color: product.theme.subText }]}>{product.subtitle}</Text>
+          <Text style={[mobileStyles.productName, { color: product.theme.text }]}>{product.name}</Text>
+          <Text style={[mobileStyles.size, { color: product.theme.subText }]}>{product.size}</Text>
+        </View>
+
+        {/* Spacer for product image area */}
+        <View style={mobileStyles.imageSpace} />
+
+        {/* Bottom Section - Benefits, Description, Price, Button */}
+        <View style={mobileStyles.bottomSection}>
+          <View style={mobileStyles.benefitsContainer}>
+            {product.benefits.map((benefit: string, i: number) => (
+              <View key={i} style={mobileStyles.benefitRow}>
+                <Sparkles color={product.theme.accent} size={12} style={{ marginRight: 8 }} />
+                <Text style={[mobileStyles.benefitText, { color: product.theme.subText }]}>{benefit}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[mobileStyles.description, { color: product.theme.subText }]}>{product.description}</Text>
+          <Text style={[mobileStyles.price, { color: product.theme.accent }]}>{product.price}</Text>
+          <TouchableOpacity style={mobileStyles.buyBtn}>
+            <Text style={mobileStyles.buyBtnText}>Purchase Now</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </View>
+  );
+};
+
 const PageContent = ({ product, index, scrollX }: any) => {
   const pageStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
@@ -339,6 +393,53 @@ const PageContent = ({ product, index, scrollX }: any) => {
         </View>
       </Animated.View>
     </View>
+  );
+};
+
+const MobileProductItem = ({ product, index, scrollX }: any) => {
+  const prodAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.7) * width, index * width, (index + 0.7) * width],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.7, 0, -width * 0.7],
+      Extrapolation.CLAMP
+    );
+    const rotate = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [12, 0, -12],
+      Extrapolation.CLAMP
+    );
+    const baseScales = [0.85, 1.1, 0.85];
+    const currentBaseScale = baseScales[index];
+    const scale = interpolate(
+      scrollX.value,
+      [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+      [currentBaseScale * 0.3, currentBaseScale * 0.6, currentBaseScale, currentBaseScale * 0.6, currentBaseScale * 0.3],
+      Extrapolation.CLAMP
+    );
+    return {
+      opacity,
+      transform: [
+        { translateX },
+        { scale },
+        { rotate: `${rotate}deg` },
+      ]
+    };
+  });
+
+  return (
+    <Animated.Image
+      source={product.image}
+      style={[mobileStyles.productImage, prodAnimatedStyle]}
+      resizeMode="contain"
+    />
   );
 };
 
@@ -457,6 +558,7 @@ export default function App() {
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState<'product' | 'collection'>('product');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleIndexChange = (newIndex: number) => {
     setCurrentIndex((prev) => prev !== newIndex ? newIndex : prev);
@@ -485,23 +587,32 @@ export default function App() {
     <View style={styles.container}>
 
       {/* Navbar (Fixed - always visible) */}
-      <View style={[styles.navbar, isCollection && { backgroundColor: 'rgba(250,247,242,0.97)', ...Platform.select({ web: { backdropFilter: 'blur(16px)' } }) }]}>
+      <View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'rgba(250,247,242,0.97)', ...Platform.select({ web: { backdropFilter: 'blur(16px)' } }) }]}>
         <Image
           source={require('./assets/logo.png')}
-          style={styles.logo}
+          style={isMobile ? mobileStyles.logo : styles.logo}
           resizeMode="contain"
         />
-        <View style={[styles.navLinks, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
-          <TouchableOpacity onPress={() => setCurrentPage('product')}>
-            <Text style={currentPage === 'product' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setCurrentPage('collection')}>
-            <Text style={currentPage === 'collection' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Collection</Text>
-          </TouchableOpacity>
-          <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Our Story</Text>
-          <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Contact</Text>
-        </View>
-        <View style={styles.navIcons}>
+        {/* Desktop nav links */}
+        {!isMobile && (
+          <View style={[styles.navLinks, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+            <TouchableOpacity onPress={() => setCurrentPage('product')}>
+              <Text style={currentPage === 'product' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setCurrentPage('collection')}>
+              <Text style={currentPage === 'collection' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Collection</Text>
+            </TouchableOpacity>
+            <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Our Story</Text>
+            <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Contact</Text>
+          </View>
+        )}
+        {/* Mobile + Desktop right icons */}
+        <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
+          {isMobile && (
+            <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]} onPress={() => setMenuOpen(!menuOpen)}>
+              {menuOpen ? <X color={isCollection ? '#1a1a1a' : '#fff'} size={20} /> : <Menu color={isCollection ? '#1a1a1a' : '#fff'} size={20} />}
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
             <User color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
@@ -510,6 +621,30 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Mobile Menu Overlay */}
+      {isMobile && menuOpen && (
+        <View style={mobileStyles.menuOverlay}>
+          <View style={mobileStyles.menuContent}>
+            {(['product', 'collection', 'our-story', 'contact'] as const).map((page) => {
+              const label = page === 'product' ? 'PRODUCT' : page === 'collection' ? 'COLLECTION' : page === 'our-story' ? 'OUR STORY' : 'CONTACT';
+              return (
+                <TouchableOpacity
+                  key={page}
+                  onPress={() => {
+                    if (page === 'product') setCurrentPage('product');
+                    else if (page === 'collection') setCurrentPage('collection');
+                    setMenuOpen(false);
+                  }}
+                  style={mobileStyles.menuItem}
+                >
+                  <Text style={mobileStyles.menuItemText}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* ===== PRODUCT PAGE ===== */}
       {currentPage === 'product' && (
@@ -538,64 +673,85 @@ export default function App() {
             scrollEventThrottle={16}
             style={StyleSheet.absoluteFill}
           >
-            {PRODUCTS.map((product, index) => (
-              <PageContent key={product.id} product={product} index={index} scrollX={scrollX} />
-            ))}
+            {PRODUCTS.map((product, index) =>
+              isMobile
+                ? <MobilePageContent key={product.id} product={product} index={index} scrollX={scrollX} />
+                : <PageContent key={product.id} product={product} index={index} scrollX={scrollX} />
+            )}
           </Animated.ScrollView>
 
           {/* Shared Absolute Product Image Container */}
-          <View style={styles.centerProductWrapper} pointerEvents="none">
+          <View style={isMobile ? mobileStyles.centerProductWrapper : styles.centerProductWrapper} pointerEvents="none">
 
-            {/* STATIC CENTER PODIUM WITH DYNAMIC AMBIENT SHADOWS */}
-            <Animated.View style={[styles.podiumContainer]}>
-              <Animated.View style={[styles.podiumFloorShadow, podiumShadowStyle]} />
-
-              <Image
-                source={require('./assets/podium_custom.png')}
-                style={styles.podiumImage}
-                resizeMode="contain"
-              />
-            </Animated.View>
-
-            {PRODUCTS.map((product, index) => (
-              <ProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
-            ))}
+            {isMobile ? (
+              <>
+                {/* Mobile: Podium + Products */}
+                <Animated.View style={[mobileStyles.podiumContainer]}>
+                  <Animated.View style={[mobileStyles.podiumFloorShadow, podiumShadowStyle]} />
+                  <Image
+                    source={require('./assets/podium_custom.png')}
+                    style={mobileStyles.podiumImage}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+                {PRODUCTS.map((product, index) => (
+                  <MobileProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Desktop: Original Podium + Products */}
+                <Animated.View style={[styles.podiumContainer]}>
+                  <Animated.View style={[styles.podiumFloorShadow, podiumShadowStyle]} />
+                  <Image
+                    source={require('./assets/podium_custom.png')}
+                    style={styles.podiumImage}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+                {PRODUCTS.map((product, index) => (
+                  <ProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
+                ))}
+              </>
+            )}
           </View>
 
-          {/* Global Foreground Glass Elements (Arrows) */}
-          <View style={styles.overlayControls} pointerEvents="box-none">
-            {currentIndex > 0 ? (
-              <View style={styles.navArrowWrapper}>
-                <TouchableOpacity
-                  style={styles.navArrow}
-                  onPress={() => {
-                    const target = Math.max(0, Math.round(scrollX.value / width) - 1);
-                    scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-                  }}>
-                  <ChevronLeft color="#fff" size={32} />
-                </TouchableOpacity>
-              </View>
-            ) : <View style={styles.navArrowHidden} />}
+          {/* Global Foreground Glass Elements (Arrows) - Desktop only */}
+          {!isMobile && (
+            <View style={styles.overlayControls} pointerEvents="box-none">
+              {currentIndex > 0 ? (
+                <View style={styles.navArrowWrapper}>
+                  <TouchableOpacity
+                    style={styles.navArrow}
+                    onPress={() => {
+                      const target = Math.max(0, Math.round(scrollX.value / width) - 1);
+                      scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                    }}>
+                    <ChevronLeft color="#fff" size={32} />
+                  </TouchableOpacity>
+                </View>
+              ) : <View style={styles.navArrowHidden} />}
 
-            {currentIndex < PRODUCTS.length - 1 ? (
-              <View style={styles.navArrowWrapper}>
-                <TouchableOpacity
-                  style={styles.navArrow}
-                  onPress={() => {
-                    const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
-                    scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-                  }}>
-                  <ChevronRight color="#fff" size={32} />
-                </TouchableOpacity>
-              </View>
-            ) : <View style={styles.navArrowHidden} />}
-          </View>
+              {currentIndex < PRODUCTS.length - 1 ? (
+                <View style={styles.navArrowWrapper}>
+                  <TouchableOpacity
+                    style={styles.navArrow}
+                    onPress={() => {
+                      const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
+                      scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                    }}>
+                    <ChevronRight color="#fff" size={32} />
+                  </TouchableOpacity>
+                </View>
+              ) : <View style={styles.navArrowHidden} />}
+            </View>
+          )}
 
           {/* Bottom Legal / Trust Footer */}
-          <View style={styles.footer} pointerEvents="none">
-            <Sparkles color="#ffffff" size={16} style={{ marginRight: 8, opacity: 0.5 }} />
-            <Text style={styles.footerText}>
-              Dermal-Grade Botanical Formula. ISO & GMP Certified. Made in India.
+          <View style={isMobile ? mobileStyles.footer : styles.footer} pointerEvents="none">
+            <Sparkles color="#ffffff" size={isMobile ? 12 : 16} style={{ marginRight: 8, opacity: 0.5 }} />
+            <Text style={isMobile ? mobileStyles.footerText : styles.footerText}>
+              Dermal-Grade Botanical Formula, ISO & GMP Certified. Made in India.
             </Text>
           </View>
         </>
@@ -1051,5 +1207,226 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { filter: 'blur(1px)' } }),
   },
 
+});
+
+// ========================
+// MOBILE STYLES
+// ========================
+const mobileStyles = StyleSheet.create({
+  navbar: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'web' ? 16 : 50,
+    paddingBottom: 12,
+  },
+  logo: {
+    height: 48,
+    width: 100,
+  },
+  navIcons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+
+  // Mobile menu overlay
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    ...Platform.select({ web: { backdropFilter: 'blur(12px)' } }),
+  },
+  menuContent: {
+    paddingTop: 110,
+    paddingLeft: 30,
+  },
+  menuItem: {
+    marginBottom: 12,
+  },
+  menuItemText: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+
+  // Mobile page content (vertical layout)
+  pageContainer: {
+    height: '100%',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 90,
+    paddingBottom: 50,
+  },
+  topTextSection: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 10,
+  },
+  title: {
+    fontSize: 44,
+    fontWeight: '800',
+    lineHeight: 50,
+    marginBottom: 12,
+    letterSpacing: -1,
+    textAlign: 'center',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 8,
+  },
+  separator: {
+    width: 40,
+    height: 3,
+    marginBottom: 14,
+    borderRadius: 2,
+  },
+  subtitle: {
+    fontSize: 12,
+    fontWeight: '400',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  productName: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 3,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  size: {
+    fontSize: 11,
+    opacity: 0.7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  imageSpace: {
+    flex: 1,
+    minHeight: height * 0.28,
+  },
+  bottomSection: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    zIndex: 10,
+  },
+  benefitsContainer: {
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  benefitText: {
+    fontSize: 15,
+    fontWeight: '400',
+    opacity: 0.95,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    opacity: 0.85,
+    marginBottom: 20,
+    maxWidth: 320,
+    fontWeight: '300',
+  },
+  price: {
+    fontSize: 38,
+    fontWeight: '800',
+    marginBottom: 16,
+    letterSpacing: -1,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 8,
+  },
+  buyBtn: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 36,
+    paddingVertical: 16,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  buyBtnText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+
+  // Mobile product image
+  centerProductWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  productImage: {
+    position: 'absolute',
+    height: height * 0.42,
+    width: width * 0.65,
+    top: height * 0.22,
+  },
+  podiumContainer: {
+    position: 'absolute',
+    top: height * 0.52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  podiumImage: {
+    width: width * 0.75,
+    height: width * 0.75 * (468 / 1380),
+    transform: [{ scaleY: 0.85 }],
+  },
+  podiumFloorShadow: {
+    position: 'absolute',
+    bottom: -10,
+    width: width * 0.6,
+    height: 30,
+    borderRadius: 999,
+    ...Platform.select({ web: { filter: 'blur(20px)' } }),
+    opacity: 0.7,
+  },
+
+  // Mobile footer
+  footer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  footerText: {
+    color: '#ffffff',
+    fontSize: 9,
+    opacity: 0.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
 });
 
