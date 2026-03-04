@@ -357,7 +357,7 @@ const CollectionHero = () => {
       <Animated.View style={[g.splashImageWrapper, animatedStyle]}>
         <Image
           source={require('./assets/splash_hero.jpg')}
-          style={StyleSheet.absoluteFillObject as any}
+          style={[{ width: '100%', height: '100%' }, Platform.select({ web: { objectPosition: '80% 50%' } as any })]}
           resizeMode="cover"
         />
       </Animated.View>
@@ -369,7 +369,7 @@ const CollectionHero = () => {
         pointerEvents="none"
       />
 
-      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={g.splashTextContent}>
+      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={[g.splashTextContent, { top: 60 }]}>
         <Text style={g.splashOverline}>DISCOVER</Text>
         <Text style={g.splashTitle}>THE D A LUXE COLLECTION</Text>
         <Text style={g.splashSubtitle}>
@@ -981,20 +981,28 @@ const main = StyleSheet.create({
 const g = StyleSheet.create({
   splashHeroContainer: {
     width: '100%',
-    height: Math.min(SH * 0.65, 800), // Cinematic height
+    height: Math.min(SH * 0.7, 850), // Cinematic height adjusted to fit text slightly better
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
   },
   splashImageWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   splashTextContent: {
+    position: 'absolute',
+    top: '12%',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     paddingHorizontal: 20,
     zIndex: 10,
-    marginTop: 60, // Push content slightly down into the gradient
   },
   splashOverline: {
     color: '#333333',
