@@ -128,12 +128,12 @@ const FloatingPetals = ({ scrollX, index, source }: any) => {
     <Animated.View style={[StyleSheet.absoluteFillObject, petalsStyle]} pointerEvents="none">
       <Animated.Image
         source={source || require('./assets/petals.png')}
-        style={[styles.floatingPetalSmall, petal1Style]}
+        style={[isMobile ? mobileStyles.floatingPetalSmall : styles.floatingPetalSmall, petal1Style]}
         resizeMode="contain"
       />
       <Animated.Image
         source={source || require('./assets/petals.png')}
-        style={[styles.floatingPetalBig, petal2Style]}
+        style={[isMobile ? mobileStyles.floatingPetalBig : styles.floatingPetalBig, petal2Style]}
         resizeMode="contain"
       />
     </Animated.View>
@@ -186,12 +186,12 @@ const FloatingBubbles = ({ scrollX, index, source }: any) => {
     <Animated.View style={[StyleSheet.absoluteFillObject, bubblesStyle]} pointerEvents="none">
       <Animated.Image
         source={source || require('./assets/bubble.png')}
-        style={[styles.floatingBubbleLeft, bubble1Style]}
+        style={[isMobile ? mobileStyles.floatingBubbleLeft : styles.floatingBubbleLeft, bubble1Style]}
         resizeMode="contain"
       />
       <Animated.Image
         source={source || require('./assets/bubble.png')}
-        style={[styles.floatingBubbleRight, bubble2Style]}
+        style={[isMobile ? mobileStyles.floatingBubbleRight : styles.floatingBubbleRight, bubble2Style]}
         resizeMode="contain"
       />
     </Animated.View>
@@ -255,25 +255,27 @@ const FloatingGoldenBubbles = ({ scrollX, index }: any) => {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFillObject, bubblesStyle]} pointerEvents="none">
-      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG1, b1]} resizeMode="contain" />
-      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG2, b2]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[isMobile ? mobileStyles.floatingBubbleG1 : styles.floatingBubbleG1, b1]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[isMobile ? mobileStyles.floatingBubbleG2 : styles.floatingBubbleG2, b2]} resizeMode="contain" />
 
       {/* Moving Realistic Lens Flare tied to the top-right of G2 */}
-      <Animated.View style={[styles.lensFlareContainer, b2, flareStyle]}>
-        <View style={styles.flareCenterHub}>
-          {/* Starburst rays */}
-          <View style={[styles.flareRay, { transform: [{ rotate: '0deg' }] }]} />
-          <View style={[styles.flareRay, { transform: [{ rotate: '90deg' }] }]} />
-          <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '45deg' }] }]} />
-          <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '-45deg' }] }]} />
+      {!isMobile && (
+        <Animated.View style={[styles.lensFlareContainer, b2, flareStyle]}>
+          <View style={styles.flareCenterHub}>
+            {/* Starburst rays */}
+            <View style={[styles.flareRay, { transform: [{ rotate: '0deg' }] }]} />
+            <View style={[styles.flareRay, { transform: [{ rotate: '90deg' }] }]} />
+            <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '45deg' }] }]} />
+            <View style={[styles.flareRay, { width: 140, opacity: 0.6, transform: [{ rotate: '-45deg' }] }]} />
 
-          {/* Bright Core */}
-          <View style={styles.flareCore} />
-        </View>
-      </Animated.View>
+            {/* Bright Core */}
+            <View style={styles.flareCore} />
+          </View>
+        </Animated.View>
+      )}
 
-      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG3, b3]} resizeMode="contain" />
-      <Animated.Image source={require('./assets/bubble_gold.png')} style={[styles.floatingBubbleG4, b4]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[isMobile ? mobileStyles.floatingBubbleG3 : styles.floatingBubbleG3, b3]} resizeMode="contain" />
+      <Animated.Image source={require('./assets/bubble_gold.png')} style={[isMobile ? mobileStyles.floatingBubbleG4 : styles.floatingBubbleG4, b4]} resizeMode="contain" />
     </Animated.View>
   );
 };
@@ -1259,115 +1261,118 @@ const mobileStyles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     position: 'relative',
+    overflow: 'hidden',
   },
   contentWrapper: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 90,
-    paddingBottom: 50,
+    justifyContent: 'flex-start',
+    paddingTop: 84,
   },
   topTextSection: {
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     zIndex: 10,
+    width: '100%',
   },
   title: {
-    fontSize: 44,
+    fontSize: 48,
     fontWeight: '800',
-    lineHeight: 50,
-    marginBottom: 12,
+    lineHeight: 52,
+    marginBottom: 8,
     letterSpacing: -1,
     textAlign: 'center',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 8,
   },
   separator: {
-    width: 40,
-    height: 3,
-    marginBottom: 14,
-    borderRadius: 2,
+    width: 0,
+    height: 0,
+    marginBottom: 0,
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: '400',
+    fontSize: 14,
+    fontWeight: '500',
     letterSpacing: 3,
     textTransform: 'uppercase',
     marginBottom: 6,
     textAlign: 'center',
   },
   productName: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '800',
     letterSpacing: 3,
-    marginBottom: 6,
+    marginBottom: 8,
     textAlign: 'center',
   },
   size: {
-    fontSize: 11,
+    fontSize: 13,
     opacity: 0.7,
     letterSpacing: 2,
     textTransform: 'uppercase',
     textAlign: 'center',
   },
   imageSpace: {
-    flex: 1,
-    minHeight: height * 0.28,
+    width: '100%',
+    height: height * 0.35,
   },
   bottomSection: {
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
     zIndex: 10,
+    width: '100%',
   },
   benefitsContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
     alignItems: 'flex-start',
   },
   benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   benefitText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '400',
     opacity: 0.95,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 26,
     textAlign: 'center',
     opacity: 0.85,
-    marginBottom: 20,
+    marginBottom: 28,
     maxWidth: 320,
-    fontWeight: '300',
+    fontWeight: '400',
   },
   price: {
-    fontSize: 38,
+    fontSize: 46,
     fontWeight: '800',
-    marginBottom: 16,
+    marginBottom: 22,
     letterSpacing: -1,
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 8,
+    textShadowRadius: 6,
   },
   buyBtn: {
     backgroundColor: '#ffffff',
-    paddingHorizontal: 36,
-    paddingVertical: 16,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
     borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 8,
+    width: '80%',
+    alignItems: 'center',
   },
   buyBtnText: {
     color: '#000000',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
 
@@ -1378,35 +1383,105 @@ const mobileStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     zIndex: 20,
   },
   productImage: {
     position: 'absolute',
-    height: height * 0.42,
-    width: width * 0.65,
-    top: height * 0.22,
+    height: height * 0.32,
+    width: width * 0.55,
+    top: height * 0.34,
   },
   podiumContainer: {
     position: 'absolute',
-    top: height * 0.52,
+    top: height * 0.55,
     alignItems: 'center',
     justifyContent: 'center',
   },
   podiumImage: {
-    width: width * 0.75,
-    height: width * 0.75 * (468 / 1380),
+    width: width * 0.65,
+    height: width * 0.65 * (468 / 1380),
     transform: [{ scaleY: 0.85 }],
   },
   podiumFloorShadow: {
     position: 'absolute',
-    bottom: -10,
-    width: width * 0.6,
-    height: 30,
+    bottom: -6,
+    width: width * 0.5,
+    height: 20,
     borderRadius: 999,
-    ...Platform.select({ web: { filter: 'blur(20px)' } }),
+    ...Platform.select({ web: { filter: 'blur(16px)' } }),
+    opacity: 0.6,
+  },
+
+  // ---- Mobile Floating Elements Isolation ----
+  floatingPetalSmall: {
+    position: 'absolute',
+    left: '10%',
+    top: '25%',
+    width: 100,
+    height: 100,
+    opacity: 0.6,
+  },
+  floatingPetalBig: {
+    position: 'absolute',
+    right: '5%',
+    top: '40%',
+    width: 140,
+    height: 140,
     opacity: 0.7,
+    transform: [{ rotate: '15deg' }],
+  },
+  floatingBubbleLeft: {
+    position: 'absolute',
+    left: '5%',
+    top: '15%',
+    width: 150,
+    height: 150,
+    opacity: 0.8,
+  },
+  floatingBubbleRight: {
+    position: 'absolute',
+    right: '5%',
+    top: '50%',
+    width: 110,
+    height: 110,
+    opacity: 0.8,
+    zIndex: 9999,
+  },
+  floatingBubbleG1: {
+    position: 'absolute',
+    left: '8%',
+    top: '18%',
+    width: 100,
+    height: 100,
+    opacity: 0.8,
+  },
+  floatingBubbleG2: {
+    position: 'absolute',
+    right: '5%',
+    top: '45%',
+    width: 130,
+    height: 130,
+    opacity: 0.85,
+    zIndex: 35,
+  },
+  floatingBubbleG3: {
+    position: 'absolute',
+    left: '10%',
+    top: '55%',
+    width: 150,
+    height: 150,
+    opacity: 0.7,
+  },
+  floatingBubbleG4: {
+    position: 'absolute',
+    right: '12%',
+    top: '70%',
+    width: 120,
+    height: 120,
+    opacity: 0.8,
+    zIndex: 40,
   },
 
   // Mobile footer
