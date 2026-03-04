@@ -331,6 +331,56 @@ const IconForType = ({ type, color, size = 18 }: { type: string; color: string; 
 };
 
 // ════════════════════════════════════════════════
+// COLLECTION HERO SPLASH
+// ════════════════════════════════════════════════
+const CollectionHero = () => {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    // Subtle, luxurious slow-breathing zoom
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 12000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <View style={g.splashHeroContainer}>
+      <Animated.View style={[g.splashImageWrapper, animatedStyle]}>
+        <Image
+          source={require('./assets/splash_hero.jpg')}
+          style={StyleSheet.absoluteFillObject as any}
+          resizeMode="cover"
+        />
+      </Animated.View>
+
+      {/* Soft gradient overlay to blend into the CREAM page background */}
+      <LinearGradient
+        colors={['transparent', 'rgba(250, 247, 242, 0.6)', '#FAF7F2']}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
+
+      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={g.splashTextContent}>
+        <Text style={g.splashOverline}>DISCOVER</Text>
+        <Text style={g.splashTitle}>THE D A LUXE COLLECTION</Text>
+        <Text style={g.splashSubtitle}>
+          Dermal-Grade Botanical Skincare{'\n'}Designed for Sensitive Perfection.
+        </Text>
+      </Animated.View>
+    </View>
+  );
+};
+
+// ════════════════════════════════════════════════
 // COLLECTION GRID VIEW
 // ════════════════════════════════════════════════
 const CollectionGrid = ({
@@ -346,15 +396,14 @@ const CollectionGrid = ({
 }) => {
   return (
     <>
+      {/* Splash Hero Introduction */}
+      <CollectionHero />
+
       {/* Hero */}
       <View style={g.hero}>
         <Animated.View entering={FadeInDown.duration(600)} style={g.heroInner}>
           <View style={g.heroGoldLine} />
-          <Text style={g.heroLabel}>D A L U X E</Text>
           <Text style={g.heroTitle}>The Collection</Text>
-          <Text style={g.heroSubtitle}>
-            Dermal-Grade Botanical Formulas.{'\n'}Designed for Sensitive Perfection.
-          </Text>
           <View style={g.heroGoldLine} />
         </Animated.View>
 
@@ -930,9 +979,52 @@ const main = StyleSheet.create({
 // STYLES: GRID VIEW
 // ════════════════════════════════════════════════
 const g = StyleSheet.create({
+  splashHeroContainer: {
+    width: '100%',
+    height: Math.min(SH * 0.65, 800), // Cinematic height
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  splashImageWrapper: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  splashTextContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 10,
+    marginTop: 60, // Push content slightly down into the gradient
+  },
+  splashOverline: {
+    color: '#333333',
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 10,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  splashTitle: {
+    color: '#1a1a1a',
+    fontSize: Platform.OS === 'web' && SW > 768 ? 54 : 36,
+    fontWeight: '300',
+    letterSpacing: 4,
+    textAlign: 'center',
+    marginBottom: 20,
+    ...Platform.select({ web: { fontFamily: SERIF } as any }),
+  },
+  splashSubtitle: {
+    color: '#444444',
+    fontSize: 16,
+    fontWeight: '300',
+    lineHeight: 28,
+    textAlign: 'center',
+    maxWidth: 500,
+  },
+
   hero: {
     width: '100%', alignItems: 'center',
-    paddingVertical: 50, paddingHorizontal: 40,
+    paddingVertical: 30, paddingHorizontal: 40,
   },
   heroInner: { alignItems: 'center' },
   heroGoldLine: {
