@@ -362,14 +362,7 @@ const CollectionHero = () => {
         />
       </Animated.View>
 
-      {/* Soft gradient overlay to blend into the CREAM page background */}
-      <LinearGradient
-        colors={['transparent', 'rgba(250, 247, 242, 0.6)', '#FAF7F2']}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
-
-      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={[g.splashTextContent, { top: 60 }]}>
+      <Animated.View entering={FadeInUp.delay(300).duration(800)} style={g.splashTextContent}>
         <Text style={g.splashOverline}>DISCOVER</Text>
         <Text style={g.splashTitle}>THE D A LUXE COLLECTION</Text>
         <Text style={g.splashSubtitle}>
@@ -851,9 +844,10 @@ const CartDrawer = ({
 // ════════════════════════════════════════════════
 interface CollectionPageProps {
   onNavigateToProduct?: (index: number) => void;
+  scrollY?: any;
 }
 
-export default function CollectionPage({ onNavigateToProduct }: CollectionPageProps) {
+export default function CollectionPage({ onNavigateToProduct, scrollY }: CollectionPageProps) {
   const [view, setView] = useState<'grid' | 'detail'>('grid');
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
@@ -899,11 +893,17 @@ export default function CollectionPage({ onNavigateToProduct }: CollectionPagePr
 
   return (
     <View style={main.container}>
-      <ScrollView
-        ref={scrollRef}
+      <Animated.ScrollView
+        ref={scrollRef as any}
         style={main.scroll}
         contentContainerStyle={main.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(e: any) => {
+          if (scrollY) {
+            scrollY.value = e.nativeEvent.contentOffset.y;
+          }
+        }}
       >
         {view === 'grid' && (
           <CollectionGrid
@@ -923,7 +923,7 @@ export default function CollectionPage({ onNavigateToProduct }: CollectionPagePr
             onSelectProduct={openProduct}
           />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Sticky Bottom Bar (detail view only) */}
       {view === 'detail' && selectedProduct && (
@@ -997,7 +997,8 @@ const g = StyleSheet.create({
   },
   splashTextContent: {
     position: 'absolute',
-    top: '20%', // pushed further down to clear the transparent navbar
+    top: '40%', // pushed down to middle of upper white-space
+
     left: 0,
     right: 0,
     alignItems: 'center',

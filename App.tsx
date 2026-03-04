@@ -610,6 +610,7 @@ const ProductItem = ({ product, index, scrollX }: any) => {
 export default function App() {
   const scrollRef = React.useRef<any>(null);
   const scrollX = useSharedValue(0);
+  const collectionScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState<'product' | 'collection'>('product');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -637,11 +638,20 @@ export default function App() {
 
   const isCollection = currentPage === 'collection';
 
+  // Vanishing navbar effect strictly on the collection page
+  const navbarAnimatedStyle = useAnimatedStyle(() => {
+    if (!isCollection) return { opacity: 1, transform: [{ translateY: 0 }] };
+    return {
+      opacity: interpolate(collectionScrollY.value, [0, 150], [1, 0], Extrapolation.CLAMP),
+      transform: [{ translateY: interpolate(collectionScrollY.value, [0, 150], [0, -20], Extrapolation.CLAMP) }],
+    };
+  });
+
   return (
     <View style={styles.container}>
 
       {/* Navbar (Fixed - always visible) */}
-      <View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }]}>
+      <Animated.View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
         <Image
           source={require('./assets/logo.png')}
           style={isMobile ? mobileStyles.logo : styles.logo}
@@ -674,7 +684,7 @@ export default function App() {
             <ShoppingCart color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Mobile Menu Overlay */}
       {isMobile && menuOpen && (
@@ -814,6 +824,7 @@ export default function App() {
       {/* ===== COLLECTION PAGE ===== */}
       {currentPage === 'collection' && (
         <CollectionPage
+          scrollY={collectionScrollY}
           onNavigateToProduct={(index: number) => {
             setCurrentPage('product');
             setTimeout(() => {
