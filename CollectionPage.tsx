@@ -998,7 +998,7 @@ const g = StyleSheet.create({
   },
   splashTextContent: {
     position: 'absolute',
-    top: '40%', // pushed down to middle of upper white-space
+    top: '55%', // pushed right down to the lower center
 
     left: 0,
     right: 0,
