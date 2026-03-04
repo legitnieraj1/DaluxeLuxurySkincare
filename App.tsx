@@ -426,22 +426,74 @@ const MobileProductItem = ({ product, index, scrollX }: any) => {
       [currentBaseScale * 0.3, currentBaseScale * 0.6, currentBaseScale, currentBaseScale * 0.6, currentBaseScale * 0.3],
       Extrapolation.CLAMP
     );
+
+    // Mobile specific precise Y-axis offsets to ground bottles onto the pedestal
+    const baseTranslateY = [height * 0.05, height * 0.045, height * 0.06][index];
+
+    // Mobile specific X-axis adjustments for visual balance
+    const baseTranslateX = [0, -10, 0][index];
+
     return {
       opacity,
       transform: [
-        { translateX },
+        { translateX: translateX + baseTranslateX },
+        { translateY: baseTranslateY },
         { scale },
         { rotate: `${rotate}deg` },
       ]
     };
   });
 
+  // Mobile specific shadow under the bottle to ground it onto the pedestal
+  const shadowStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 0.5) * width, index * width, (index + 0.5) * width],
+      [0, 0.7, 0],
+      Extrapolation.CLAMP
+    );
+
+    const translateX = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [width * 0.7, 0, -width * 0.7],
+      Extrapolation.CLAMP
+    );
+
+    const scale = interpolate(
+      scrollX.value,
+      [(index - 1) * width, (index - 0.5) * width, index * width, (index + 0.5) * width, (index + 1) * width],
+      [0.3, 0.5, 0.85, 0.5, 0.3],
+      Extrapolation.CLAMP
+    );
+
+    const translateYPositions = [height * 0.23, height * 0.23, height * 0.22];
+    const baseTranslateX = [0, -2, -4][index];
+
+    const shadowScaleX = index === 2 ? scale * 1.1 : scale * 0.8;
+    const shadowScaleY = scale * 0.15;
+
+    return {
+      opacity,
+      transform: [
+        { translateX: translateX + baseTranslateX },
+        { translateY: translateYPositions[index] },
+        { scaleX: shadowScaleX },
+        { scaleY: shadowScaleY }
+      ]
+    };
+  });
+
   return (
-    <Animated.Image
-      source={product.image}
-      style={[mobileStyles.productImage, prodAnimatedStyle]}
-      resizeMode="contain"
-    />
+    <React.Fragment key={`mobile-prod-${product.id}`}>
+      {/* Target mobile contact shadow */}
+      <Animated.View style={[mobileStyles.productShadow, shadowStyle]} />
+      <Animated.Image
+        source={product.image}
+        style={[mobileStyles.productImage, prodAnimatedStyle]}
+        resizeMode="contain"
+      />
+    </React.Fragment>
   );
 };
 
@@ -1412,6 +1464,15 @@ const mobileStyles = StyleSheet.create({
     borderRadius: 999,
     ...Platform.select({ web: { filter: 'blur(16px)' } }),
     opacity: 0.6,
+  },
+  productShadow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#000000',
+    top: height * 0.34,
+    ...Platform.select({ web: { filter: 'blur(10px)' } }),
   },
 
   // ---- Mobile Floating Elements Isolation ----
