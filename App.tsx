@@ -479,32 +479,34 @@ export default function App() {
     return { backgroundColor };
   });
 
+  const isCollection = currentPage === 'collection';
+
   return (
     <View style={styles.container}>
 
       {/* Navbar (Fixed - always visible) */}
-      <View style={styles.navbar}>
+      <View style={[styles.navbar, isCollection && { backgroundColor: 'rgba(250,247,242,0.97)', ...Platform.select({ web: { backdropFilter: 'blur(16px)' } }) }]}>
         <Image
           source={require('./assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
-        <View style={styles.navLinks}>
+        <View style={[styles.navLinks, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
           <TouchableOpacity onPress={() => setCurrentPage('product')}>
-            <Text style={currentPage === 'product' ? styles.navLinkActive : styles.navLink}>Product</Text>
+            <Text style={currentPage === 'product' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setCurrentPage('collection')}>
-            <Text style={currentPage === 'collection' ? styles.navLinkActive : styles.navLink}>Collection</Text>
+            <Text style={currentPage === 'collection' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Collection</Text>
           </TouchableOpacity>
-          <Text style={styles.navLink}>Our Story</Text>
-          <Text style={styles.navLink}>Contact</Text>
+          <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Our Story</Text>
+          <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Contact</Text>
         </View>
         <View style={styles.navIcons}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <User color="#fff" size={20} />
+          <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+            <User color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
-            <ShoppingCart color="#fff" size={20} />
+          <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+            <ShoppingCart color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
         </View>
       </View>
