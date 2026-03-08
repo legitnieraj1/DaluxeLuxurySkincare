@@ -30,6 +30,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video, ResizeMode } from 'expo-av';
 import {
   Heart,
   ShoppingCart,
@@ -264,6 +265,7 @@ const COLLECTION_PRODUCTS = [
     sizeDetail: '30g / 1.0 fl oz',
     rating: 4.8,
     image: require('./assets/night cream product cARD.png'),
+    video: require('./assets/Skincare_jar_rotating_on_pedestal_delpmaspu_.mp4'),
     themeColor: '#8B2252',
     themeBg: '#F6ECF0',
     themeGradient: ['#F6ECF0', '#FAF3F6'] as [string, string],
@@ -309,8 +311,8 @@ const COLLECTION_PRODUCTS = [
   },
 ];
 
-type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any };
-type CartItem = { product: ProductType; quantity: number };
+export type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any; video?: any };
+export type CartItem = { product: ProductType; quantity: number };
 
 const CATEGORIES = [
   { id: 'all', label: 'ALL' },
@@ -635,8 +637,24 @@ const ProductLandingPage = ({
 
       {/* ── Section 3: Product Story ── */}
       <View style={d.storySection}>
-        <View style={[d.storyImageCol, { backgroundColor: 'transparent' }]}>
-          <Image source={product.storyImage || product.image} style={d.storyImage} resizeMode="cover" />
+        <View style={[
+          d.storyImageCol,
+          { backgroundColor: 'transparent', alignSelf: 'center', justifyContent: 'center' }
+        ]}>
+          {product.video ? (
+            <View style={{ width: '100%', overflow: 'hidden', borderRadius: 8 }}>
+              <Video
+                source={product.video}
+                style={{ width: '100%', aspectRatio: 16 / 9 }}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isLooping
+                isMuted
+              />
+            </View>
+          ) : (
+            <Image source={product.storyImage || product.image} style={d.storyImage} resizeMode="cover" />
+          )}
         </View>
         <View style={d.storyTextCol}>
           <Text style={d.storyTitle}>{product.storyTitle}</Text>
@@ -834,7 +852,7 @@ const StickyBottomBar = ({ product, onAddToCart }: { product: ProductType; onAdd
 // ════════════════════════════════════════════════
 // CART DRAWER
 // ════════════════════════════════════════════════
-const CartDrawer = ({
+export const CartDrawer = ({
   items, visible, onClose, onUpdateQuantity, onRemove,
 }: {
   items: CartItem[]; visible: boolean; onClose: () => void;
@@ -890,14 +908,14 @@ const CartDrawer = ({
 interface CollectionPageProps {
   onNavigateToProduct?: (index: number) => void;
   scrollY?: any;
+  onViewChange?: (view: 'grid' | 'detail') => void;
+  addToCart?: (p: ProductType) => void;
 }
 
-export default function CollectionPage({ onNavigateToProduct, scrollY }: CollectionPageProps) {
+export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart }: CollectionPageProps) {
   const [view, setView] = useState<'grid' | 'detail'>('grid');
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartVisible, setCartVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const filteredProducts = COLLECTION_PRODUCTS.filter((p) => {
@@ -908,33 +926,16 @@ export default function CollectionPage({ onNavigateToProduct, scrollY }: Collect
   const openProduct = useCallback((product: ProductType) => {
     setSelectedProduct(product);
     setView('detail');
+    onViewChange?.('detail');
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
-  }, []);
+  }, [onViewChange]);
 
   const goBack = useCallback(() => {
     setView('grid');
+    onViewChange?.('grid');
     setSelectedProduct(null);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
-  }, []);
-
-  const addToCart = useCallback((product: ProductType) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
-      if (existing) return prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { product, quantity: 1 }];
-    });
-    setCartVisible(true);
-  }, []);
-
-  const updateQuantity = useCallback((id: string, qty: number) => {
-    setCartItems((prev) => prev.map((i) => (i.product.id === id ? { ...i, quantity: qty } : i)));
-  }, []);
-
-  const removeFromCart = useCallback((id: string) => {
-    setCartItems((prev) => prev.filter((i) => i.product.id !== id));
-  }, []);
-
-  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+  }, [onViewChange]);
 
   return (
     <View style={main.container}>
@@ -964,7 +965,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY }: Collect
           <ProductLandingPage
             product={selectedProduct}
             onBack={goBack}
-            onAddToCart={addToCart}
+            onAddToCart={(p) => addToCart?.(p)}
             allProducts={COLLECTION_PRODUCTS}
             onSelectProduct={openProduct}
           />
@@ -973,21 +974,8 @@ export default function CollectionPage({ onNavigateToProduct, scrollY }: Collect
 
       {/* Sticky Bottom Bar (detail view only) */}
       {view === 'detail' && selectedProduct && (
-        <StickyBottomBar product={selectedProduct} onAddToCart={addToCart} />
+        <StickyBottomBar product={selectedProduct} onAddToCart={(p) => addToCart?.(p)} />
       )}
-
-      {/* Floating Cart */}
-      {cartCount > 0 && !cartVisible && (
-        <Animated.View entering={FadeIn.duration(300)} style={main.floatingCart}>
-          <TouchableOpacity style={main.floatingCartBtn} onPress={() => setCartVisible(true)} activeOpacity={0.8}>
-            <ShoppingCart color={WHITE} size={20} />
-            <View style={main.cartBadge}><Text style={main.cartBadgeText}>{cartCount}</Text></View>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-
-      {/* Cart Drawer */}
-      <CartDrawer items={cartItems} visible={cartVisible} onClose={() => setCartVisible(false)} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} />
     </View>
   );
 }

@@ -15,7 +15,7 @@ import Animated, {
   Easing
 } from 'react-native-reanimated';
 import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X } from 'lucide-react-native';
-import CollectionPage from './CollectionPage';
+import CollectionPage, { ProductType, CartItem, CartDrawer } from './CollectionPage';
 
 const { height, width } = Dimensions.get('window');
 const isMobile = width < 768;
@@ -23,29 +23,29 @@ const isMobile = width < 768;
 const PRODUCTS = [
   {
     id: 1,
-    title: 'Reveal\nYour Glow',
-    subtitle: 'Ultra Sensitive Glow & Correct',
-    name: 'FACE SERUM',
-    description: 'Discover a world of radiant skin with our ultra-sensitive glow & correct serum. We believe in the power of dermal-grade botanicals to bring you luminous skin.',
-    price: '₹4,150',
+    title: 'Weightless\nPerfection',
+    subtitle: 'Ultra Sensitive Smooth',
+    name: 'HAIR SERUM',
+    description: 'Dermal-Grade Botanical Formula. Weightless Smoothness, Natural Shine. Zero Silicone Feel. Your hair, perfected.',
+    price: '₹349',
     size: '30 ml (1.0 fl oz)',
     theme: { text: '#108cbaff', subText: '#0b0b0bff', accent: '#3d3d3dff', shadow: 'rgba(229, 0, 0, 0.6)', alignClass: 'flex-start', textAlign: 'left' as const },
-    benefits: ['Correct Tone.', 'Boost Glow.', 'Stay Calm.'],
+    benefits: ['Weightless.', 'Natural Shine.', 'Zero Silicone.'],
     image: require('./assets/product2.png'), // Gold bottle
     bgImage: require('./assets/bg_face_serum.png')
   },
   {
     id: 2,
-    title: 'Weightless\nPerfection',
-    subtitle: 'Ultra Sensitive Smooth',
-    name: 'HAIR SERUM',
-    description: 'Dermal-Grade Botanical Formula. Weightless Smoothness, Natural Shine. Zero Silicone Feel. Your hair, perfected.',
-    price: '₹2,100',
+    title: 'Reveal\nYour Glow',
+    subtitle: 'Ultra Sensitive Glow & Correct',
+    name: 'FACE SERUM',
+    description: 'Discover a world of radiant skin with our ultra-sensitive glow & correct serum. We believe in the power of dermal-grade botanicals to bring you luminous skin.',
+    price: '₹449',
     size: '30 ml (1.0 fl oz)',
-    theme: { text: '#211700', subText: '#4A3300', accent: '#0D0800', shadow: 'rgba(255,255,255,0.4)', alignClass: 'center', textAlign: 'center' as const },
-    benefits: ['Weightless.', 'Natural Shine.', 'Zero Silicone.'],
+    theme: { text: '#FFFFFF', subText: '#FFFFFF', accent: '#C9A84C', shadow: 'rgba(0,0,0,0.5)', alignClass: 'center', textAlign: 'center' as const },
+    benefits: ['Correct Tone.', 'Boost Glow.', 'Stay Calm.'],
     image: require('./assets/product1.png'), // Black pump bottle
-    bgImage: require('./assets/bg_hair_serum.png')
+    bgImage: require('./assets/background2.png')
   },
   {
     id: 3,
@@ -614,10 +614,62 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState<'product' | 'collection'>('product');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collectionView, setCollectionView] = useState<'grid' | 'detail'>('grid');
+
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartVisible, setCartVisible] = useState(false);
+
+  const addToCart = React.useCallback((product: ProductType) => {
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.product.id === product.id);
+      if (existing) return prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { product, quantity: 1 }];
+    });
+    setCartVisible(true);
+  }, []);
+
+  const updateQuantity = React.useCallback((id: string, qty: number) => {
+    setCartItems((prev) => prev.map((i) => (i.product.id === id ? { ...i, quantity: qty } : i)));
+  }, []);
+
+  const removeFromCart = React.useCallback((id: string) => {
+    setCartItems((prev) => prev.filter((i) => i.product.id !== id));
+  }, []);
+
+  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const handleIndexChange = (newIndex: number) => {
     setCurrentIndex((prev) => prev !== newIndex ? newIndex : prev);
   };
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/collection' || path === '/collections') {
+        setCurrentPage('collection');
+      } else if (path === '/home' || path === '/') {
+        setCurrentPage('product');
+      }
+
+      window.onpopstate = () => {
+        const currentPath = window.location.pathname.toLowerCase();
+        if (currentPath === '/collection' || currentPath === '/collections') {
+          setCurrentPage('collection');
+        } else {
+          setCurrentPage('product');
+        }
+      };
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const path = currentPage === 'collection' ? '/collections' : '/home';
+      if (window.location.pathname !== path) {
+        window.history.pushState({}, '', path);
+      }
+    }
+  }, [currentPage]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -637,10 +689,11 @@ export default function App() {
   });
 
   const isCollection = currentPage === 'collection';
+  const hideNavbarLinks = isCollection && collectionView === 'detail';
 
-  // Vanishing navbar effect strictly on the collection page
+  // Vanishing navbar effect strictly on the collection grid page
   const navbarAnimatedStyle = useAnimatedStyle(() => {
-    if (!isCollection) return { opacity: 1, transform: [{ translateY: 0 }] };
+    if (!isCollection || hideNavbarLinks) return { opacity: 1, transform: [{ translateY: 0 }] };
     return {
       opacity: interpolate(collectionScrollY.value, [0, 150], [1, 0], Extrapolation.CLAMP),
       transform: [{ translateY: interpolate(collectionScrollY.value, [0, 150], [0, -20], Extrapolation.CLAMP) }],
@@ -652,13 +705,15 @@ export default function App() {
 
       {/* Navbar (Fixed - always visible) */}
       <Animated.View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
-        <Image
-          source={require('./assets/logo.png')}
-          style={isMobile ? mobileStyles.logo : styles.logo}
-          resizeMode="contain"
-        />
+        {!hideNavbarLinks ? (
+          <Image
+            source={require('./assets/logo.png')}
+            style={isMobile ? mobileStyles.logo : styles.logo}
+            resizeMode="contain"
+          />
+        ) : <View style={isMobile ? mobileStyles.logo : styles.logo} />}
         {/* Desktop nav links */}
-        {!isMobile && (
+        {!isMobile && !hideNavbarLinks && (
           <View style={[styles.navLinks, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
             <TouchableOpacity onPress={() => setCurrentPage('product')}>
               <Text style={currentPage === 'product' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
@@ -672,7 +727,7 @@ export default function App() {
         )}
         {/* Mobile + Desktop right icons */}
         <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
-          {isMobile && (
+          {isMobile && !hideNavbarLinks && (
             <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]} onPress={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X color={isCollection ? '#1a1a1a' : '#fff'} size={20} /> : <Menu color={isCollection ? '#1a1a1a' : '#fff'} size={20} />}
             </TouchableOpacity>
@@ -680,8 +735,18 @@ export default function App() {
           <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
             <User color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+          <TouchableOpacity
+            style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}
+            onPress={() => setCartVisible(true)}
+          >
             <ShoppingCart color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
+            {cartCount > 0 && (
+              <View style={{
+                position: 'absolute', top: -4, right: -4, backgroundColor: '#D32F2F', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5
+              }}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{cartCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -825,6 +890,8 @@ export default function App() {
       {currentPage === 'collection' && (
         <CollectionPage
           scrollY={collectionScrollY}
+          onViewChange={setCollectionView}
+          addToCart={addToCart}
           onNavigateToProduct={(index: number) => {
             setCurrentPage('product');
             setTimeout(() => {
@@ -834,6 +901,15 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        items={cartItems}
+        visible={cartVisible}
+        onClose={() => setCartVisible(false)}
+        onUpdateQuantity={updateQuantity}
+        onRemove={removeFromCart}
+      />
 
     </View>
   );
