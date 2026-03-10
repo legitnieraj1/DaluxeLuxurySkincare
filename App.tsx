@@ -704,7 +704,7 @@ export default function App() {
     <View style={styles.container}>
 
       {/* Navbar (Fixed - always visible) */}
-      <Animated.View style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
+      <Animated.View pointerEvents="box-none" style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
         {!hideNavbarLinks ? (
           <Image
             source={require('./assets/logo.png')}

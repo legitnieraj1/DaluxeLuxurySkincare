@@ -9,6 +9,7 @@ import {
   Platform,
   Dimensions,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -567,7 +568,7 @@ const ProductLandingPage = ({
       {/* ── Section 1: Product Hero ── */}
       <View style={d.heroSection}>
         {/* Breadcrumb */}
-        <TouchableOpacity style={d.breadcrumb} onPress={onBack} activeOpacity={0.6}>
+        <TouchableOpacity style={d.breadcrumb} onPress={onBack} activeOpacity={0.6} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
           <ArrowLeft color={TEXT_MUTED} size={16} />
           <Text style={d.breadcrumbText}>Collection</Text>
           <Text style={d.breadcrumbSep}>/</Text>
@@ -831,18 +832,22 @@ const ProductLandingPage = ({
 // STICKY BOTTOM BAR (Valmont-style)
 // ════════════════════════════════════════════════
 const StickyBottomBar = ({ product, onAddToCart }: { product: ProductType; onAddToCart: (p: ProductType) => void }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   return (
-    <View style={sb.container}>
-      <View style={sb.inner}>
-        <Image source={product.image} style={sb.image} resizeMode="contain" />
+    <View style={[sb.container, isMobile && { paddingHorizontal: 16, paddingVertical: 10 }]}>
+      <View style={[sb.inner, isMobile && { gap: 12 }]}>
+        <Image source={product.image} style={[sb.image, isMobile && { width: 36, height: 36 }]} resizeMode="contain" />
         <View style={sb.info}>
-          <Text style={sb.name}>{product.displayName}</Text>
-          <Text style={sb.sub}>{product.subtitle}</Text>
+          <Text style={[sb.name, isMobile && { fontSize: 13 }]} numberOfLines={1}>{product.displayName}</Text>
+          {!isMobile && <Text style={sb.sub} numberOfLines={1}>{product.subtitle}</Text>}
+          {isMobile && <Text style={[sb.price, { fontSize: 13, marginTop: 2 }]} numberOfLines={1}>{product.priceDisplay}</Text>}
         </View>
-        <Text style={sb.size}>{product.size}</Text>
-        <Text style={sb.price}>{product.priceDisplay}</Text>
-        <TouchableOpacity style={sb.cartBtn} onPress={() => onAddToCart(product)} activeOpacity={0.8}>
-          <Text style={sb.cartBtnText}>ADD TO CART</Text>
+        {!isMobile && <Text style={sb.size}>{product.size}</Text>}
+        {!isMobile && <Text style={sb.price}>{product.priceDisplay}</Text>}
+        <TouchableOpacity style={[sb.cartBtn, isMobile && { paddingHorizontal: 16, paddingVertical: 10 }]} onPress={() => onAddToCart(product)} activeOpacity={0.8}>
+          <Text style={sb.cartBtnText}>{isMobile ? 'ADD' : 'ADD TO CART'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1235,6 +1240,7 @@ const d = StyleSheet.create({
   // ── Hero ──
   heroSection: {
     paddingHorizontal: 40, maxWidth: 1100, alignSelf: 'center', width: '100%',
+    zIndex: 100, // Ensure breadcrumbs are clickable above other ambient elements
   },
   breadcrumb: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 30, marginTop: 10,
