@@ -16,6 +16,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X } from 'lucide-react-native';
 import CollectionPage, { ProductType, CartItem, CartDrawer } from './CollectionPage';
+import OurStoryPage from './OurStoryPage';
+import ContactPage from './ContactPage';
 
 const { height, width } = Dimensions.get('window');
 const isMobile = width < 768;
@@ -612,7 +614,7 @@ export default function App() {
   const scrollX = useSharedValue(0);
   const collectionScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection'>('product');
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact'>('product');
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionView, setCollectionView] = useState<'grid' | 'detail'>('grid');
 
@@ -647,6 +649,10 @@ export default function App() {
       const path = window.location.pathname.toLowerCase();
       if (path === '/collection' || path === '/collections') {
         setCurrentPage('collection');
+      } else if (path === '/our-story') {
+        setCurrentPage('our-story');
+      } else if (path === '/contact') {
+        setCurrentPage('contact');
       } else if (path === '/home' || path === '/') {
         setCurrentPage('product');
       }
@@ -655,6 +661,10 @@ export default function App() {
         const currentPath = window.location.pathname.toLowerCase();
         if (currentPath === '/collection' || currentPath === '/collections') {
           setCurrentPage('collection');
+        } else if (currentPath === '/our-story') {
+          setCurrentPage('our-story');
+        } else if (currentPath === '/contact') {
+          setCurrentPage('contact');
         } else {
           setCurrentPage('product');
         }
@@ -664,7 +674,8 @@ export default function App() {
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
-      const path = currentPage === 'collection' ? '/collections' : '/home';
+      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact' };
+      const path = pathMap[currentPage] || '/home';
       if (window.location.pathname !== path) {
         window.history.pushState({}, '', path);
       }
@@ -689,6 +700,7 @@ export default function App() {
   });
 
   const isCollection = currentPage === 'collection';
+  const isLightNavPage = currentPage === 'collection';
   const hideNavbarLinks = isCollection && collectionView === 'detail';
 
   // Vanishing navbar effect strictly on the collection grid page
@@ -701,10 +713,10 @@ export default function App() {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, (isLightNavPage || currentPage === 'our-story' || currentPage === 'contact') && { backgroundColor: '#FAF7F2' }]}>
 
       {/* Navbar (Fixed - always visible) */}
-      <Animated.View pointerEvents="box-none" style={[styles.navbar, isMobile && mobileStyles.navbar, isCollection && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
+      <Animated.View pointerEvents="box-none" style={[styles.navbar, isMobile && mobileStyles.navbar, isLightNavPage && { backgroundColor: 'transparent', borderBottomWidth: 0, ...Platform.select({ web: { backdropFilter: 'none' } }) }, navbarAnimatedStyle]}>
         {!hideNavbarLinks ? (
           <Image
             source={require('./assets/logo.png')}
@@ -714,32 +726,36 @@ export default function App() {
         ) : <View style={isMobile ? mobileStyles.logo : styles.logo} />}
         {/* Desktop nav links */}
         {!isMobile && !hideNavbarLinks && (
-          <View style={[styles.navLinks, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+          <View style={[styles.navLinks, isLightNavPage && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
             <TouchableOpacity onPress={() => setCurrentPage('product')}>
-              <Text style={currentPage === 'product' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
+              <Text style={currentPage === 'product' ? styles.navLinkActive : (isLightNavPage ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Product</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setCurrentPage('collection')}>
-              <Text style={currentPage === 'collection' ? styles.navLinkActive : (isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Collection</Text>
+              <Text style={currentPage === 'collection' ? styles.navLinkActive : (isLightNavPage ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Collection</Text>
             </TouchableOpacity>
-            <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Our Story</Text>
-            <Text style={isCollection ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink}>Contact</Text>
+            <TouchableOpacity onPress={() => setCurrentPage('our-story')}>
+              <Text style={currentPage === 'our-story' ? styles.navLinkActive : (isLightNavPage ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Our Story</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setCurrentPage('contact')}>
+              <Text style={currentPage === 'contact' ? styles.navLinkActive : (isLightNavPage ? [styles.navLink, { color: '#1a1a1a' }] : styles.navLink)}>Contact</Text>
+            </TouchableOpacity>
           </View>
         )}
         {/* Mobile + Desktop right icons */}
         <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
           {isMobile && !hideNavbarLinks && (
-            <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]} onPress={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <X color={isCollection ? '#1a1a1a' : '#fff'} size={20} /> : <Menu color={isCollection ? '#1a1a1a' : '#fff'} size={20} />}
+            <TouchableOpacity style={[styles.iconBtn, isLightNavPage && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]} onPress={() => setMenuOpen(!menuOpen)}>
+              {menuOpen ? <X color={isLightNavPage ? '#1a1a1a' : '#fff'} size={20} /> : <Menu color={isLightNavPage ? '#1a1a1a' : '#fff'} size={20} />}
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
-            <User color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
+          <TouchableOpacity style={[styles.iconBtn, isLightNavPage && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+            <User color={isLightNavPage ? '#1a1a1a' : '#fff'} size={20} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.iconBtn, isCollection && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}
+            style={[styles.iconBtn, isLightNavPage && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}
             onPress={() => setCartVisible(true)}
           >
-            <ShoppingCart color={isCollection ? '#1a1a1a' : '#fff'} size={20} />
+            <ShoppingCart color={isLightNavPage ? '#1a1a1a' : '#fff'} size={20} />
             {cartCount > 0 && (
               <View style={{
                 position: 'absolute', top: -4, right: -4, backgroundColor: '#D32F2F', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5
@@ -761,8 +777,7 @@ export default function App() {
                 <TouchableOpacity
                   key={page}
                   onPress={() => {
-                    if (page === 'product') setCurrentPage('product');
-                    else if (page === 'collection') setCurrentPage('collection');
+                    setCurrentPage(page);
                     setMenuOpen(false);
                   }}
                   style={mobileStyles.menuItem}
@@ -900,6 +915,20 @@ export default function App() {
             }, 100);
           }}
         />
+      )}
+
+      {/* ===== OUR STORY PAGE ===== */}
+      {currentPage === 'our-story' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+          <OurStoryPage />
+        </View>
+      )}
+
+      {/* ===== CONTACT PAGE ===== */}
+      {currentPage === 'contact' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+          <ContactPage />
+        </View>
       )}
 
       {/* Cart Drawer */}
