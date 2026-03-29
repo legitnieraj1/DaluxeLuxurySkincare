@@ -397,6 +397,15 @@ const PageContent = ({ product, index, scrollX, onPurchase }: any) => {
 
 const MobileProductItem = ({ product, index, scrollX, vertical }: any) => {
   const scrollDim = vertical ? height : width;
+  const productWidthVals = [width * 1.3, width * 1.3, width * 1.3];
+  const productHeightVals = [height * 0.80, height * 0.46, height * 0.82];
+  const productTopVals = [height * -0.001, height * 0.18, height * 0.0001];
+  const productLeftVals = [0, 0, 0];
+
+  const shadowWidthVals = [250, 200, 250];
+  const shadowTopVals = [height * 0.63, height * 0.64, height * 0.65];
+  const shadowLeftVals = [-10, 10, -10];
+
   const prodAnimatedStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollX.value,
@@ -425,17 +434,15 @@ const MobileProductItem = ({ product, index, scrollX, vertical }: any) => {
       Extrapolation.CLAMP
     );
 
-    // Base vertical adjustments for each bottle
-    // Pushed down to rest perfectly on the shadow/podium
-    const baseTranslateY = [height * 0.25, height * 0.245, height * 0.26][index];
-    const baseTranslateX = [0, -10, 0][index];
+    const baseTranslateY = [height * 0.15, height * 0.15, height * 0.18][index];
+    const baseTranslateX = [0, -10, 15][index];
 
     if (vertical) {
       return {
         opacity,
         transform: [
           { translateY: translateMain + baseTranslateY },
-          { translateX: baseTranslateX },
+          { translateX: productLeftVals[index] },
           { scale },
           { rotate: `${rotate}deg` },
         ]
@@ -475,21 +482,17 @@ const MobileProductItem = ({ product, index, scrollX, vertical }: any) => {
     );
 
     const translateYPositions = [0, 0, -height * 0.01];
-    const baseTranslateX = [0, -2, -4][index];
+    const baseTranslateX = [0, -2, 10][index];
 
     const shadowScaleX = index === 2 ? scale * 1.1 : scale * 0.8;
     const shadowScaleY = scale * 0.15;
 
     if (vertical) {
-      const additionalStyles: any = {};
-      if (index === 0) additionalStyles.right = 157;
-
       return {
-        ...additionalStyles,
         opacity,
         transform: [
           { translateY: translateMain + translateYPositions[index] },
-          { translateX: baseTranslateX },
+          { translateX: shadowLeftVals[index] },
           { scaleX: shadowScaleX },
           { scaleY: shadowScaleY }
         ]
@@ -508,10 +511,27 @@ const MobileProductItem = ({ product, index, scrollX, vertical }: any) => {
 
   return (
     <React.Fragment key={`mobile-prod-${product.id}`}>
-      <Animated.View style={[mobileStyles.productShadow, shadowStyle]} />
+      <Animated.View
+        style={[
+          mobileStyles.productShadow,
+          shadowStyle,
+          {
+            width: shadowWidthVals[index],
+            top: shadowTopVals[index],
+          }
+        ]}
+      />
       <Animated.Image
         source={product.image}
-        style={[mobileStyles.productImage, prodAnimatedStyle]}
+        style={[
+          { position: 'absolute' },
+          prodAnimatedStyle,
+          {
+            width: productWidthVals[index],
+            height: productHeightVals[index],
+            top: productTopVals[index],
+          }
+        ]}
         resizeMode="contain"
       />
     </React.Fragment>
@@ -731,6 +751,32 @@ export default function App() {
     return { backgroundColor };
   });
 
+  // --- Mobile Customizable Podium ---
+  const podiumTopVals = [height * 0.62, height * 0.62, height * 0.62];
+  const podiumWidthVals = [width * 1.30, width * 1.30, width * 1.30];
+  // Positive moves Right, Negative moves Left
+  const podiumLeftVals = [0, 20, 0];
+
+  const mobilePodiumStyle = useAnimatedStyle(() => {
+    if (!isMobileStatic) return {};
+    return {
+      top: interpolate(scrollX.value, [0, height, height * 2], podiumTopVals, Extrapolation.CLAMP),
+      transform: [
+        { translateX: interpolate(scrollX.value, [0, height, height * 2], podiumLeftVals, Extrapolation.CLAMP) }
+      ]
+    };
+  });
+
+  const mobilePodiumImageStyle = useAnimatedStyle(() => {
+    if (!isMobileStatic) return {};
+    const w = interpolate(scrollX.value, [0, height, height * 2], podiumWidthVals, Extrapolation.CLAMP);
+    return {
+      width: w,
+      height: w * (468 / 1380),
+      transform: [{ scaleY: 0.85 }],
+    };
+  });
+
   const isCollection = currentPage === 'collection';
   const hideNavbarLinks = isCollection && collectionView === 'detail';
   const isMobile = isMobileStatic;
@@ -903,11 +949,11 @@ export default function App() {
             {isMobile ? (
               <>
                 {/* Mobile: Podium + Products */}
-                <Animated.View style={[mobileStyles.podiumContainer]}>
+                <Animated.View style={[mobileStyles.podiumContainer, mobilePodiumStyle]}>
                   <Animated.View style={[mobileStyles.podiumFloorShadow, podiumShadowStyle]} />
-                  <Image
+                  <Animated.Image
                     source={require('./assets/podium_custom.png')}
-                    style={mobileStyles.podiumImage}
+                    style={mobilePodiumImageStyle}
                     resizeMode="contain"
                   />
                 </Animated.View>
@@ -1523,6 +1569,7 @@ const mobileStyles = StyleSheet.create({
   topTextSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 30,
     zIndex: 10,
     width: '100%',
   },
@@ -1619,45 +1666,36 @@ const mobileStyles = StyleSheet.create({
     zIndex: 20,
   },
   productImage: {
-    position: 'absolute',
-    height: height * 0.56,
-    width: width * 0.85,
-    top: height * 0.05,
+    // Moved to per-product arrays in MobileProductItem
   },
   podiumContainer: {
     position: 'absolute',
-    top: height * 0.62,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
   podiumImage: {
-    width: width * 0.90,
-    height: width * 0.90 * (468 / 1380),
-    transform: [{ scaleY: 0.85 }],
+    // Moved to interpolated arrays
   },
   podiumFloorShadow: {
     position: 'absolute',
-    bottom: -5,
-    width: width * 0.15,
-    height: 24,
-    borderRadius: 999,
-    ...Platform.select({ web: { filter: 'blur(16px)' } }),
-    opacity: 0.6,
+    width: width * 0.90,
+    height: 40,
+    bottom: -10,
+    borderRadius: 100,
+    ...Platform.select({ web: { filter: 'blur(30px)' } }),
   },
   productShadow: {
     position: 'absolute',
-    width: 200,
     height: 170,
     borderRadius: 100,
     backgroundColor: '#000000',
-    top: height * 0.62,
     ...Platform.select({ web: { filter: 'blur(10px)' } }),
   },
 
   // ---- Mobile Floating Elements Isolation ----
   floatingPetalSmall: {
     position: 'absolute',
-    left: '10%',
+    left: '6%',
     top: '55%',
     width: 140,
     height: 140,
@@ -1665,7 +1703,7 @@ const mobileStyles = StyleSheet.create({
   },
   floatingPetalBig: {
     position: 'absolute',
-    right: '15%',
+    right: '14%',
     top: '40%',
     width: 140,
     height: 140,
@@ -1674,7 +1712,7 @@ const mobileStyles = StyleSheet.create({
   },
   floatingBubbleLeft: {
     position: 'absolute',
-    left: '15%',
+    left: '8%',
     top: '39%',
     width: 180,
     height: 180,
@@ -1682,7 +1720,7 @@ const mobileStyles = StyleSheet.create({
   },
   floatingBubbleRight: {
     position: 'absolute',
-    right: '10%',
+    right: '1%',
     top: '60%',
     width: 190,
     height: 190,
@@ -1695,7 +1733,7 @@ const mobileStyles = StyleSheet.create({
   // Night Cream (index 2) Isolated Floating Elements
   floatingPetalSmallNC: {
     position: 'absolute',
-    left: '10%',
+    left: '-4%',
     top: '55%',
     width: 140,
     height: 140,
@@ -1703,16 +1741,16 @@ const mobileStyles = StyleSheet.create({
   },
   floatingPetalBigNC: {
     position: 'absolute',
-    right: '7%',
-    top: '35%',
+    right: '10%',
+    top: '30%',
     width: 170,
     height: 170,
     opacity: 0.8,
   },
   floatingBubbleLeftNC: {
     position: 'absolute',
-    left: '6%',
-    top: '33%',
+    left: '1%',
+    top: '30%',
     width: 220,
     height: 220,
     opacity: 0.8,
