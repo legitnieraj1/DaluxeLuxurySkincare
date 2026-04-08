@@ -15,9 +15,11 @@ import Animated, {
   Easing,
   useAnimatedReaction
 } from 'react-native-reanimated';
-import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X } from 'lucide-react-native';
-import CollectionPage, { ProductType, CartItem, CartDrawer } from './CollectionPage';
+import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X, Star, ArrowRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import CollectionPage, { ProductType, CartItem, CartDrawer, COLLECTION_PRODUCTS } from './CollectionPage';
 import OurStoryPage from './OurStoryPage';
+import HomeSections from './HomeSections';
 import ContactPage from './ContactPage';
 import { Demo as LoginPage } from './components/ui/demo';
 import './assets/output.css';
@@ -648,8 +650,11 @@ const ProductItem = ({ product, index, scrollX }: any) => {
   );
 };
 
+
+
 export default function App() {
   const scrollRef = React.useRef<any>(null);
+  const mainScrollRef = React.useRef<any>(null);
   const scrollX = useSharedValue(0);
   const collectionScrollY = useSharedValue(0);
   const ourStoryScrollY = useSharedValue(0);
@@ -748,7 +753,8 @@ export default function App() {
       [0, scrollDim, scrollDim * 2],
       ['rgba(0, 150, 255, 0.6)', 'rgba(255, 170, 0, 0.6)', 'rgba(255, 120, 150, 0.6)']
     );
-    return { backgroundColor };
+    const opacity = interpolate(scrollX.value, [scrollDim * 1.5, scrollDim * 2, scrollDim * 2.5], [1, 1, 0], Extrapolation.CLAMP);
+    return { backgroundColor, opacity };
   });
 
   // --- Mobile Customizable Podium ---
@@ -759,12 +765,20 @@ export default function App() {
 
   const mobilePodiumStyle = useAnimatedStyle(() => {
     if (!isMobileStatic) return {};
+    const opacity = interpolate(scrollX.value, [height * 1.5, height * 2, height * 2.5], [1, 1, 0], Extrapolation.CLAMP);
     return {
+      opacity,
       top: interpolate(scrollX.value, [0, height, height * 2], podiumTopVals, Extrapolation.CLAMP),
       transform: [
         { translateX: interpolate(scrollX.value, [0, height, height * 2], podiumLeftVals, Extrapolation.CLAMP) }
       ]
     };
+  });
+
+  const podiumDesktopStyle = useAnimatedStyle(() => {
+    if (isMobileStatic) return {};
+    const opacity = interpolate(scrollX.value, [width * 1.5, width * 2, width * 2.5], [1, 1, 0], Extrapolation.CLAMP);
+    return { opacity };
   });
 
   const mobilePodiumImageStyle = useAnimatedStyle(() => {
@@ -908,118 +922,152 @@ export default function App() {
 
       {/* ===== PRODUCT PAGE ===== */}
       {currentPage === 'product' && (
-        <>
-          {/* BACKGROUND IMAGES */}
-          <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-            {PRODUCTS.map((product, index) => (
-              <BackgroundImageLayer key={`bg-${product.id}`} product={product} index={index} scrollX={scrollX} vertical={isMobile} />
-            ))}
-          </View>
+        <React.Fragment>
+          {(() => {
+            const heroContent = (
+              <React.Fragment>
+                {/* BACKGROUND IMAGES */}
+                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                  {PRODUCTS.map((product, index) => (
+                    <BackgroundImageLayer key={`bg-${product.id}`} product={product} index={index} scrollX={scrollX} vertical={isMobile} />
+                  ))}
+                </View>
 
-          {/* FLOATING PETALS AND BUBBLES FOR FACE SERUM & NIGHT CREAM */}
-          <FloatingPetals scrollX={scrollX} index={0} source={require('./assets/blue_petals.png')} vertical={isMobile} />
-          <FloatingBubbles scrollX={scrollX} index={0} source={require('./assets/blue_bubblu_kutti.png')} vertical={isMobile} />
-          <FloatingGoldenBubbles scrollX={scrollX} index={1} vertical={isMobile} />
-          <FloatingPetals scrollX={scrollX} index={2} vertical={isMobile} />
-          <FloatingBubbles scrollX={scrollX} index={2} vertical={isMobile} />
+                {/* FLOATING PETALS AND BUBBLES FOR FACE SERUM & NIGHT CREAM */}
+                <FloatingPetals scrollX={scrollX} index={0} source={require('./assets/blue_petals.png')} vertical={isMobile} />
+                <FloatingBubbles scrollX={scrollX} index={0} source={require('./assets/blue_bubblu_kutti.png')} vertical={isMobile} />
+                <FloatingGoldenBubbles scrollX={scrollX} index={1} vertical={isMobile} />
+                <FloatingPetals scrollX={scrollX} index={2} vertical={isMobile} />
+                <FloatingBubbles scrollX={scrollX} index={2} vertical={isMobile} />
 
-          {/* Main Scrollable Area - Vertical on mobile, Horizontal on desktop */}
-          <Animated.ScrollView
-            ref={scrollRef}
-            horizontal={!isMobile}
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            onScroll={scrollHandler}
-            scrollEventThrottle={16}
-            style={StyleSheet.absoluteFill}
-            snapToInterval={isMobile ? height : undefined}
-            decelerationRate={isMobile ? 'fast' : undefined}
-          >
-            {PRODUCTS.map((product, index) =>
-              isMobile
-                ? <MobilePageContent key={product.id} product={product} index={index} scrollX={scrollX} vertical onPurchase={() => setCurrentPage('collection')} />
-                : <PageContent key={product.id} product={product} index={index} scrollX={scrollX} onPurchase={() => setCurrentPage('collection')} />
-            )}
-          </Animated.ScrollView>
+                {/* Main Scrollable Area - Vertical on mobile, Horizontal on desktop */}
+                <Animated.ScrollView
+                  ref={scrollRef}
+                  horizontal={!isMobile}
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                  onScroll={scrollHandler}
+                  scrollEventThrottle={16}
+                  style={StyleSheet.absoluteFill}
+                  snapToInterval={isMobile ? height : undefined}
+                  decelerationRate={isMobile ? 'fast' : undefined}
+                >
+                  {PRODUCTS.map((product, index) =>
+                    isMobile
+                      ? <MobilePageContent key={product.id} product={product} index={index} scrollX={scrollX} vertical onPurchase={() => setCurrentPage('collection')} />
+                      : <PageContent key={product.id} product={product} index={index} scrollX={scrollX} onPurchase={() => setCurrentPage('collection')} />
+                  )}
+                  {isMobile && (
+                    <View style={{ width, height }}>
+                       <ScrollView nestedScrollEnabled style={{ flex: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
+                          <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
+                             const idx = PRODUCTS.findIndex((x) => x.id === p.id);
+                             if (idx !== -1) {
+                                scrollRef.current?.scrollTo({ x: 0, y: idx * height, animated: true });
+                                setCurrentIndex(idx);
+                             }
+                          }} />
+                       </ScrollView>
+                    </View>
+                  )}
+                </Animated.ScrollView>
 
-          {/* Shared Absolute Product Image Container */}
-          <View style={isMobile ? mobileStyles.centerProductWrapper : styles.centerProductWrapper} pointerEvents="none">
+                {/* Shared Absolute Product Image Container */}
+                <View style={isMobile ? mobileStyles.centerProductWrapper : styles.centerProductWrapper} pointerEvents="none">
+                  {isMobile ? (
+                    <>
+                      {/* Mobile: Podium + Products */}
+                      <Animated.View style={[mobileStyles.podiumContainer, mobilePodiumStyle]}>
+                        <Animated.View style={[mobileStyles.podiumFloorShadow, podiumShadowStyle]} />
+                        <Animated.Image
+                          source={require('./assets/podium_custom.png')}
+                          style={mobilePodiumImageStyle}
+                          resizeMode="contain"
+                        />
+                      </Animated.View>
+                      {PRODUCTS.map((product, index) => (
+                        <MobileProductItem key={product.id} product={product} index={index} scrollX={scrollX} vertical />
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {/* Desktop: Original Podium + Products */}
+                      <Animated.View style={[styles.podiumContainer, podiumDesktopStyle]}>
+                        <Animated.View style={[styles.podiumFloorShadow, podiumShadowStyle]} />
+                        <Image
+                          source={require('./assets/podium_custom.png')}
+                          style={styles.podiumImage}
+                          resizeMode="contain"
+                        />
+                      </Animated.View>
+                      {PRODUCTS.map((product, index) => (
+                        <ProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
+                      ))}
+                    </>
+                  )}
+                </View>
 
-            {isMobile ? (
-              <>
-                {/* Mobile: Podium + Products */}
-                <Animated.View style={[mobileStyles.podiumContainer, mobilePodiumStyle]}>
-                  <Animated.View style={[mobileStyles.podiumFloorShadow, podiumShadowStyle]} />
-                  <Animated.Image
-                    source={require('./assets/podium_custom.png')}
-                    style={mobilePodiumImageStyle}
-                    resizeMode="contain"
-                  />
-                </Animated.View>
-                {PRODUCTS.map((product, index) => (
-                  <MobileProductItem key={product.id} product={product} index={index} scrollX={scrollX} vertical />
-                ))}
-              </>
+                {/* Global Foreground Glass Elements (Arrows) - Desktop only */}
+                {!isMobile && (
+                  <View style={styles.overlayControls} pointerEvents="box-none">
+                    {currentIndex > 0 ? (
+                      <View style={styles.navArrowWrapper}>
+                        <TouchableOpacity
+                          style={[styles.navArrow, { borderColor: 'rgba(255,255,255,0.4)' }]}
+                          onPress={() => {
+                            const target = Math.max(0, Math.round(scrollX.value / width) - 1);
+                            scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                          }}>
+                          <ChevronLeft color="#fff" size={32} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : <View style={styles.navArrowHidden} />}
+
+                    {currentIndex < PRODUCTS.length - 1 ? (
+                      <View style={styles.navArrowWrapper}>
+                        <TouchableOpacity
+                          style={[styles.navArrow, { borderColor: 'rgba(255,255,255,0.4)' }]}
+                          onPress={() => {
+                            const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
+                            scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
+                          }}>
+                          <ChevronRight color="#fff" size={32} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : <View style={styles.navArrowHidden} />}
+                  </View>
+                )}
+
+                {/* Bottom Legal / Trust Footer */}
+                {!isMobile && (
+                  <View style={styles.footer} pointerEvents="none">
+                    <Sparkles color="#ffffff" size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+                    <Text style={styles.footerText}>
+                      Dermal-Grade Botanical Formula, ISO & GMP Certified. Made in India.
+                    </Text>
+                  </View>
+                )}
+              </React.Fragment>
+            );
+
+            return isMobile ? (
+               <View style={{ flex: 1 }}>{heroContent}</View>
             ) : (
-              <>
-                {/* Desktop: Original Podium + Products */}
-                <Animated.View style={[styles.podiumContainer]}>
-                  <Animated.View style={[styles.podiumFloorShadow, podiumShadowStyle]} />
-                  <Image
-                    source={require('./assets/podium_custom.png')}
-                    style={styles.podiumImage}
-                    resizeMode="contain"
-                  />
-                </Animated.View>
-                {PRODUCTS.map((product, index) => (
-                  <ProductItem key={product.id} product={product} index={index} scrollX={scrollX} />
-                ))}
-              </>
-            )}
-          </View>
-
-          {/* Global Foreground Glass Elements (Arrows) - Desktop only */}
-          {!isMobile && (
-            <View style={styles.overlayControls} pointerEvents="box-none">
-              {currentIndex > 0 ? (
-                <View style={styles.navArrowWrapper}>
-                  <TouchableOpacity
-                    style={styles.navArrow}
-                    onPress={() => {
-                      const target = Math.max(0, Math.round(scrollX.value / width) - 1);
-                      scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-                    }}>
-                    <ChevronLeft color="#fff" size={32} />
-                  </TouchableOpacity>
-                </View>
-              ) : <View style={styles.navArrowHidden} />}
-
-              {currentIndex < PRODUCTS.length - 1 ? (
-                <View style={styles.navArrowWrapper}>
-                  <TouchableOpacity
-                    style={styles.navArrow}
-                    onPress={() => {
-                      const target = Math.min(PRODUCTS.length - 1, Math.round(scrollX.value / width) + 1);
-                      scrollRef.current?.scrollTo({ x: target * width, y: 0, animated: true });
-                    }}>
-                    <ChevronRight color="#fff" size={32} />
-                  </TouchableOpacity>
-                </View>
-              ) : <View style={styles.navArrowHidden} />}
-            </View>
-          )}
-
-          {/* Bottom Legal / Trust Footer */}
-          {!isMobile && (
-            <View style={styles.footer} pointerEvents="none">
-              <Sparkles color="#ffffff" size={16} style={{ marginRight: 8, opacity: 0.5 }} />
-              <Text style={styles.footerText}>
-                Dermal-Grade Botanical Formula, ISO & GMP Certified. Made in India.
-              </Text>
-            </View>
-          )}
-        </>
+               <ScrollView ref={mainScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
+                 <View style={{ height, width, overflow: 'hidden' }}>{heroContent}</View>
+                 <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
+                     const idx = PRODUCTS.findIndex((x) => x.id === p.id);
+                     if (idx !== -1) {
+                        scrollRef.current?.scrollTo({ x: idx * width, y: 0, animated: true });
+                        mainScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                        setCurrentIndex(idx);
+                     }
+                 }} />
+               </ScrollView>
+            );
+          })()}
+        </React.Fragment>
       )}
 
       {/* ===== COLLECTION PAGE ===== */}

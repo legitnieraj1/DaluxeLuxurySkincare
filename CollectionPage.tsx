@@ -86,7 +86,7 @@ const SERIF = Platform.select({
 // ════════════════════════════════════════════════
 // PRODUCT DATA
 // ════════════════════════════════════════════════
-const COLLECTION_PRODUCTS = [
+export const COLLECTION_PRODUCTS = [
   {
     id: 'facewash',
     name: 'ULTRA SENSITIVE GOLD GLOW FACEWASH',
@@ -1147,7 +1147,7 @@ const StickyBottomBar = ({ product, onAddToCart }: { product: ProductType; onAdd
 };
 
 // ════════════════════════════════════════════════
-// CART DRAWER
+// CART DRAWER — Premium Redesign
 // ════════════════════════════════════════════════
 export const CartDrawer = ({
   items, visible, onClose, onUpdateQuantity, onRemove,
@@ -1155,47 +1155,108 @@ export const CartDrawer = ({
   items: CartItem[]; visible: boolean; onClose: () => void;
   onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void;
 }) => {
-  if (!visible) return null;
+  const translateX = useSharedValue(400);
+  const overlayOpacity = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (visible) {
+      translateX.value = withTiming(0, { duration: 380, easing: Easing.out(Easing.ease) });
+      overlayOpacity.value = withTiming(1, { duration: 300 });
+    } else {
+      translateX.value = withTiming(400, { duration: 300, easing: Easing.in(Easing.ease) });
+      overlayOpacity.value = withTiming(0, { duration: 250 });
+    }
+  }, [visible]);
+
+  const drawerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  if (!visible && translateX.value >= 400) return null;
+
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <Animated.View entering={SlideInRight.duration(300)} exiting={SlideOutRight.duration(200)} style={cart.drawer}>
-      <View style={cart.header}>
-        <Text style={cart.headerTitle}>Your Cart</Text>
-        <TouchableOpacity onPress={onClose}><X color={TEXT_PRIMARY} size={22} /></TouchableOpacity>
-      </View>
-      <ScrollView style={cart.list} showsVerticalScrollIndicator={false}>
-        {items.length === 0 && <Text style={cart.emptyText}>Your cart is empty</Text>}
-        {items.map((item) => (
-          <View key={item.product.id} style={cart.item}>
-            <Image source={item.product.image} style={cart.itemImg} resizeMode="contain" />
-            <View style={cart.itemInfo}>
-              <Text style={cart.itemName}>{item.product.shortName}</Text>
-              <Text style={cart.itemSize}>{item.product.sizeDetail}</Text>
-              <Text style={cart.itemPrice}>{item.product.priceDisplay}</Text>
-            </View>
-            <View style={cart.qtyRow}>
-              <TouchableOpacity style={cart.qtyBtn} onPress={() => item.quantity > 1 ? onUpdateQuantity(item.product.id, item.quantity - 1) : onRemove(item.product.id)}>
-                <Text style={cart.qtyBtnText}>{'\u2212'}</Text>
-              </TouchableOpacity>
-              <Text style={cart.qtyText}>{item.quantity}</Text>
-              <TouchableOpacity style={cart.qtyBtn} onPress={() => onUpdateQuantity(item.product.id, item.quantity + 1)}>
-                <Text style={cart.qtyBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
+    <View style={cart.overlay} pointerEvents="box-none">
+      <Animated.View style={[cart.backdrop, overlayStyle]}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+      </Animated.View>
+
+      <Animated.View style={[cart.drawer, drawerStyle]}>
+        <View style={cart.header}>
+          <View>
+            <Text style={cart.headerTitle}>Your Cart</Text>
+            <Text style={cart.headerSubtitle}>{totalItems} {totalItems === 1 ? 'item' : 'items'}</Text>
           </View>
-        ))}
-      </ScrollView>
-      {items.length > 0 && (
-        <View style={cart.footer}>
-          <View style={cart.totalRow}>
-            <Text style={cart.totalLabel}>Total</Text>
-            <Text style={cart.totalValue}>{'\u20B9'}{total.toLocaleString('en-IN')}</Text>
-          </View>
-          <TouchableOpacity style={cart.checkoutBtn}><Text style={cart.checkoutText}>CHECKOUT</Text></TouchableOpacity>
+          <TouchableOpacity style={cart.closeBtn} onPress={onClose} activeOpacity={0.7}>
+            <X color="#1A1A1A" size={20} />
+          </TouchableOpacity>
         </View>
-      )}
-    </Animated.View>
+
+        <View style={cart.divider} />
+
+        <ScrollView style={cart.list} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+          {items.length === 0 ? (
+            <View style={cart.emptyContainer}>
+              <View style={cart.emptyIcon}>
+                <Text style={{ fontSize: 52 }}>🛍️</Text>
+              </View>
+              <Text style={cart.emptyTitle}>Nothing here</Text>
+              <Text style={cart.emptySubtext}>Looks like you haven't added anything yet.</Text>
+              <TouchableOpacity style={cart.exploreBtn} onPress={onClose} activeOpacity={0.85}>
+                <Text style={cart.exploreBtnText}>Explore products</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ paddingTop: 8 }}>
+              {items.map((item, idx) => (
+                <Animated.View key={item.product.id} entering={FadeInDown.delay(idx * 60).duration(300)} style={cart.item}>
+                  <View style={cart.itemImgWrap}>
+                    <Image source={item.product.image} style={cart.itemImg} resizeMode="contain" />
+                  </View>
+                  <View style={cart.itemInfo}>
+                    <Text style={cart.itemName} numberOfLines={1}>{item.product.shortName}</Text>
+                    <Text style={cart.itemSize}>{item.product.sizeDetail}</Text>
+                    <Text style={cart.itemPrice}>{item.product.priceDisplay}</Text>
+                    <View style={cart.qtyRow}>
+                      <TouchableOpacity style={cart.qtyBtn} onPress={() => item.quantity > 1 ? onUpdateQuantity(item.product.id, item.quantity - 1) : onRemove(item.product.id)}>
+                        <Text style={cart.qtyBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={cart.qtyText}>{item.quantity}</Text>
+                      <TouchableOpacity style={cart.qtyBtn} onPress={() => onUpdateQuantity(item.product.id, item.quantity + 1)}>
+                        <Text style={cart.qtyBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={cart.removeBtn} onPress={() => onRemove(item.product.id)}>
+                    <X color="#999" size={14} />
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        {items.length > 0 && (
+          <View style={cart.footer}>
+            <View style={cart.totalRow}>
+              <Text style={cart.totalLabel}>Order Total</Text>
+              <Text style={cart.totalValue}>₹{total.toLocaleString('en-IN')}</Text>
+            </View>
+            <Text style={cart.taxNote}>Inclusive of all taxes · Free shipping on orders ₹999+</Text>
+            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85}>
+              <LinearGradient colors={['#C9A227', '#E9C349', '#C9A227']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cart.checkoutGradient}>
+                <Text style={cart.checkoutText}>PROCEED TO CHECKOUT</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Animated.View>
+    </View>
   );
 };
 
@@ -1917,53 +1978,132 @@ const sb = StyleSheet.create({
 // ════════════════════════════════════════════════
 // STYLES: CART DRAWER
 // ════════════════════════════════════════════════
+const DRAWER_WIDTH = isMobileSS ? SW : Math.min(420, SW * 0.9);
+
 const cart = StyleSheet.create({
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 300,
+    flexDirection: 'row', justifyContent: 'flex-end',
+    pointerEvents: 'box-none' as any,
+  },
+  backdrop: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
   drawer: {
-    position: 'absolute', top: 0, right: 0, bottom: 0,
-    width: isMobileSS ? '100%' as any : Math.min(380, SW * 0.85),
-    backgroundColor: 'rgba(253, 251, 247, 0.95)', borderLeftWidth: isMobileSS ? 0 : 1, borderColor: GLASS_BORDER_GOLD, zIndex: 300,
-    shadowColor: '#000', shadowOffset: { width: -8, height: 0 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12,
-    ...Platform.select({ web: { backdropFilter: 'blur(30px)', boxShadow: '-8px 0 40px rgba(0,0,0,0.1)' } as any }),
+    width: DRAWER_WIDTH,
+    height: '100%' as any,
+    backgroundColor: '#F8F8FB',
+    borderTopLeftRadius: 28,
+    borderBottomLeftRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: -12, height: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 32,
+    elevation: 20,
+    ...Platform.select({ web: { boxShadow: '-16px 0 60px rgba(0,0,0,0.18)' } as any }),
   },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 24, paddingTop: Platform.OS === 'web' ? 120 : 140,
-    borderBottomWidth: 1, borderColor: GLASS_BORDER,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingHorizontal: 28, paddingTop: Platform.OS === 'web' ? 36 : 56, paddingBottom: 20,
+    backgroundColor: '#F8F8FB',
   },
   headerTitle: {
-    color: GOLD, fontSize: 18, fontWeight: '400', letterSpacing: 2,
-    ...Platform.select({ web: { fontFamily: SERIF } as any }),
+    fontSize: 22, fontWeight: '700', color: '#1A1A1A', letterSpacing: 0.3,
+    ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }),
   },
-  list: { flex: 1, padding: 24 },
-  emptyText: { color: TEXT_MUTED, fontSize: 14, textAlign: 'center', marginTop: 40 },
+  headerSubtitle: {
+    fontSize: 13, color: '#888', marginTop: 3, fontWeight: '400',
+  },
+  closeBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.07)',
+    justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  divider: {
+    height: 1, backgroundColor: '#E8E8EE', marginHorizontal: 0,
+  },
+  list: { flex: 1 },
+
+  // Empty state
+  emptyContainer: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 40, paddingVertical: 80,
+  },
+  emptyIcon: {
+    marginBottom: 28,
+  },
+  emptyTitle: {
+    fontSize: 20, fontWeight: '600', color: '#555', marginBottom: 8,
+    ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }),
+  },
+  emptySubtext: {
+    fontSize: 14, color: '#AAA', textAlign: 'center', lineHeight: 22, marginBottom: 36,
+  },
+  exploreBtn: {
+    backgroundColor: '#2E7D6B',
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 48,
+    width: '100%' as any,
+    alignItems: 'center',
+    ...Platform.select({ web: { cursor: 'pointer', transition: 'all 0.3s ease' } as any }),
+  },
+  exploreBtnText: {
+    color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: 0.5,
+  },
+
+  // Cart items
   item: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderColor: GLASS_BORDER,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 14,
+    marginHorizontal: 20, marginVertical: 12,
+    padding: 14, backgroundColor: '#FFF',
+    borderRadius: 18,
+    borderWidth: 1, borderColor: '#EFEFEF',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  itemImg: { width: 56, height: 56 },
+  itemImgWrap: {
+    width: 72, height: 72, borderRadius: 14, backgroundColor: '#F5F5F7',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+  },
+  itemImg: { width: 60, height: 60 },
   itemInfo: { flex: 1 },
-  itemName: { color: WHITE, fontSize: 13, fontWeight: '600', letterSpacing: 1 },
-  itemSize: { color: TEXT_SECONDARY, fontSize: 11, marginTop: 2 },
-  itemPrice: { color: GOLD_DEEP, fontSize: 14, fontWeight: '500', marginTop: 4 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  itemName: { color: '#1A1A1A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2, marginBottom: 3 },
+  itemSize: { color: '#999', fontSize: 11, marginBottom: 4 },
+  itemPrice: { color: '#B8962E', fontSize: 15, fontWeight: '700', marginBottom: 10 },
+  removeBtn: {
+    padding: 4,
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+
+  // Qty controls
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 0, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 10, overflow: 'hidden' },
   qtyBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    borderWidth: 1, borderColor: GLASS_BORDER_GOLD, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: GOLD_LIGHT,
-    ...Platform.select({ web: { cursor: 'pointer', transition: 'all 0.2s ease' } as any }),
+    width: 34, height: 34, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    ...Platform.select({ web: { cursor: 'pointer', transition: 'background 0.15s' } as any }),
   },
-  qtyBtnText: { color: GOLD_DEEP, fontSize: 14, fontWeight: '600' },
-  qtyText: { color: TEXT_PRIMARY, fontSize: 14, fontWeight: '500', minWidth: 18, textAlign: 'center' },
+  qtyBtnText: { color: '#1A1A1A', fontSize: 16, fontWeight: '600', lineHeight: 18 },
+  qtyText: { color: '#1A1A1A', fontSize: 14, fontWeight: '700', minWidth: 32, textAlign: 'center' },
+
+  // Footer
   footer: {
-    padding: 24, borderTopWidth: 1, borderColor: GLASS_BORDER,
+    padding: 24, paddingBottom: Platform.OS === 'web' ? 28 : 40,
+    backgroundColor: '#F8F8FB',
+    borderTopWidth: 1, borderColor: '#E8E8EE',
   },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  totalLabel: { color: TEXT_MUTED, fontSize: 12, fontWeight: '500', letterSpacing: 2, textTransform: 'uppercase' },
-  totalValue: { color: GOLD_DEEP, fontSize: 20, fontWeight: '500' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  totalLabel: { color: '#888', fontSize: 13, fontWeight: '500', letterSpacing: 1, textTransform: 'uppercase' },
+  totalValue: { color: '#1A1A1A', fontSize: 22, fontWeight: '800' },
+  taxNote: { color: '#AAA', fontSize: 11, marginBottom: 20, letterSpacing: 0.2 },
   checkoutBtn: {
-    backgroundColor: GOLD_DEEP, paddingVertical: 16, alignItems: 'center',
-    borderRadius: 24,
-    ...Platform.select({ web: { cursor: 'pointer', boxShadow: '0 4px 20px rgba(212,175,55,0.3)', transition: 'all 0.3s ease' } as any }),
+    borderRadius: 16, overflow: 'hidden',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
-  checkoutText: { color: '#FDFBF7', fontSize: 12, fontWeight: '700', letterSpacing: 3 },
+  checkoutGradient: {
+    paddingVertical: 18, alignItems: 'center', borderRadius: 16,
+  },
+  checkoutText: { color: '#1A1A1A', fontSize: 13, fontWeight: '800', letterSpacing: 3 },
 });
