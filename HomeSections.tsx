@@ -34,7 +34,7 @@ const ShopByConcern = () => {
   return (
     <View style={[styles.section, { backgroundColor: '#F8F6F0' }]}>
       <Text style={styles.sectionTitle}>Shop by Concern</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.concernRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.concernRow, !isMobile && { justifyContent: 'center' }]} style={{ width: '100%' }}>
         {CONCERNS.map(c => (
           <TouchableOpacity key={c.id} style={styles.concernItem}>
             <Image source={c.img} style={styles.concernImg} />
@@ -95,7 +95,7 @@ const ProductCarouselSection = ({ title, products, onAddToCart, onProductClick, 
         </View>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={isMobile ? styles.scrollMob : styles.scrollDesk}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[isMobile ? styles.scrollMob : styles.scrollDesk, products.length <= 2 && { justifyContent: 'center' }]} style={{ width: '100%' }}>
         {products.map((p: any) => (
           <ProductCard key={`${title}-${p.id}`} product={p} onPurchase={onAddToCart} onClick={onProductClick} />
         ))}
@@ -148,29 +148,29 @@ const CampaignBanners = () => {
       <View style={[promoStyles.grid, isMobile && { flexDirection: 'column' }]}>
         <View style={promoStyles.banner}>
            <LinearGradient colors={['#E5F5F3', '#C6EBE5']} style={promoStyles.bg}>
-              <Text style={promoStyles.tag}>SALICYLIC</Text>
-              <Text style={promoStyles.desc}>Clear acne & blemishes for smooth flawless skin.</Text>
+              <Text style={promoStyles.tag}>HYDROSOL INFUSION</Text>
+              <Text style={promoStyles.desc}>Gentle floral waters like Rose Hydrosol calm, hydrate, and restore skin balance without irritation.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </View>
         <View style={promoStyles.banner}>
            <LinearGradient colors={['#F5E6F3', '#E9C6E5']} style={promoStyles.bg}>
-              <Text style={promoStyles.tag}>VITAMIN C</Text>
-              <Text style={promoStyles.desc}>Brighten your complexion with pure antioxidants.</Text>
+              <Text style={promoStyles.tag}>AYURVEDIC HERBS</Text>
+              <Text style={promoStyles.desc}>Saffron, Manjistha, Neem, and Tulsi work together to purify, brighten, and enhance natural glow.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </View>
         <View style={promoStyles.banner}>
            <LinearGradient colors={['#EAE6F5', '#CDC6E5']} style={promoStyles.bg}>
-              <Text style={promoStyles.tag}>NIACINAMIDE</Text>
-              <Text style={promoStyles.desc}>Control sebum and minimize pores effectively.</Text>
+              <Text style={promoStyles.tag}>BOTANICAL ACTIVES</Text>
+              <Text style={promoStyles.desc}>Licorice, Alpha Arbutin, and Vitamin C help reduce pigmentation and even out skin tone gently.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </View>
         <View style={promoStyles.banner}>
            <LinearGradient colors={['#E6F5ED', '#C6EBE1']} style={promoStyles.bg}>
-              <Text style={promoStyles.tag}>HYALURONIC</Text>
-              <Text style={promoStyles.desc}>Deep hydration and plump skin all day long.</Text>
+              <Text style={promoStyles.tag}>BARRIER + HYDRATION</Text>
+              <Text style={promoStyles.desc}>Aloe Vera, Panthenol, Sodium Hyaluronate, and Gotu Kola deeply hydrate and strengthen skin barrier.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </View>
@@ -209,7 +209,7 @@ const ReviewsSection = () => {
   return (
     <View style={reviewStyles.container}>
       <Text style={styles.sectionTitle}>Real People. Real Results.</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingHorizontal: 40, paddingBottom: 40 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingHorizontal: 40, paddingBottom: 40 }} style={{ width: '100%' }}>
          <ReviewCard />
          <ReviewCard />
          <ReviewCard />
@@ -254,15 +254,13 @@ export default function HomeSections({ onAddToCart, onProductClick }: any) {
   const combos = COLLECTION_PRODUCTS;
 
   return (
-    <View style={{ width: '100%', backgroundColor: '#F8F6F0' }}>
+    <View style={[{ width: '100%', backgroundColor: '#F8F6F0' }, Platform.OS === 'web' ? { overflowX: 'hidden' } as any : { overflow: 'hidden' }]}>
       <ShopByConcern />
       <ProductCarouselSection title="Our Most Loved Products" products={COLLECTION_PRODUCTS} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <SkinAssessment />
       <ProductCarouselSection title="Face Serums" products={faceSerums} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <CampaignBanners />
       <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers} onAddToCart={onAddToCart} onProductClick={onProductClick} />
-      <FeaturedIn />
-      <ProductCarouselSection title="Combos" products={combos} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <ReviewsSection />
       <Footer />
     </View>

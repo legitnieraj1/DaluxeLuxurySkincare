@@ -15,10 +15,11 @@ import Animated, {
   Easing,
   useAnimatedReaction
 } from 'react-native-reanimated';
-import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X, Star, ArrowRight } from 'lucide-react-native';
+import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X, Star, ArrowRight, Home, LayoutGrid, MessageCircle, ScanFace } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import CollectionPage, { ProductType, CartItem, CartDrawer, COLLECTION_PRODUCTS } from './CollectionPage';
 import OurStoryPage from './OurStoryPage';
+import SkinAssessmentPage from './SkinAssessmentPage';
 import HomeSections from './HomeSections';
 import ContactPage from './ContactPage';
 import { Demo as LoginPage } from './components/ui/demo';
@@ -843,6 +844,25 @@ export default function App() {
     };
   });
 
+  const bottomNavAnimatedStyle = useAnimatedStyle(() => {
+    if (currentPage !== 'product') {
+       return { opacity: 1, transform: [{ translateY: 0 }] };
+    }
+    const opacity = interpolate(
+      scrollX.value,
+      [height * 2.1, height * 2.8],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    const translateY = interpolate(
+      scrollX.value,
+      [height * 2.1, height * 2.8],
+      [60, 0],
+      Extrapolation.CLAMP
+    );
+    return { opacity, transform: [{ translateY }] };
+  });
+
   return (
     <View style={[styles.container, (isCollection || currentPage === 'our-story' || currentPage === 'contact') && { backgroundColor: '#FDFBF7' }]}>
 
@@ -876,14 +896,11 @@ export default function App() {
         )}
         {/* Mobile + Desktop right icons */}
         <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
-          {isMobile && !hideNavbarLinks && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <X color="#e9c349" size={20} /> : <Menu color="#e9c349" size={20} />}
+          {!isMobile && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setCurrentPage('login')}>
+              <User color="#e9c349" size={20} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setCurrentPage('login')}>
-            <User color="#e9c349" size={20} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setCartVisible(true)}>
             <ShoppingCart color="#e9c349" size={20} />
             {cartCount > 0 && (
@@ -1086,10 +1103,10 @@ export default function App() {
         />
       )}
 
-      {/* ===== OUR STORY PAGE ===== */}
+      {/* ===== AI SKIN ASSESSMENT (our-story route) ===== */}
       {currentPage === 'our-story' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
-          <OurStoryPage externalScrollY={ourStoryScrollY} />
+          <SkinAssessmentPage />
         </View>
       )}
 
@@ -1105,6 +1122,50 @@ export default function App() {
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
           <LoginPage onSkip={() => setCurrentPage('product')} />
         </View>
+      )}
+
+      {/* ===== MOBILE BOTTOM NAVBAR ===== */}
+      {isMobile && (
+        <Animated.View style={[{
+          position: 'absolute', bottom: 20, left: 16, right: 16, zIndex: 800,
+          borderRadius: 40,
+          shadowColor: '#C9A227', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 15,
+          overflow: 'hidden'
+        }, bottomNavAnimatedStyle]}>
+          <LinearGradient
+            colors={['#2A1F13', '#110C07']}
+            start={{x: 0,y: 0}} end={{x: 1,y: 1}}
+            style={{
+              flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+              paddingVertical: 10, paddingHorizontal: 10,
+              borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.4)', borderRadius: 40,
+              ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } as any : {})
+            }}>
+            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('product')}>
+              <Home color={currentPage === 'product' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+            </TouchableOpacity>
+            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('collection')}>
+              <LayoutGrid color={currentPage === 'collection' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={{
+              position: 'relative', top: -15,
+              width: 56, height: 56, borderRadius: 28,
+              shadowColor: '#E9C349', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
+            }} onPress={() => setCurrentPage('our-story')}>
+              <LinearGradient colors={['#FFF1B9', '#D4AF37', '#8A5A19']} start={{x: 0.2,y: 0}} end={{x: 0.8,y: 1}} style={{ flex: 1, borderRadius: 30, justifyContent: 'center', alignItems: 'center' }}>
+                 <ScanFace color="#110C07" size={26} strokeWidth={1.5} />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('contact')}>
+              <MessageCircle color={currentPage === 'contact' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+            </TouchableOpacity>
+            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('login')}>
+              <User color={currentPage === 'login' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
       )}
 
       {/* Cart Drawer */}

@@ -1155,7 +1155,7 @@ export const CartDrawer = ({
   items: CartItem[]; visible: boolean; onClose: () => void;
   onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void;
 }) => {
-  const translateX = useSharedValue(400);
+  const translateX = useSharedValue(800);
   const overlayOpacity = useSharedValue(0);
 
   React.useEffect(() => {
@@ -1163,7 +1163,7 @@ export const CartDrawer = ({
       translateX.value = withTiming(0, { duration: 380, easing: Easing.out(Easing.ease) });
       overlayOpacity.value = withTiming(1, { duration: 300 });
     } else {
-      translateX.value = withTiming(400, { duration: 300, easing: Easing.in(Easing.ease) });
+      translateX.value = withTiming(800, { duration: 300, easing: Easing.in(Easing.ease) });
       overlayOpacity.value = withTiming(0, { duration: 250 });
     }
   }, [visible]);
@@ -1175,7 +1175,7 @@ export const CartDrawer = ({
     opacity: overlayOpacity.value,
   }));
 
-  if (!visible && translateX.value >= 400) return null;
+  if (!visible && translateX.value >= 790) return null;
 
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -1982,7 +1982,7 @@ const DRAWER_WIDTH = isMobileSS ? SW : Math.min(420, SW * 0.9);
 
 const cart = StyleSheet.create({
   overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 300,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999,
     flexDirection: 'row', justifyContent: 'flex-end',
     pointerEvents: 'box-none' as any,
   },
@@ -2043,7 +2043,7 @@ const cart = StyleSheet.create({
     fontSize: 14, color: '#AAA', textAlign: 'center', lineHeight: 22, marginBottom: 36,
   },
   exploreBtn: {
-    backgroundColor: '#2E7D6B',
+    backgroundColor: '#C9A227',
     borderRadius: 14,
     paddingVertical: 18,
     paddingHorizontal: 48,
