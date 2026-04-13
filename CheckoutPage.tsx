@@ -120,6 +120,24 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
     
     const cartPayload = items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price }));
 
+    // PRE-FLIGHT STOCK & RATE-LIMIT VALIDATION
+    try {
+      const validateRes = await fetch(`${API_URL}/api/checkout/validate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart_items: cartPayload })
+      });
+      const validateData = await validateRes.json();
+      if (!validateRes.ok || !validateData.success) {
+        setLoading(false);
+        alert(validateData.error || 'Validation failed. Some items may be out of stock.');
+        return;
+      }
+    } catch (e: any) {
+      setLoading(false);
+      alert('Error verifying stock or network connection. Please try again.');
+      return;
+    }
+
     if (paymentMethod === 'cod') {
       try {
         const res = await fetch(`${API_URL}/api/checkout/cod`, {

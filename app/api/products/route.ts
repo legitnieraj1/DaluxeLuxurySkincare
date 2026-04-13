@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import { supabaseClient } from '@/lib/supabaseClient';
+
+export async function GET() {
+  try {
+    const { data: products, error } = await supabaseClient
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedProducts = (products || []).map((product) => {
+      let stockMessage = 'In stock';
+      
+      if (product.stock_quantity <= 0) {
+        stockMessage = 'Out of stock';
+      } else if (product.stock_quantity <= 5) {
+        stockMessage = `Only ${product.stock_quantity} left!`;
+      }
+
+      return {
+        ...product,
+        stock_message: stockMessage,
+      };
+    });
+
+    return NextResponse.json({ products: formattedProducts });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
+}

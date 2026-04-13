@@ -67,7 +67,7 @@ const GoogleIcon = () => (
 // ═══════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════
-export function Demo({ onSkip, onLogin }: { onSkip?: () => void, onLogin?: (email: string) => void }) {
+export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () => void, onLogin?: (email: string) => void, onVerify?: (email: string, token: string) => void, awaitingOtp?: boolean }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
@@ -119,8 +119,15 @@ export function Demo({ onSkip, onLogin }: { onSkip?: () => void, onLogin?: (emai
       alert('Please enter a valid email address.');
       return;
     }
-    // Simulate auth token generation
-    if (onLogin) onLogin(identifier.toLowerCase().trim());
+    if (awaitingOtp) {
+      if (!password) {
+        alert('Please enter the verification code sent to your email.');
+        return;
+      }
+      if (onVerify) onVerify(identifier.toLowerCase().trim(), password);
+    } else {
+      if (onLogin) onLogin(identifier.toLowerCase().trim());
+    }
   };
 
   return (
@@ -215,33 +222,40 @@ export function Demo({ onSkip, onLogin }: { onSkip?: () => void, onLogin?: (emai
                </View>
              </Animated.View>
 
-             {/* Password Container */}
-             <Animated.View entering={FadeInUp.delay(500).duration(800)} style={s.inputContainer}>
-               <Text style={s.inputLabel}>PASSWORD</Text>
-               <View style={[s.inputWrapper, passwordFocused && s.inputWrapperFocused]}>
-                 <TextInput
-                   style={[s.textInput, { fontStyle: password ? 'normal' : 'italic' }]}
-                   placeholder="Enter your password"
-                   placeholderTextColor="rgba(110,110,110,0.5)"
-                   value={password}
-                   onChangeText={setPassword}
-                   onFocus={() => setPasswordFocused(true)}
-                   onBlur={() => setPasswordFocused(false)}
-                   secureTextEntry
-                   autoCapitalize="none"
-                 />
-                 <View style={[s.focusLine, passwordFocused && s.focusLineActive]} />
-               </View>
-             </Animated.View>
+             {/* Password / OTP Container */}
+             {awaitingOtp && (
+               <Animated.View entering={FadeInUp.duration(600)} style={s.inputContainer}>
+                 <Text style={s.inputLabel}>VERIFICATION CODE</Text>
+                 <View style={[s.inputWrapper, passwordFocused && s.inputWrapperFocused]}>
+                   <TextInput
+                     style={[s.textInput, { fontStyle: password ? 'normal' : 'italic', letterSpacing: password ? 4 : 0 }]}
+                     placeholder="Enter 6-digit code"
+                     placeholderTextColor="rgba(110,110,110,0.5)"
+                     value={password}
+                     onChangeText={setPassword}
+                     onFocus={() => setPasswordFocused(true)}
+                     onBlur={() => setPasswordFocused(false)}
+                     secureTextEntry={false}
+                     autoCapitalize="none"
+                     keyboardType="number-pad"
+                     maxLength={6}
+                   />
+                   <View style={[s.focusLine, passwordFocused && s.focusLineActive]} />
+                 </View>
+               </Animated.View>
+             )}
 
-             {/* Forgot Password */}
+             {/* Resend Code / Forgot Pwd */}
              <Animated.View entering={FadeInUp.delay(550).duration(800)} style={s.forgotPwdRow}>
                <Pressable 
                   onHoverIn={() => setHoverForgot(true)} 
                   onHoverOut={() => setHoverForgot(false)}
                   style={s.forgotPwdPress}
+                  onPress={() => awaitingOtp && onLogin && onLogin(identifier.toLowerCase().trim())}
                >
-                 <Text style={[s.forgotPwdText, hoverForgot && s.forgotPwdTextHover]}>Forgot password?</Text>
+                 <Text style={[s.forgotPwdText, hoverForgot && s.forgotPwdTextHover]}>
+                   {awaitingOtp ? 'Resend code?' : ''}
+                 </Text>
                  <View style={[s.forgotPwdLine, hoverForgot && s.forgotPwdLineHover]} />
                </Pressable>
              </Animated.View>
@@ -257,7 +271,7 @@ export function Demo({ onSkip, onLogin }: { onSkip?: () => void, onLogin?: (emai
                  {({ pressed }) => (
                    <Animated.View style={[s.loginBtnScale, { transform: [{ scale: pressed ? 0.98 : (hoverCTA ? 1.02 : 1) }] }]}>
                      <LinearGradient colors={['#D4AF37', '#B8962E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.loginBtnGradient}>
-                       <Text style={s.loginBtnText}>LOGIN / SIGN IN</Text>
+                       <Text style={s.loginBtnText}>{awaitingOtp ? 'VERIFY & SIGN IN' : 'SEND SECURE LINK'}</Text>
                      </LinearGradient>
                    </Animated.View>
                  )}

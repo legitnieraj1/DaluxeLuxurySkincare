@@ -1485,6 +1485,35 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [flyItems, setFlyItems] = useState<FlyItem[]>([]);
+  const [liveProducts, setLiveProducts] = useState(COLLECTION_PRODUCTS);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || 'http://localhost:3000';
+        const res = await fetch(`${API_URL}/api/products`);
+        const data = await res.json();
+        if (data.products) {
+          const merged = COLLECTION_PRODUCTS.map(cp => {
+            const dbP = data.products.find((p: any) => p.id === cp.id || p.name.includes(cp.shortName));
+            if (dbP) {
+              return { 
+                ...cp, 
+                price: dbP.price || cp.price, 
+                stock_message: dbP.stock_message, 
+                priceDisplay: dbP.price ? `₹${dbP.price}.00` : cp.priceDisplay 
+              };
+            }
+            return cp;
+          });
+          setLiveProducts(merged);
+        }
+      } catch (err) {
+        console.warn('Failed to load live inventory:', err);
+      }
+    };
+    fetchInventory();
+  }, []);
 
   useEffect(() => {
     setActiveConcern(initialConcern || null);
@@ -1509,7 +1538,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
     onClearConcern?.();
   }, [onClearConcern]);
 
-  const filteredProducts = COLLECTION_PRODUCTS.filter((p) => {
+  const filteredProducts = liveProducts.filter((p) => {
     if (activeCategory !== 'all' && p.category !== activeCategory) return false;
     if (activeConcern && !matchConcern(p, activeConcern)) return false;
     return true;
@@ -1531,13 +1560,13 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
 
   // Auto-open product if initialProductId provided (from homepage card click)
   useEffect(() => {
-    if (initialProductId) {
-      const product = COLLECTION_PRODUCTS.find(p => p.id === initialProductId);
+    if (initialProductId && liveProducts.length > 0) {
+      const product = liveProducts.find(p => p.id === initialProductId);
       if (product) {
         setTimeout(() => openProduct(product as ProductType), 150);
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, liveProducts]);
 
   return (
     <View style={main.container}>
@@ -1571,7 +1600,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
             product={selectedProduct}
             onBack={goBack}
             onAddToCart={handleAddToCart}
-            allProducts={COLLECTION_PRODUCTS}
+            allProducts={liveProducts}
             onSelectProduct={openProduct}
           />
         )}

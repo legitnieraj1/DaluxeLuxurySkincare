@@ -25,6 +25,7 @@ import ContactPage from './ContactPage';
 import CheckoutPage from './CheckoutPage';
 import { Demo as LoginPage } from './components/ui/demo';
 import ProfilePage from './ProfilePage';
+import { supabaseClient } from './lib/supabaseClient';
 import './assets/output.css';
 
 const { height, width } = Dimensions.get('window');
@@ -665,12 +666,31 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile'>('product');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
 
   React.useEffect(() => {
-    if (Platform.OS === 'web') {
-      const saved = window.localStorage.getItem('daluxe_user_email');
-      if (saved) setUserEmail(saved);
-    }
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.email) {
+        if (Platform.OS === 'web') window.localStorage.setItem('daluxe_user_email', session.user.email);
+        setUserEmail(session.user.email);
+        setAwaitingOtp(false);
+        setCurrentPage('profile');
+      } else {
+        if (Platform.OS === 'web') window.localStorage.removeItem('daluxe_user_email');
+        setUserEmail(null);
+      }
+    });
+
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      } else if (Platform.OS === 'web') {
+        const saved = window.localStorage.getItem('daluxe_user_email');
+        if (saved) setUserEmail(saved);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1209,11 +1229,27 @@ export default function App() {
       {/* ===== LOGIN PAGE ===== */}
       {currentPage === 'login' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
-          <LoginPage onSkip={() => setCurrentPage('product')} onLogin={(email) => {
-            if (Platform.OS === 'web') window.localStorage.setItem('daluxe_user_email', email);
-            setUserEmail(email);
-            setCurrentPage('profile');
-          }} />
+          <LoginPage 
+            awaitingOtp={awaitingOtp}
+            onSkip={() => setCurrentPage('product')} 
+            onLogin={async (email) => {
+              const { error } = await supabaseClient.auth.signInWithOtp({ email });
+              if (error) {
+                alert(error.message);
+              } else {
+                setAwaitingOtp(true);
+                alert('Verification code sent to your email.');
+              }
+            }} 
+            onVerify={async (email, token) => {
+              const { data, error } = await supabaseClient.auth.verifyOtp({ email, token, type: 'email' });
+              if (error) {
+                alert('Invalid code. Please try again.');
+              } else if (data.session) {
+                // onAuthStateChange handles redirect
+              }
+            }}
+          />
         </View>
       )}
 
@@ -1223,8 +1259,9 @@ export default function App() {
           <ProfilePage 
             userEmail={userEmail} 
             onBack={() => setCurrentPage('product')}
-            onLogout={() => {
+            onLogout={async () => {
               if (Platform.OS === 'web') window.localStorage.removeItem('daluxe_user_email');
+              await supabaseClient.auth.signOut();
               setUserEmail(null);
               setCurrentPage('login');
             }}
