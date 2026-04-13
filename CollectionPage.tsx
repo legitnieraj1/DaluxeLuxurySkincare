@@ -77,7 +77,7 @@ const TEXT_MUTED = 'rgba(26, 26, 26, 0.4)';
 const TEXT_LIGHT = '#1A1A1A';
 const BORDER = 'rgba(0, 0, 0, 0.06)';
 const BORDER_GOLD = 'rgba(233, 195, 73, 0.12)';
-const WHITE = '#1A1A1A';
+const WHITE = '#FFFFFF';
 const SERIF = Platform.select({
   web: 'Georgia, "Playfair Display", "Times New Roman", serif',
   default: undefined,
@@ -319,6 +319,124 @@ export const COLLECTION_PRODUCTS = [
       { text: 'Lightweight and non-greasy formula that actually works. My acne hasn\u2019t flared up since!', author: 'Shruti L.', rating: 5 },
     ],
   },
+  {
+    id: 'hairoil',
+    name: 'ULTRA SENSITIVE HAIR GROWTH ELIXIR HAIR OIL',
+    shortName: 'HAIR OIL',
+    displayName: 'Hair Growth Elixir',
+    subtitle: 'Ultra Sensitive Care',
+    category: 'hair',
+    tagline: 'Gentle Herbal Care • Hair Growth Support • Scalp Nourishment',
+    price: 299,
+    priceDisplay: '₹299.00',
+    size: '100 ML',
+    sizeDetail: '100 ml (3.38 fl oz)',
+    rating: 4.7,
+    image: require('./assets/hairoil.jpeg'),
+    themeColor: '#C9A227',
+    themeBg: '#FDFBF7',
+    themeGradient: ['#FDFBF7', '#F6F0DF'] as [string, string],
+    highlights: [
+      { icon: 'leaf', label: 'Female scalp care herbal oil blend' },
+      { icon: 'droplets', label: 'Lightweight & non-sticky' },
+      { icon: 'sparkles', label: 'Vitamins & conditioning actives' },
+    ],
+    benefits: [
+      'Helps support healthy hair growth',
+      'Nourishes and strengthens hair roots',
+      'Improves scalp health and hydration',
+      'Helps reduce dryness and hair fall',
+      'Makes hair softer, smoother and shinier',
+    ],
+    concerns: ['Hair Fall', 'Weak Roots', 'Dry Scalp', 'Slow Hair Growth'],
+    description: 'A gentle herbal hair oil formulated with nourishing carrier oils, botanical extracts and scalp-conditioning actives to support healthy hair growth, strengthen roots and maintain a balanced scalp environment.',
+    storyTitle: 'The Root Ritual',
+    storyText: 'A lightweight infusion that deeply nourishes the scalp without feeling tacky. Designed exclusively for sensitive, dry profiles experiencing weak roots.',
+    stats: [
+      { value: '96%', label: 'STRONGER ROOTS' },
+      { value: '92%', label: 'LESS HAIR FALL' },
+      { value: '98%', label: 'SCALP HYDRATION' },
+    ],
+    featuredIngredients: [
+      { name: 'Bhringraj & Amla', desc: 'Renowned Ayurvedic herbs that actively stimulate follicles and support robust hair growth.' },
+      { name: 'Sugarcane Squalane', desc: 'A deeply hydrating, weightless active that smooths hair cuticles and provides brilliant shine.' },
+      { name: 'Caffeine', desc: 'Energizes the scalp ecosystem and offsets factors that lead to thinning.' },
+    ],
+    allIngredients: ['Coconut MCT Oil', 'Black Sesame Oil', 'Jojoba Oil', 'Argan Oil', 'Castor Oil', 'Bhringraj Extract', 'Amla Extract', 'Fenugreek Extract', 'Hibiscus Extract', 'Brahmi Extract', 'Gotu Kola Extract', 'Sugarcane Squalane', 'Vitamin E', 'Caffeine'],
+    texture: 'Lightweight, Smooth, Non-sticky Oil',
+    fragrance: 'Mild Herbal Aroma with Natural Essential Oils',
+    howToUse: 'Take a small amount of oil and gently massage onto scalp and hair roots. Leave for a few hours or overnight before washing with a mild shampoo.',
+    whenToUse: '2–3 times a week or as needed',
+    suitableFor: ['Normal', 'Dry', 'Weak & Sensitive Scalp Hair Types'],
+    claims: ['Preservative Free', 'Silicone Free', 'Mineral Oil Free', 'Gentle Herbal Formula'],
+    shelfLife: '24 Months',
+    brand: 'D A LUXE',
+    madeIn: 'India',
+    reviews: [
+      { text: 'Nourishes scalp and strengthens hair roots!', author: 'Sneha R.', rating: 5 },
+      { text: 'Lightweight and non-greasy oil, I can leave it on overnight comfortably.', author: 'Riya K.', rating: 5 },
+      { text: 'Suitable for regular scalp massage, saw baby hairs coming in.', author: 'Aarti M.', rating: 4.5 },
+    ],
+  },
+  {
+    id: 'hairshampoo',
+    name: 'ULTRA SENSITIVE CALM & CLEAN HAIR SHAMPOO',
+    shortName: 'SHAMPOO',
+    displayName: 'Calm & Clean Shampoo',
+    subtitle: 'Ultra Sensitive Care',
+    category: 'hair',
+    tagline: 'Gentle Herbal Cleanse • No-Itch Comfort • Sensitive Scalp Care',
+    price: 249,
+    priceDisplay: '₹249.00',
+    size: '100 ML',
+    sizeDetail: '100 ml (3.38 fl oz)',
+    rating: 4.7,
+    image: require('./assets/hairshampoo.jpeg'),
+    themeColor: '#7A918D',
+    themeBg: '#F2F5F4',
+    themeGradient: ['#F2F5F4', '#E8ECEB'] as [string, string],
+    highlights: [
+      { icon: 'droplets', label: 'Reduced saponin blend for gentle washing' },
+      { icon: 'leaf', label: 'Anti-itch soothing botanical extracts' },
+      { icon: 'sparkles', label: 'Lightweight conditioning for soft hair' },
+    ],
+    benefits: [
+      'Gently cleanses hair without irritation',
+      'Helps soothe itchy and sensitive scalp',
+      'Maintains scalp hydration and balance',
+      'Leaves hair soft, smooth and manageable',
+      'Suitable for regular gentle cleansing',
+    ],
+    concerns: ['Sensitive Scalp', 'Itching', 'Dryness', 'Mild Irritation'],
+    description: 'A mild herbal shampoo specially designed for sensitive female scalp. Enriched with botanical extracts and soothing actives that gently cleanse hair while helping reduce scalp irritation and dryness.',
+    storyTitle: 'The Pure Cleanse',
+    storyText: 'A sulfate-free, deeply soothing rinse that respects the sensitive barrier of your scalp, eliminating itch without stripping away essential moisture.',
+    stats: [
+      { value: '97%', label: 'ITCH RELIEF' },
+      { value: '95%', label: 'SCALP COMFORT' },
+      { value: '94%', label: 'SOFTER HAIR' },
+    ],
+    featuredIngredients: [
+      { name: 'Reetha & Shikakai', desc: 'Natural saponins that provide a mild, non-stripping cleanse perfect for delicate barriers.' },
+      { name: 'Aloe Vera & Allantoin', desc: 'Super-soothing complexes that instantly calm irritation, redness, and itching.' },
+      { name: 'Panthenol (Vitamin B5)', desc: 'Penetrates the hair shaft to lock in intense moisture and boost elasticity.' },
+    ],
+    allIngredients: ['Reetha Extract', 'Shikakai Extract', 'Amla Extract', 'Aloe Vera Extract', 'Licorice Extract', 'Neem Extract', 'Fenugreek Extract', 'Hibiscus Extract', 'Bhringraj Extract', 'Virgin Coconut Oil', 'Castor Oil', 'Panthenol (Vitamin B5)', 'Allantoin', 'Vitamin E'],
+    texture: 'Lightweight Liquid Shampoo, Smooth Foam',
+    fragrance: 'Mild Herbal Fragrance',
+    howToUse: 'Apply a small amount of shampoo on wet hair. Massage gently into scalp and hair. Rinse thoroughly with water.',
+    whenToUse: '2–3 times per week or as needed',
+    suitableFor: ['Sensitive', 'Dry', 'Itchy & Normal Scalp'],
+    claims: ['Paraben Free', 'Silicone Free', 'Gentle Herbal Formula', 'Suitable for Sensitive Scalp'],
+    shelfLife: '24 Months',
+    brand: 'D A LUXE',
+    madeIn: 'India',
+    reviews: [
+      { text: 'Gentle cleansing without irritation, finally a shampoo that works.', author: 'Kriti S.', rating: 5 },
+      { text: 'Soothes my itchy scalp perfectly, highly recommend!', author: 'Priyanka D.', rating: 4.5 },
+      { text: 'Leaves hair soft and manageable all day long.', author: 'Meera T.', rating: 5 },
+    ],
+  }
 ];
 
 export type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any; video?: any };
@@ -649,6 +767,8 @@ const CollectionHero = ({ scrollY }: { scrollY?: any }) => {
 const CollectionGrid = ({
   activeCategory,
   setActiveCategory,
+  activeConcern,
+  onClearConcern,
   products,
   onSelectProduct,
   onAddToCart,
@@ -656,6 +776,8 @@ const CollectionGrid = ({
 }: {
   activeCategory: string;
   setActiveCategory: (c: string) => void;
+  activeConcern?: string | null;
+  onClearConcern?: () => void;
   products: ProductType[];
   onSelectProduct: (p: ProductType) => void;
   onAddToCart?: (p: ProductType, startX?: number, startY?: number) => void;
@@ -702,6 +824,15 @@ const CollectionGrid = ({
 
       {/* Product Grid */}
       <View style={[g.grid, isMob && { paddingHorizontal: 16, gap: 20 }]}>
+        {activeConcern && (
+          <Animated.View entering={FadeInDown.duration(400)} style={g.activeConcernHeader}>
+            <Text style={g.activeConcernText}>Showing results for <Text style={{ fontWeight: '700', color: GOLD_DEEP }}>{getConcernLabel(activeConcern)}</Text></Text>
+            <TouchableOpacity onPress={onClearConcern} style={g.clearConcernBtn}>
+              <Text style={g.clearConcernText}>Clear filter ×</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         {products.map((product, index) => (
           <Animated.View
             key={product.id}
@@ -744,8 +875,8 @@ const CollectionGrid = ({
 
         {products.length === 0 && (
           <View style={g.emptyState}>
-            <Text style={g.emptyText}>No products match this category.</Text>
-            <TouchableOpacity onPress={() => setActiveCategory('all')}>
+            <Text style={g.emptyText}>{activeConcern ? 'No products found for this concern.' : 'No products match this category.'}</Text>
+            <TouchableOpacity onPress={() => { setActiveCategory('all'); onClearConcern?.(); }}>
               <Text style={g.resetText}>View All Products</Text>
             </TouchableOpacity>
           </View>
@@ -1150,13 +1281,30 @@ const StickyBottomBar = ({ product, onAddToCart }: { product: ProductType; onAdd
 // CART DRAWER — Premium Redesign
 // ════════════════════════════════════════════════
 export const CartDrawer = ({
-  items, visible, onClose, onUpdateQuantity, onRemove,
+  items, visible, onClose, onUpdateQuantity, onRemove, onCheckout,
 }: {
   items: CartItem[]; visible: boolean; onClose: () => void;
   onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void;
+  onCheckout?: () => void;
 }) => {
   const translateX = useSharedValue(800);
   const overlayOpacity = useSharedValue(0);
+
+  // Fix scroll lock bug: lock body scroll on web when cart is open
+  React.useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      if (visible) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
+    return () => {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [visible]);
 
   React.useEffect(() => {
     if (visible) {
@@ -1181,9 +1329,9 @@ export const CartDrawer = ({
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <View style={cart.overlay} pointerEvents="box-none">
+    <View style={cart.overlay} pointerEvents={visible ? 'box-none' : 'none'}>
       <Animated.View style={[cart.backdrop, overlayStyle]}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <Pressable style={{ flex: 1 }} onPress={() => { if (visible) onClose(); }} />
       </Animated.View>
 
       <Animated.View style={[cart.drawer, drawerStyle]}>
@@ -1248,7 +1396,7 @@ export const CartDrawer = ({
               <Text style={cart.totalValue}>₹{total.toLocaleString('en-IN')}</Text>
             </View>
             <Text style={cart.taxNote}>Inclusive of all taxes · Free shipping on orders ₹999+</Text>
-            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85}>
+            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85} onPress={() => { onClose(); onCheckout?.(); }}>
               <LinearGradient colors={['#C9A227', '#E9C349', '#C9A227']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cart.checkoutGradient}>
                 <Text style={cart.checkoutText}>PROCEED TO CHECKOUT</Text>
               </LinearGradient>
@@ -1261,6 +1409,62 @@ export const CartDrawer = ({
 };
 
 // ════════════════════════════════════════════════
+// SMART MATCHING LOGIC
+// ════════════════════════════════════════════════
+const getConcernLabel = (id: string) => {
+  const map: Record<string, string> = {
+    acne: 'Acne Marks',
+    pigmentation: 'Pigmentation',
+    glowing: 'Glowing Skin',
+    pores: 'Open Pores'
+  };
+  return map[id] || id;
+};
+
+const matchConcern = (product: ProductType, concernId: string) => {
+  const CONCERN_MAP: Record<string, { direct: string[], benefits: string[], ingredients: string[] }> = {
+    acne: {
+      direct: ['Acne', 'Breakout'],
+      benefits: ['Anti-acne', 'Oil control', 'Calming', 'Reduces redness'],
+      ingredients: ['Neem', 'Tulsi', 'Salicylic']
+    },
+    pigmentation: {
+      direct: ['Pigmentation', 'Dark spots', 'Uneven tone'],
+      benefits: ['Brightening', 'Even tone', 'Fade dark spots'],
+      ingredients: ['Licorice', 'Alpha Arbutin', 'Vitamin C']
+    },
+    glowing: {
+      direct: ['Dullness', 'Glowing Skin'],
+      benefits: ['Hydration', 'Radiance boosting', 'Glow', 'Instant freshness'],
+      ingredients: ['Saffron', 'Honey']
+    },
+    pores: {
+      direct: ['Open Pores', 'Large Pores', 'Uneven Texture'],
+      benefits: ['Oil balancing', 'Tightening', 'Refining texture'],
+      ingredients: ['Niacinamide', 'Salicylic']
+    }
+  };
+  
+  const c = CONCERN_MAP[concernId];
+  if (!c) return false;
+
+  const pConcerns = product.concerns || [];
+  const pBenefits = product.benefits || [];
+  const pIngredients = product.allIngredients || [];
+
+  const hasDirect = pConcerns.some(pc => c.direct.some(k => pc.toLowerCase().includes(k.toLowerCase())));
+  if (hasDirect) return true;
+
+  const hasBenefit = pBenefits.some(pb => c.benefits.some(k => pb.toLowerCase().includes(k.toLowerCase())));
+  if (hasBenefit) return true;
+
+  const hasIng = pIngredients.some(pi => c.ingredients.some(k => pi.toLowerCase().includes(k.toLowerCase())));
+  if (hasIng) return true;
+
+  return false;
+};
+
+// ════════════════════════════════════════════════
 // MAIN COLLECTION PAGE
 // ════════════════════════════════════════════════
 interface CollectionPageProps {
@@ -1268,14 +1472,23 @@ interface CollectionPageProps {
   scrollY?: any;
   onViewChange?: (view: 'grid' | 'detail') => void;
   addToCart?: (p: ProductType) => void;
+  initialProductId?: string;
+  onCheckout?: (items: CartItem[], total: number) => void;
+  initialConcern?: string | null;
+  onClearConcern?: () => void;
 }
 
-export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart }: CollectionPageProps) {
+export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart, initialProductId, onCheckout, initialConcern, onClearConcern }: CollectionPageProps) {
   const [view, setView] = useState<'grid' | 'detail'>('grid');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeConcern, setActiveConcern] = useState<string | null>(initialConcern || null);
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [flyItems, setFlyItems] = useState<FlyItem[]>([]);
+
+  useEffect(() => {
+    setActiveConcern(initialConcern || null);
+  }, [initialConcern]);
 
   const handleAddToCart = useCallback((product: ProductType, startX?: number, startY?: number) => {
     // Launch fly animation
@@ -1291,8 +1504,14 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
     setFlyItems((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
+  const handleClearConcern = useCallback(() => {
+    setActiveConcern(null);
+    onClearConcern?.();
+  }, [onClearConcern]);
+
   const filteredProducts = COLLECTION_PRODUCTS.filter((p) => {
     if (activeCategory !== 'all' && p.category !== activeCategory) return false;
+    if (activeConcern && !matchConcern(p, activeConcern)) return false;
     return true;
   });
 
@@ -1309,6 +1528,16 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
     setSelectedProduct(null);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
   }, [onViewChange]);
+
+  // Auto-open product if initialProductId provided (from homepage card click)
+  useEffect(() => {
+    if (initialProductId) {
+      const product = COLLECTION_PRODUCTS.find(p => p.id === initialProductId);
+      if (product) {
+        setTimeout(() => openProduct(product as ProductType), 150);
+      }
+    }
+  }, [initialProductId]);
 
   return (
     <View style={main.container}>
@@ -1328,6 +1557,8 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
           <CollectionGrid
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
+            activeConcern={activeConcern}
+            onClearConcern={handleClearConcern}
             products={filteredProducts}
             onSelectProduct={openProduct}
             onAddToCart={handleAddToCart}
@@ -1390,6 +1621,40 @@ const main = StyleSheet.create({
 // STYLES: GRID VIEW
 // ════════════════════════════════════════════════
 const g = StyleSheet.create({
+  activeConcernHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(233,195,73,0.06)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(233,195,73,0.15)',
+    marginBottom: 10,
+    marginTop: -10,
+  },
+  activeConcernText: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }),
+  },
+  clearConcernBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  clearConcernText: {
+    fontSize: 11,
+    color: '#555',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   splashHeroContainer: {
     width: '100%',
     height: SH, // 100vh cinematic height matching viewport

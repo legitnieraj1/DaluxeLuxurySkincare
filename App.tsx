@@ -22,7 +22,9 @@ import OurStoryPage from './OurStoryPage';
 import SkinAssessmentPage from './SkinAssessmentPage';
 import HomeSections from './HomeSections';
 import ContactPage from './ContactPage';
+import CheckoutPage from './CheckoutPage';
 import { Demo as LoginPage } from './components/ui/demo';
+import ProfilePage from './ProfilePage';
 import './assets/output.css';
 
 const { height, width } = Dimensions.get('window');
@@ -661,12 +663,23 @@ export default function App() {
   const ourStoryScrollY = useSharedValue(0);
   const contactScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login'>('product');
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile'>('product');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const saved = window.localStorage.getItem('daluxe_user_email');
+      if (saved) setUserEmail(saved);
+    }
+  }, []);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionView, setCollectionView] = useState<'grid' | 'detail'>('grid');
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartVisible, setCartVisible] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
+  const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
 
   const addToCart = React.useCallback((product: ProductType) => {
     setCartItems((prev) => {
@@ -726,7 +739,49 @@ export default function App() {
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
-      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login' };
+      const path = window.location.pathname.toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search);
+      if (path === '/collection' || path === '/collections' || path === '/products') {
+        const concern = searchParams.get('concern');
+        if (concern) setSelectedConcern(concern);
+        setCurrentPage('collection');
+      } else if (path === '/our-story') {
+        setCurrentPage('our-story');
+      } else if (path === '/contact') {
+        setCurrentPage('contact');
+      } else if (path === '/login') {
+        setCurrentPage('login');
+      } else if (path === '/skin-assessment') {
+        setCurrentPage('skin-assessment');
+      } else if (path === '/home' || path === '/') {
+        setCurrentPage('product');
+      }
+
+      window.onpopstate = () => {
+        const currentPath = window.location.pathname.toLowerCase();
+        const params = new URLSearchParams(window.location.search);
+        if (currentPath === '/collection' || currentPath === '/collections' || currentPath === '/products') {
+          const concern = params.get('concern');
+          setSelectedConcern(concern || null);
+          setCurrentPage('collection');
+        } else if (currentPath === '/our-story') {
+          setCurrentPage('our-story');
+        } else if (currentPath === '/contact') {
+          setCurrentPage('contact');
+        } else if (currentPath === '/login') {
+          setCurrentPage('login');
+        } else if (currentPath === '/skin-assessment') {
+          setCurrentPage('skin-assessment');
+        } else {
+          setCurrentPage('product');
+        }
+      };
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile' };
       const path = pathMap[currentPage] || '/home';
       if (window.location.pathname !== path) {
         window.history.pushState({}, '', path);
@@ -897,7 +952,7 @@ export default function App() {
         {/* Mobile + Desktop right icons */}
         <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
           {!isMobile && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setCurrentPage('login')}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setCurrentPage(userEmail ? 'profile' : 'login')}>
               <User color="#e9c349" size={20} />
             </TouchableOpacity>
           )}
@@ -979,11 +1034,12 @@ export default function App() {
                     <View style={{ width, height }}>
                        <ScrollView nestedScrollEnabled style={{ flex: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
                           <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
-                             const idx = PRODUCTS.findIndex((x) => x.id === p.id);
-                             if (idx !== -1) {
-                                scrollRef.current?.scrollTo({ x: 0, y: idx * height, animated: true });
-                                setCurrentIndex(idx);
-                             }
+                             setSelectedProductId(p.id);
+                             setCurrentPage('collection');
+                          }} onStartScan={() => setCurrentPage('skin-assessment')}
+                          onConcernClick={(concernId: string) => {
+                             setSelectedConcern(concernId);
+                             setCurrentPage('collection');
                           }} />
                        </ScrollView>
                     </View>
@@ -1073,14 +1129,14 @@ export default function App() {
             ) : (
                <ScrollView ref={mainScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
                  <View style={{ height, width, overflow: 'hidden' }}>{heroContent}</View>
-                 <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
-                     const idx = PRODUCTS.findIndex((x) => x.id === p.id);
-                     if (idx !== -1) {
-                        scrollRef.current?.scrollTo({ x: idx * width, y: 0, animated: true });
-                        mainScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-                        setCurrentIndex(idx);
-                     }
-                 }} />
+                  <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
+                      setSelectedProductId(p.id);
+                      setCurrentPage('collection');
+                  }} onStartScan={() => setCurrentPage('skin-assessment')}
+                  onConcernClick={(concernId: string) => {
+                     setSelectedConcern(concernId);
+                     setCurrentPage('collection');
+                  }} />
                </ScrollView>
             );
           })()}
@@ -1093,6 +1149,7 @@ export default function App() {
           scrollY={collectionScrollY}
           onViewChange={setCollectionView}
           addToCart={addToCart}
+          initialProductId={selectedProductId}
           onNavigateToProduct={(index: number) => {
             setCurrentPage('product');
             setTimeout(() => {
@@ -1100,12 +1157,21 @@ export default function App() {
               setCurrentIndex(index);
             }, 100);
           }}
+          initialConcern={selectedConcern}
+          onClearConcern={() => setSelectedConcern(null)}
         />
       )}
 
-      {/* ===== AI SKIN ASSESSMENT (our-story route) ===== */}
+      {/* ===== OUR STORY PAGE ===== */}
       {currentPage === 'our-story' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+          <OurStoryPage externalScrollY={ourStoryScrollY} />
+        </View>
+      )}
+
+      {/* ===== AI SKIN ASSESSMENT ===== */}
+      {currentPage === 'skin-assessment' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
           <SkinAssessmentPage />
         </View>
       )}
@@ -1117,15 +1183,57 @@ export default function App() {
         </View>
       )}
 
-      {/* ===== LOGIN PAGE ===== */}
-      {currentPage === 'login' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
-          <LoginPage onSkip={() => setCurrentPage('product')} />
+      {/* ===== CHECKOUT PAGE ===== */}
+      {currentPage === 'checkout' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+          <CheckoutPage
+            items={cartItems.map(i => ({
+              id: i.product.id,
+              name: i.product.shortName,
+              price: i.product.price,
+              quantity: i.quantity,
+              image: i.product.image,
+              priceDisplay: i.product.priceDisplay,
+              sizeDetail: i.product.sizeDetail,
+            }))}
+            onBack={() => { setCurrentPage('product'); setCartVisible(false); }}
+            onSuccess={() => {
+              setCartItems([]);
+              setTimeout(() => setCurrentPage('product'), 2500);
+            }}
+            razorpayKeyId={(typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_RAZORPAY_KEY_ID) || ''}
+          />
         </View>
       )}
 
-      {/* ===== MOBILE BOTTOM NAVBAR ===== */}
-      {isMobile && (
+      {/* ===== LOGIN PAGE ===== */}
+      {currentPage === 'login' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <LoginPage onSkip={() => setCurrentPage('product')} onLogin={(email) => {
+            if (Platform.OS === 'web') window.localStorage.setItem('daluxe_user_email', email);
+            setUserEmail(email);
+            setCurrentPage('profile');
+          }} />
+        </View>
+      )}
+
+      {/* ===== PROFILE PAGE ===== */}
+      {currentPage === 'profile' && userEmail && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <ProfilePage 
+            userEmail={userEmail} 
+            onBack={() => setCurrentPage('product')}
+            onLogout={() => {
+              if (Platform.OS === 'web') window.localStorage.removeItem('daluxe_user_email');
+              setUserEmail(null);
+              setCurrentPage('login');
+            }}
+          />
+        </View>
+      )}
+
+      {/* ===== MOBILE BOTTOM NAVBAR — hidden on checkout / skin-assessment / login / profile ===== */}
+      {isMobile && !['checkout', 'skin-assessment', 'login', 'profile'].includes(currentPage) && (
         <Animated.View style={[{
           position: 'absolute', bottom: 20, left: 16, right: 16, zIndex: 800,
           borderRadius: 40,
@@ -1133,36 +1241,40 @@ export default function App() {
           overflow: 'hidden'
         }, bottomNavAnimatedStyle]}>
           <LinearGradient
-            colors={['#2A1F13', '#110C07']}
+            colors={['rgba(24, 20, 16, 0.45)', 'rgba(5, 5, 5, 0.55)']}
             start={{x: 0,y: 0}} end={{x: 1,y: 1}}
             style={{
               flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
               paddingVertical: 10, paddingHorizontal: 10,
-              borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.4)', borderRadius: 40,
-              ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)' } as any : {})
+              borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: 40,
+              ...(Platform.OS === 'web' ? { 
+                backdropFilter: 'saturate(200%) blur(40px)', 
+                WebkitBackdropFilter: 'saturate(200%) blur(40px)',
+                boxShadow: 'inset 0px 1px 1px rgba(255,255,255,0.15)'
+              } as any : {})
             }}>
             <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('product')}>
-              <Home color={currentPage === 'product' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+              <Home color={currentPage === 'product' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
             <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('collection')}>
-              <LayoutGrid color={currentPage === 'collection' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+              <LayoutGrid color={currentPage === 'collection' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
             
             <TouchableOpacity style={{
               position: 'relative', top: -15,
               width: 56, height: 56, borderRadius: 28,
               shadowColor: '#E9C349', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
-            }} onPress={() => setCurrentPage('our-story')}>
+            }} onPress={() => setCurrentPage('skin-assessment')}>
               <LinearGradient colors={['#FFF1B9', '#D4AF37', '#8A5A19']} start={{x: 0.2,y: 0}} end={{x: 0.8,y: 1}} style={{ flex: 1, borderRadius: 30, justifyContent: 'center', alignItems: 'center' }}>
                  <ScanFace color="#110C07" size={26} strokeWidth={1.5} />
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('contact')}>
-              <MessageCircle color={currentPage === 'contact' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+              <MessageCircle color={currentPage === 'contact' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
-            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('login')}>
-              <User color={currentPage === 'login' ? '#E9C349' : 'rgba(233,195,73,0.5)'} size={22} />
+            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage(userEmail ? 'profile' : 'login')}>
+              <User color={currentPage === 'login' || currentPage === 'profile' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
@@ -1175,6 +1287,10 @@ export default function App() {
         onClose={() => setCartVisible(false)}
         onUpdateQuantity={updateQuantity}
         onRemove={removeFromCart}
+        onCheckout={() => {
+          setCartVisible(false);
+          setCurrentPage('checkout');
+        }}
       />
 
     </View>

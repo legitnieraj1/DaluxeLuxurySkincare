@@ -29,14 +29,14 @@ const CONCERNS = [
   { id: 'pores', label: 'Open Pores', img: require('./assets/openpores.png') },
 ];
 
-const ShopByConcern = () => {
+const ShopByConcern = ({ onConcernClick }: any) => {
   const isMobile = useIsMobile();
   return (
     <View style={[styles.section, { backgroundColor: '#F8F6F0' }]}>
       <Text style={styles.sectionTitle}>Shop by Concern</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.concernRow, !isMobile && { justifyContent: 'center' }]} style={{ width: '100%' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.concernRow, !isMobile && { justifyContent: 'center', flexGrow: 1 }]} style={{ width: '100%' }}>
         {CONCERNS.map(c => (
-          <TouchableOpacity key={c.id} style={styles.concernItem}>
+          <TouchableOpacity key={c.id} style={styles.concernItem} onPress={() => onConcernClick && onConcernClick(c.id)}>
             <Image source={c.img} style={styles.concernImg} />
             <Text style={styles.concernLabel}>{c.label}</Text>
           </TouchableOpacity>
@@ -107,7 +107,7 @@ const ProductCarouselSection = ({ title, products, onAddToCart, onProductClick, 
 // --------------------------------------------------------------------------
 // 3. AI SKIN ASSESSMENT
 // --------------------------------------------------------------------------
-const SkinAssessment = () => {
+const SkinAssessment = ({ onStartScan }: any) => {
   return (
     <View style={aiStyles.container}>
       <LinearGradient colors={['#0F2F46', '#0B1D2A']} style={aiStyles.gradient}>
@@ -119,7 +119,7 @@ const SkinAssessment = () => {
             <Text style={aiStyles.badge}>✨ NEW</Text>
             <Text style={aiStyles.headline}>Unveil your skin’s secrets</Text>
             <Text style={aiStyles.subtext}>AI-Powered analysis in 2 minutes. Completely FREE.</Text>
-            <TouchableOpacity style={aiStyles.ctaBtn}>
+            <TouchableOpacity style={aiStyles.ctaBtn} onPress={onStartScan}>
               <Text style={aiStyles.ctaText}>Start Scan</Text>
               <ArrowRight color="#0B1D2A" size={16} />
             </TouchableOpacity>
@@ -247,7 +247,7 @@ const Footer = () => {
 // --------------------------------------------------------------------------
 // MAIN COMPONENT
 // --------------------------------------------------------------------------
-export default function HomeSections({ onAddToCart, onProductClick }: any) {
+export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick }: any) {
   // Use existing COLLECTION_PRODUCTS for categories
   const faceSerums = COLLECTION_PRODUCTS.filter(p => p.category === 'serum' || p.category === 'facewash');
   const moisturizers = COLLECTION_PRODUCTS.filter(p => p.category !== 'facewash');
@@ -255,9 +255,9 @@ export default function HomeSections({ onAddToCart, onProductClick }: any) {
 
   return (
     <View style={[{ width: '100%', backgroundColor: '#F8F6F0' }, Platform.OS === 'web' ? { overflowX: 'hidden' } as any : { overflow: 'hidden' }]}>
-      <ShopByConcern />
+      <ShopByConcern onConcernClick={onConcernClick} />
       <ProductCarouselSection title="Our Most Loved Products" products={COLLECTION_PRODUCTS} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
-      <SkinAssessment />
+      <SkinAssessment onStartScan={onStartScan} />
       <ProductCarouselSection title="Face Serums" products={faceSerums} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <CampaignBanners />
       <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers} onAddToCart={onAddToCart} onProductClick={onProductClick} />
