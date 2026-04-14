@@ -676,25 +676,36 @@ export default function App() {
   React.useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       setUserEmail(session?.user?.email || null);
-      // If user lands on /profile with a valid session (Google OAuth redirect)
-      if (session?.user && Platform.OS === 'web' && window.location.pathname === '/profile') {
-        setCurrentPage('profile');
+      // Handle case where user is already authenticated and lands on a real URL
+      if (session?.user && Platform.OS === 'web') {
+        const path = window.location.pathname;
+        if (path === '/profile') setCurrentPage('profile');
       }
     });
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       setUserEmail(session?.user?.email || null);
-      // Auto-navigate to profile on OAuth sign-in (SIGNED_IN after redirect)
+
       if (event === 'SIGNED_IN' && session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
-        if (path === '/profile' || path === '/login') {
+        // Navigate to profile from any real page (/, /login, /home)
+        // /profile is a virtual SPA route so Supabase OAuth redirects to /login
+        if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
+          // Clean the URL — strip #access_token hash and ?code= query params
+          const cleanUrl = window.location.origin + path;
+          window.history.replaceState({}, '', cleanUrl);
           setCurrentPage('profile');
         }
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setCurrentPage('login');
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionView, setCollectionView] = useState<'grid' | 'detail'>('grid');

@@ -315,9 +315,14 @@ export function Demo({ onSkip, onSuccess, onNavigate }: {
     setErrorMsg('');
     const { supabaseClient } = require('../../lib/supabaseClient');
     const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+    // redirectTo must point to a real HTML page (where the JS bundle loads).
+    // /profile is a virtual SPA route — Supabase can't exchange the token there
+    // because no JS loads. /login is the real entry point: the bundle loads,
+    // Supabase detects the #access_token hash, fires SIGNED_IN, and App.tsx
+    // navigates to the profile page.
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: origin ? `${origin}/profile` : undefined },
+      options: { redirectTo: origin ? `${origin}/login` : undefined },
     });
     if (error) setErrorMsg(error.message);
     setIsLoading(false);
@@ -495,9 +500,14 @@ export function Demo({ onSkip, onSuccess, onNavigate }: {
       {Platform.OS === 'web' && (
         <style dangerouslySetInnerHTML={{ __html: `
           @keyframes loadBlur { from { backdrop-filter: blur(20px); } to { backdrop-filter: blur(0px); } }
-          input::placeholder { color: #A0A0A0; letter-spacing: 0.5px; }
+          input, input[type="text"], input[type="email"], input[type="password"] {
+            color: #1A1A1A !important;
+            -webkit-text-fill-color: #1A1A1A !important;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+          }
+          input::placeholder { color: #A0A0A0 !important; letter-spacing: 0.5px; }
           input:focus { border-color: rgba(212,175,55,0.5) !important; box-shadow: 0 0 0 3px rgba(212,175,55,0.08) !important; }
-          input { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+          input:disabled { opacity: 0.6; cursor: not-allowed; }
         ` }} />
       )}
 
@@ -622,13 +632,15 @@ const inputStyle = {
   padding: '16px 20px',
   borderRadius: '10px',
   border: '1px solid rgba(0,0,0,0.1)',
-  backgroundColor: 'rgba(255,255,255,0.5)',
+  backgroundColor: 'rgba(255,255,255,0.6)',
   fontSize: '14px',
+  color: '#1A1A1A',
   marginBottom: '16px',
   outline: 'none',
   fontFamily: SANS,
   boxSizing: 'border-box',
   letterSpacing: '0.3px',
+  display: 'block',
 } as any;
 
 // ═══════════════════════════════════════════════
