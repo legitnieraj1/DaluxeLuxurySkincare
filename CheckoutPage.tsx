@@ -164,8 +164,8 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
         });
         const data = await res.json();
         
-        if (data.success && data.data?.url) {
-          window.location.href = data.data.url;
+        if (data.success && data.data?.redirectUrl) {
+          window.location.href = data.data.redirectUrl;
         } else {
           setLoading(false);
           alert('Payment gateway error: ' + (data.error || 'Could not initiate payment'));

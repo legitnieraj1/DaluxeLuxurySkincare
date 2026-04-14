@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,15 +7,57 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID!;
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY!;
-const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
+const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;
+const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET!;
+const PHONEPE_CLIENT_VERSION = process.env.PHONEPE_CLIENT_VERSION || '1';
 const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT';
 
 const PHONEPE_HOST = PHONEPE_ENV === 'PROD'
-  ? 'https://api.phonepe.com/apis/hermes'
+  ? 'https://api.phonepe.com/apis/pg'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
 
+const PHONEPE_AUTH_HOST = PHONEPE_ENV === 'PROD'
+  ? 'https://api.phonepe.com/apis/identity-manager'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+// ─── OAuth Token Cache ───────────────────────────
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiresAt) {
+    return cachedToken;
+  }
+
+  console.log('[phonepe] Requesting new OAuth token...');
+
+  const res = await fetch(`${PHONEPE_AUTH_HOST}/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: PHONEPE_CLIENT_ID,
+      client_secret: PHONEPE_CLIENT_SECRET,
+      client_version: PHONEPE_CLIENT_VERSION,
+      grant_type: 'client_credentials',
+    }).toString(),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.access_token) {
+    console.error('[phonepe] OAuth token error:', JSON.stringify(data));
+    throw new Error(data.message || 'Failed to get PhonePe access token');
+  }
+
+  cachedToken = data.access_token;
+  // Expire 60 seconds early to be safe
+  tokenExpiresAt = (data.expires_at || Date.now() + 14 * 60 * 1000) - 60000;
+
+  console.log('[phonepe] Token acquired, expires at:', new Date(tokenExpiresAt).toISOString());
+  return cachedToken!;
+}
+
+// ─── Auth Helper ─────────────────────────────────
 async function getUser(req: VercelRequest) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
@@ -26,6 +67,7 @@ async function getUser(req: VercelRequest) {
   return user;
 }
 
+// ─── Handler ─────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
@@ -39,85 +81,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid payment amount' });
     }
 
-    console.log('[phonepe/initiate] User:', user.id, 'Amount:', amount);
+    // Generate unique order ID
+    const merchantOrderId = `DALUXE-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
-    // Generate idempotent transaction ID
-    const transactionId = `DALUXE_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`.toUpperCase();
+    console.log('[phonepe/initiate] User:', user.id, 'Amount:', amount, 'OrderId:', merchantOrderId);
 
-    // Store pending order in DB for idempotency (map transactionId -> cart)
+    // Store pending order for idempotency
     if (cart_items && cart_items.length > 0) {
-      const { error: pendingError } = await supabaseAdmin
-        .from('pending_orders')
-        .upsert({
-          transaction_id: transactionId,
-          user_id: user.id,
-          cart_items: JSON.stringify(cart_items),
-          shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
-          amount,
-          status: 'initiated',
-          created_at: new Date().toISOString()
-        });
-      
-      if (pendingError) {
-        console.warn('[phonepe/initiate] Could not store pending order:', pendingError.message);
-        // Continue anyway — not critical for payment initiation
-      }
+      await supabaseAdmin.from('pending_orders').upsert({
+        transaction_id: merchantOrderId,
+        user_id: user.id,
+        cart_items: JSON.stringify(cart_items),
+        shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
+        amount,
+        status: 'initiated',
+        created_at: new Date().toISOString(),
+      });
     }
+
+    // Get OAuth access token
+    const accessToken = await getAccessToken();
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
 
-    const payload = {
-      merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId: transactionId,
-      merchantUserId: user.id.substring(0, 36),
+    // PhonePe Standard Checkout v2/pay
+    const paymentPayload = {
+      merchantOrderId,
       amount: Math.round(amount * 100), // paise
-      redirectUrl: `${appUrl}/api/checkout/phonepe/callback?txn=${transactionId}`,
-      redirectMode: 'POST',
-      callbackUrl: `${appUrl}/api/checkout/phonepe/verify`,
-      paymentInstrument: {
-        type: 'PAY_PAGE'
-      }
+      expireAfter: 1200, // 20 minutes
+      paymentFlow: {
+        type: 'PG_CHECKOUT',
+        merchantUrls: {
+          redirectUrl: `${appUrl}/api/checkout/phonepe/callback?orderId=${merchantOrderId}`,
+        },
+      },
+      metaInfo: {
+        udf1: user.id,
+        udf2: user.email || '',
+      },
     };
 
-    console.log('[phonepe/initiate] Payload:', JSON.stringify(payload, null, 2));
+    console.log('[phonepe/initiate] Payment payload:', JSON.stringify(paymentPayload));
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const endpoint = '/pg/v1/pay';
-    const stringToHash = base64Payload + endpoint + PHONEPE_SALT_KEY;
-    const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const checksum = sha256Hash + '###' + PHONEPE_SALT_INDEX;
-
-    console.log('[phonepe/initiate] Hitting PhonePe:', `${PHONEPE_HOST}${endpoint}`);
-
-    const phonePeRes = await fetch(`${PHONEPE_HOST}${endpoint}`, {
+    const phonePeRes = await fetch(`${PHONEPE_HOST}/checkout/v2/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
+        'Authorization': `O-Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ request: base64Payload }),
+      body: JSON.stringify(paymentPayload),
     });
 
     const phonePeData = await phonePeRes.json();
 
+    console.log('[phonepe/initiate] PhonePe response status:', phonePeRes.status);
     console.log('[phonepe/initiate] PhonePe response:', JSON.stringify(phonePeData));
 
-    if (phonePeData.success && phonePeData.data?.instrumentResponse?.redirectInfo?.url) {
+    if (phonePeRes.ok && phonePeData.redirectUrl) {
       return res.status(200).json({
         success: true,
         data: {
-          transactionId,
-          url: phonePeData.data.instrumentResponse.redirectInfo.url
-        }
-      });
-    } else {
-      console.error('[phonepe/initiate] PhonePe rejected:', phonePeData);
-      return res.status(400).json({
-        success: false,
-        error: phonePeData.message || 'PhonePe rejected the payment request',
-        code: phonePeData.code
+          orderId: merchantOrderId,
+          redirectUrl: phonePeData.redirectUrl,
+        },
       });
     }
+
+    // Handle specific error cases
+    if (phonePeData.code === 'INVALID_MERCHANT') {
+      return res.status(400).json({ success: false, error: 'Payment gateway configuration error. Contact support.' });
+    }
+
+    return res.status(400).json({
+      success: false,
+      error: phonePeData.message || 'Failed to create payment session',
+      code: phonePeData.code,
+    });
 
   } catch (error: any) {
     console.error('[phonepe/initiate] Fatal error:', error);
