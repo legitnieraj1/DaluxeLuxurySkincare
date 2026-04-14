@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Package, Truck, CheckCircle2, ChevronLeft, LogOut, ExternalLink } from 'lucide-react-native';
-import { supabaseClient } from './lib/supabaseClient';
 
 const GOLD = '#C9A227';
 const TEXT = '#1A1A1A';
@@ -17,13 +16,18 @@ export default function ProfilePage({ userEmail, onLogout, onBack }: { userEmail
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabaseClient
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { supabaseClient } = require('./lib/supabaseClient');
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const token = session?.access_token || '';
 
-      if (error) throw error;
-      if (data) setOrders(data);
+      const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || 'http://localhost:3000';
+      const res = await fetch(`${API_URL}/api/orders?email=${encodeURIComponent(userEmail)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.orders) setOrders(data.orders);
     } catch(e) {
       console.error('Error fetching orders:', e);
     } finally {

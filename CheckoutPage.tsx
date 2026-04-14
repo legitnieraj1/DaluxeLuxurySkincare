@@ -120,10 +120,16 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
     
     const cartPayload = items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price }));
 
+    // Get Session Token
+    const { supabaseClient } = require('./lib/supabaseClient');
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const token = session?.access_token || '';
+    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
     // PRE-FLIGHT STOCK & RATE-LIMIT VALIDATION
     try {
       const validateRes = await fetch(`${API_URL}/api/checkout/validate`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: authHeaders,
         body: JSON.stringify({ cart_items: cartPayload })
       });
       const validateData = await validateRes.json();
@@ -141,7 +147,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
     if (paymentMethod === 'cod') {
       try {
         const res = await fetch(`${API_URL}/api/checkout/cod`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: authHeaders,
           body: JSON.stringify({ orderPayload, cartItems: cartPayload })
         });
         const data = await res.json();
@@ -170,7 +176,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
         handler: async (res: any) => {
           try {
             const verifyRes = await fetch(`${API_URL}/api/checkout/verify`, {
-              method: 'POST', headers:{'Content-Type': 'application/json'},
+              method: 'POST', headers: authHeaders,
               body: JSON.stringify({
                 razorpay_order_id: res.razorpay_order_id || 'LOCAL',
                 razorpay_payment_id: res.razorpay_payment_id,

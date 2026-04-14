@@ -6,13 +6,14 @@ export async function GET() {
     const { data: products, error } = await supabaseClient
       .from('products')
       .select('*')
+      .eq('active', true)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
     const formattedProducts = (products || []).map((product) => {
       let stockMessage = 'In stock';
-      
+
       if (product.stock_quantity <= 0) {
         stockMessage = 'Out of stock';
       } else if (product.stock_quantity <= 5) {
@@ -25,8 +26,11 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ products: formattedProducts });
+    return NextResponse.json({ success: true, products: formattedProducts });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

@@ -1,54 +1,51 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { supabaseClient } from './supabaseClient';
+import { headers } from 'next/headers';
+import { supabaseAdmin } from './supabaseAdmin';
 
-export async function loginWithOTP(email: string) {
-  const { data, error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: true,
-    },
-  });
-  
-  if (error) throw error;
-  return data;
+export interface SessionUser {
+  id: string;       // Supabase UID
+  email: string;
+  name: string;
+  role: string;
 }
 
-export async function getUser() {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignored in Next.js API Routes (headers are read-only)
-          }
-        },
-      },
-    }
-  );
+export async function getServerUser(): Promise<SessionUser | null> {
+  try {
+    const headersList = await headers();
+    const authHeader = headersList.get('Authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    const token = authHeader.replace('Bearer ', '');
 
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error || !user) return null;
+
+    // Fetch role from profiles table (optional, defaults to customer if not found)
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    return {
+      id: user.id,
+      email: user.email || '',
+      name: user.user_metadata?.full_name || '',
+      role: profile?.role || 'customer',
+    };
+  } catch {
     return null;
   }
-  
+}
+
+export async function requireAuth(): Promise<SessionUser> {
+  const user = await getServerUser();
+  if (!user) throw new Error('Unauthorized');
   return user;
 }
 
-export async function requireAuth() {
-  const user = await getUser();
-  if (!user) throw new Error('Unauthorized');
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireAuth();
+  if (user.role !== 'admin') throw new Error('Forbidden');
   return user;
 }

@@ -219,15 +219,35 @@ const ReviewsSection = () => {
   );
 };
 
-const Footer = () => {
+const Footer = ({ onNavigate }: { onNavigate?: (page: string) => void }) => {
+  const nav = (page: string) => onNavigate?.(page);
+  const isMobile = useIsMobile();
   return (
     <View style={{ backgroundColor: '#050B14', paddingVertical: 80, paddingHorizontal: 20, alignItems: 'center', width: '100%' }}>
       <Image source={require('./assets/logo.png')} style={{ width: 140, height: 46, marginBottom: 32 }} resizeMode="contain" tintColor="#E9C349" />
       
-      <View style={{ flexDirection: 'row', gap: 32, marginBottom: 48, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {['Shop', 'Our Story', 'Ingredients', 'Contact', 'Privacy Policy'].map(link => (
-          <Text key={link} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>{link}</Text>
-        ))}
+      <View style={{ flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 32 : 64, marginBottom: 48, width: '100%', maxWidth: 800, justifyContent: 'center' }}>
+        {/* Shop Links */}
+        <View style={{ alignItems: isMobile ? 'center' : 'flex-start', gap: 12 }}>
+          <Text style={{ color: '#E9C349', fontSize: 10, fontWeight: '700', letterSpacing: 4, marginBottom: 4 }}>SHOP</Text>
+          <TouchableOpacity onPress={() => nav('collection')}><Text style={footerLinkStyle}>Collections</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('our-story')}><Text style={footerLinkStyle}>Our Story</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('contact')}><Text style={footerLinkStyle}>Contact</Text></TouchableOpacity>
+        </View>
+        {/* Legal Links */}
+        <View style={{ alignItems: isMobile ? 'center' : 'flex-start', gap: 12 }}>
+          <Text style={{ color: '#E9C349', fontSize: 10, fontWeight: '700', letterSpacing: 4, marginBottom: 4 }}>LEGAL</Text>
+          <TouchableOpacity onPress={() => nav('terms')}><Text style={footerLinkStyle}>Terms & Conditions</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('privacy-policy')}><Text style={footerLinkStyle}>Privacy Policy</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('refund-policy')}><Text style={footerLinkStyle}>Refund Policy</Text></TouchableOpacity>
+        </View>
+        {/* More */}
+        <View style={{ alignItems: isMobile ? 'center' : 'flex-start', gap: 12 }}>
+          <Text style={{ color: '#E9C349', fontSize: 10, fontWeight: '700', letterSpacing: 4, marginBottom: 4 }}>SUPPORT</Text>
+          <TouchableOpacity onPress={() => nav('return-policy')}><Text style={footerLinkStyle}>Return Policy</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('shipping-policy')}><Text style={footerLinkStyle}>Shipping Policy</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => nav('login')}><Text style={footerLinkStyle}>My Account</Text></TouchableOpacity>
+        </View>
       </View>
       
       <View style={{ width: '100%', maxWidth: 800, height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 40 }} />
@@ -244,10 +264,12 @@ const Footer = () => {
   );
 };
 
+const footerLinkStyle = { color: 'rgba(255,255,255,0.6)', fontSize: 13, letterSpacing: 0.5, ...Platform.select({ web: { cursor: 'pointer', transition: 'color 0.3s ease' } as any }) } as any;
+
 // --------------------------------------------------------------------------
 // MAIN COMPONENT
 // --------------------------------------------------------------------------
-export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick }: any) {
+export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick, onNavigate }: any) {
   // Use existing COLLECTION_PRODUCTS for categories
   const faceSerums = COLLECTION_PRODUCTS.filter(p => p.category === 'serum' || p.category === 'facewash');
   const moisturizers = COLLECTION_PRODUCTS.filter(p => p.category !== 'facewash');
@@ -262,7 +284,7 @@ export default function HomeSections({ onAddToCart, onProductClick, onStartScan,
       <CampaignBanners />
       <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <ReviewsSection />
-      <Footer />
+      <Footer onNavigate={onNavigate} />
     </View>
   );
 }

@@ -25,6 +25,11 @@ import ContactPage from './ContactPage';
 import CheckoutPage from './CheckoutPage';
 import { Demo as LoginPage } from './components/ui/demo';
 import ProfilePage from './ProfilePage';
+import TermsPage from './TermsPage';
+import PrivacyPolicyPage from './PrivacyPolicyPage';
+import RefundPolicyPage from './RefundPolicyPage';
+import ReturnPolicyPage from './ReturnPolicyPage';
+import ShippingPolicyPage from './ShippingPolicyPage';
 import { supabaseClient } from './lib/supabaseClient';
 import './assets/output.css';
 
@@ -664,30 +669,17 @@ export default function App() {
   const ourStoryScrollY = useSharedValue(0);
   const contactScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile'>('product');
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>('product');
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   React.useEffect(() => {
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (session?.user?.email) {
-        if (Platform.OS === 'web') window.localStorage.setItem('daluxe_user_email', session.user.email);
-        setUserEmail(session.user.email);
-        setAwaitingOtp(false);
-        setCurrentPage('profile');
-      } else {
-        if (Platform.OS === 'web') window.localStorage.removeItem('daluxe_user_email');
-        setUserEmail(null);
-      }
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      setUserEmail(session?.user?.email || null);
     });
 
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) {
-        setUserEmail(session.user.email);
-      } else if (Platform.OS === 'web') {
-        const saved = window.localStorage.getItem('daluxe_user_email');
-        if (saved) setUserEmail(saved);
-      }
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email || null);
     });
 
     return () => subscription.unsubscribe();
@@ -773,6 +765,16 @@ export default function App() {
         setCurrentPage('login');
       } else if (path === '/skin-assessment') {
         setCurrentPage('skin-assessment');
+      } else if (path === '/terms-and-conditions') {
+        setCurrentPage('terms');
+      } else if (path === '/privacy-policy') {
+        setCurrentPage('privacy-policy');
+      } else if (path === '/refund-policy') {
+        setCurrentPage('refund-policy');
+      } else if (path === '/return-policy') {
+        setCurrentPage('return-policy');
+      } else if (path === '/shipping-policy') {
+        setCurrentPage('shipping-policy');
       } else if (path === '/home' || path === '/') {
         setCurrentPage('product');
       }
@@ -792,6 +794,16 @@ export default function App() {
           setCurrentPage('login');
         } else if (currentPath === '/skin-assessment') {
           setCurrentPage('skin-assessment');
+        } else if (currentPath === '/terms-and-conditions') {
+          setCurrentPage('terms');
+        } else if (currentPath === '/privacy-policy') {
+          setCurrentPage('privacy-policy');
+        } else if (currentPath === '/refund-policy') {
+          setCurrentPage('refund-policy');
+        } else if (currentPath === '/return-policy') {
+          setCurrentPage('return-policy');
+        } else if (currentPath === '/shipping-policy') {
+          setCurrentPage('shipping-policy');
         } else {
           setCurrentPage('product');
         }
@@ -801,7 +813,7 @@ export default function App() {
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
-      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile' };
+      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile', terms: '/terms-and-conditions', 'privacy-policy': '/privacy-policy', 'refund-policy': '/refund-policy', 'return-policy': '/return-policy', 'shipping-policy': '/shipping-policy' };
       const path = pathMap[currentPage] || '/home';
       if (window.location.pathname !== path) {
         window.history.pushState({}, '', path);
@@ -1060,7 +1072,8 @@ export default function App() {
                           onConcernClick={(concernId: string) => {
                              setSelectedConcern(concernId);
                              setCurrentPage('collection');
-                          }} />
+                          }}
+                          onNavigate={(p: string) => setCurrentPage(p as any)} />
                        </ScrollView>
                     </View>
                   )}
@@ -1156,7 +1169,8 @@ export default function App() {
                   onConcernClick={(concernId: string) => {
                      setSelectedConcern(concernId);
                      setCurrentPage('collection');
-                  }} />
+                  }}
+                  onNavigate={(p: string) => setCurrentPage(p as any)} />
                </ScrollView>
             );
           })()}
@@ -1230,25 +1244,8 @@ export default function App() {
       {currentPage === 'login' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
           <LoginPage 
-            awaitingOtp={awaitingOtp}
             onSkip={() => setCurrentPage('product')} 
-            onLogin={async (email) => {
-              const { error } = await supabaseClient.auth.signInWithOtp({ email });
-              if (error) {
-                alert(error.message);
-              } else {
-                setAwaitingOtp(true);
-                alert('Verification code sent to your email.');
-              }
-            }} 
-            onVerify={async (email, token) => {
-              const { data, error } = await supabaseClient.auth.verifyOtp({ email, token, type: 'email' });
-              if (error) {
-                alert('Invalid code. Please try again.');
-              } else if (data.session) {
-                // onAuthStateChange handles redirect
-              }
-            }}
+            onSuccess={() => setCurrentPage('profile')}
           />
         </View>
       )}
@@ -1260,17 +1257,42 @@ export default function App() {
             userEmail={userEmail} 
             onBack={() => setCurrentPage('product')}
             onLogout={async () => {
-              if (Platform.OS === 'web') window.localStorage.removeItem('daluxe_user_email');
               await supabaseClient.auth.signOut();
-              setUserEmail(null);
               setCurrentPage('login');
             }}
           />
         </View>
       )}
 
-      {/* ===== MOBILE BOTTOM NAVBAR — hidden on checkout / skin-assessment / login / profile ===== */}
-      {isMobile && !['checkout', 'skin-assessment', 'login', 'profile'].includes(currentPage) && (
+      {/* ===== LEGAL PAGES ===== */}
+      {currentPage === 'terms' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <TermsPage onNavigate={(p: string) => setCurrentPage(p as any)} />
+        </View>
+      )}
+      {currentPage === 'privacy-policy' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <PrivacyPolicyPage onNavigate={(p: string) => setCurrentPage(p as any)} />
+        </View>
+      )}
+      {currentPage === 'refund-policy' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <RefundPolicyPage onNavigate={(p: string) => setCurrentPage(p as any)} />
+        </View>
+      )}
+      {currentPage === 'return-policy' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <ReturnPolicyPage onNavigate={(p: string) => setCurrentPage(p as any)} />
+        </View>
+      )}
+      {currentPage === 'shipping-policy' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          <ShippingPolicyPage onNavigate={(p: string) => setCurrentPage(p as any)} />
+        </View>
+      )}
+
+      {/* ===== MOBILE BOTTOM NAVBAR — hidden on checkout / skin-assessment / login / profile / legal ===== */}
+      {isMobile && !['checkout', 'skin-assessment', 'login', 'profile', 'terms', 'privacy-policy', 'refund-policy', 'return-policy', 'shipping-policy'].includes(currentPage) && (
         <Animated.View style={[{
           position: 'absolute', bottom: 20, left: 16, right: 16, zIndex: 800,
           borderRadius: 40,

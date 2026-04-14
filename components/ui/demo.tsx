@@ -3,13 +3,11 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Pressable,
   Image,
   StyleSheet,
   Platform,
-  Dimensions,
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
@@ -67,23 +65,22 @@ const GoogleIcon = () => (
 // ═══════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════
-export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () => void, onLogin?: (email: string) => void, onVerify?: (email: string, token: string) => void, awaitingOtp?: boolean }) {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [inputFocused, setInputFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-  const [hoverForgot, setHoverForgot] = useState(false);
+export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: () => void }) {
   const [hoverCTA, setHoverCTA] = useState(false);
-  const [hoverGoogle, setHoverGoogle] = useState(false);
   const [hoverTerms, setHoverTerms] = useState(false);
   const [hoverPrivacy, setHoverPrivacy] = useState(false);
+
+  // Auth States
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [showOtp, setShowOtp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  // Animated gold shimmer pulse for logo
   const shimmerOpacity = useSharedValue(0.1);
-  // Animated CTA glow pulse
   const ctaGlowOpacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -114,32 +111,64 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
     transform: [{ scale: hoverCTA ? 1.05 : 1 }],
   }));
 
-  const handleLogin = () => {
-    if (!identifier || !identifier.includes('@')) {
-      alert('Please enter a valid email address.');
+  const handleSendOtp = async () => {
+    if (!email || !email.includes('@')) {
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
-    if (awaitingOtp) {
-      if (!password) {
-        alert('Please enter the verification code sent to your email.');
-        return;
-      }
-      if (onVerify) onVerify(identifier.toLowerCase().trim(), password);
+    setErrorMsg('');
+    setIsLoading(true);
+    // dynamically import to avoid breaking react native build if needed, but App.tsx handles it
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    setIsLoading(false);
+    
+    if (error) {
+      setErrorMsg(error.message);
     } else {
-      if (onLogin) onLogin(identifier.toLowerCase().trim());
+      setShowOtp(true);
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) {
+      setErrorMsg('Please enter the 6-digit code sent to your email.');
+      return;
+    }
+    setErrorMsg('');
+    setIsLoading(true);
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const { data, error } = await supabaseClient.auth.verifyOtp({ email, token: otp, type: 'email' });
+    setIsLoading(false);
+    
+    if (error) {
+       setErrorMsg(error.message);
+    } else if (data.session) {
+       onSuccess && onSuccess();
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: origin ? `${origin}/profile` : undefined }
+    });
+    if (error) setErrorMsg(error.message);
+    setIsLoading(false); // only matters if it fails to redirect
   };
 
   return (
     <View style={s.root}>
-      {/* ═══ LUXURY NOISE TEXTURE ═══ */}
+      {/* Luxury noise texture */}
       {Platform.OS === 'web' && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E")`
         }} />
       )}
-      {/* Soft Page Load Blur Transition */}
       <Animated.View entering={FadeIn.duration(1200)} style={StyleSheet.absoluteFillObject} pointerEvents="none">
          {Platform.OS === 'web' && <div style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(0px)', transition: 'backdrop-filter 1.2s ease-out', animation: 'loadBlur 1s ease-out forwards' }} />}
       </Animated.View>
@@ -147,13 +176,12 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
         <style dangerouslySetInnerHTML={{ __html: `@keyframes loadBlur { from { backdrop-filter: blur(20px); } to { backdrop-filter: blur(0px); } }` }} />
       )}
 
-      {/* ═══ LEFT SIDE: Cinematic Visual ═══ */}
+      {/* Left Side: Desktop visual */}
       {isDesktop && (
         <View style={s.leftPanel}>
           <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSkMu1P6bRgj405gsojScPrybk8mxP_O-fPNVrq7rjPVT8TCnihkVwhmUXP-CoqXqMjwbWribHxjdv21F7VTDlwMxSkQFi-RlD2vOvkzid35n4wL0zxvRvyQv7fBKR9HYSzWEpjQCUOL5ppfDgr3hph4cuPQCjhf-BpCuKNoU6TG_yUJQBC016CGKx0lIfppwNl0Js0mIUNayv1y14qb_tDBQhZ-RRSvPOlgSjiu44WSQ0ISfWQAHUjp5sESH6YGMuKbXm4NhjYMI' }} style={s.leftBgImage} resizeMode="cover" />
           <LinearGradient colors={['rgba(248,246,242,0.8)', 'rgba(242,239,234,0.3)', 'transparent']} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFillObject} />
           <LinearGradient colors={['rgba(248,246,242,0.7)', 'transparent', 'rgba(212,175,55,0.08)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />
-          
           <Animated.View entering={FadeInDown.delay(200).duration(1000)} style={s.leftContent}>
             <Text style={s.leftTitle}>Quiet Luxury,</Text>
             <Text style={s.leftTitleAccent}>Refined Skin</Text>
@@ -164,22 +192,22 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
         </View>
       )}
 
-      {/* ═══ MOBILE BACKGROUND LAYER ═══ */}
+      {/* Mobile background */}
       {!isDesktop && (
         <View style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}>
-           <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSkMu1P6bRgj405gsojScPrybk8mxP_O-fPNVrq7rjPVT8TCnihkVwhmUXP-CoqXqMjwbWribHxjdv21F7VTDlwMxSkQFi-RlD2vOvkzid35n4wL0zxvRvyQv7fBKR9HYSzWEpjQCUOL5ppfDgr3hph4cuPQCjhf-BpCuKNoU6TG_yUJQBC016CGKx0lIfppwNl0Js0mIUNayv1y14qb_tDBQhZ-RRSvPOlgSjiu44WSQ0ISfWQAHUjp5sESH6YGMuKbXm4NhjYMI' }} style={{ width: '100%', height: '100%', opacity: 0.6 }} blurRadius={20} resizeMode="cover" />
+           <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSkMu1P6bRgj405gsojScPrybk8mxP_O-fPNVrq7rjPVT8TCnihkVwhmUXP-CoqXqMjwbWribHxjdv21F7VTDlwMxSkQFi-RlD2vOvkzid35n4wL0zxvRvyQv7fBKR9HYSzWEpjQCUOL5ppfDgr3hph4cuPQCjhf-BpCuKNoU6TG_yUJQBC016CGKx0lIfppwNl0Js0mIUNayv1y14qb_tDBQhZ-RRSvPOlgSjiu44WSQ0ISfWQAHUjp5sESH6YGMuKbXm4NhjYMI' }} style={{ width: '100%', height: '100%', opacity: 0.6 } as any} blurRadius={20} resizeMode="cover" />
            <LinearGradient colors={['rgba(248,246,242,0.6)', 'rgba(242,239,234,0.9)']} style={StyleSheet.absoluteFillObject} />
         </View>
       )}
 
-      {/* ═══ RIGHT SIDE: Form Area ═══ */}
+      {/* Right Side: Auth */}
       <ScrollView
         style={[s.rightPanel, !isDesktop && s.rightPanelMobile]}
         contentContainerStyle={[s.rightContent, !isDesktop && s.rightContentMobile]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInUp.delay(100).duration(800)} style={[isDesktop ? s.formContainerDesk : s.formContainerMob]}>
-           
+
            {/* Skip Button */}
            <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
              <Text style={s.skipText}>SKIP</Text>
@@ -197,112 +225,86 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
 
            {/* Welcome Text */}
            <Animated.View entering={FadeInUp.delay(300).duration(800)} style={s.welcomeSection}>
-             <Text style={s.welcomeTitle}>Welcome Back</Text>
-             <Text style={s.welcomeSubtitle}>Enter your credentials to access your profile</Text>
+             <Text style={s.welcomeTitle}>Welcome</Text>
+             <Text style={s.welcomeSubtitle}>Sign in to access your sanctuary</Text>
            </Animated.View>
-
-           {/* Form Inputs */}
-           <View style={{ width: '100%' }}>
-             {/* Email Container */}
-             <Animated.View entering={FadeInUp.delay(400).duration(800)} style={s.inputContainer}>
-               <Text style={s.inputLabel}>EMAIL ADDRESS</Text>
-               <View style={[s.inputWrapper, inputFocused && s.inputWrapperFocused]}>
-                 <TextInput
-                   style={[s.textInput, { fontStyle: identifier ? 'normal' : 'italic' }]}
-                   placeholder="e.g. sanctuary@daluxe.com"
-                   placeholderTextColor="rgba(110,110,110,0.5)"
-                   value={identifier}
-                   onChangeText={setIdentifier}
-                   onFocus={() => setInputFocused(true)}
-                   onBlur={() => setInputFocused(false)}
-                   autoCapitalize="none"
-                   keyboardType="email-address"
-                 />
-                 <View style={[s.focusLine, inputFocused && s.focusLineActive]} />
-               </View>
-             </Animated.View>
-
-             {/* Password / OTP Container */}
-             {awaitingOtp && (
-               <Animated.View entering={FadeInUp.duration(600)} style={s.inputContainer}>
-                 <Text style={s.inputLabel}>VERIFICATION CODE</Text>
-                 <View style={[s.inputWrapper, passwordFocused && s.inputWrapperFocused]}>
-                   <TextInput
-                     style={[s.textInput, { fontStyle: password ? 'normal' : 'italic', letterSpacing: password ? 4 : 0 }]}
-                     placeholder="Enter 6-digit code"
-                     placeholderTextColor="rgba(110,110,110,0.5)"
-                     value={password}
-                     onChangeText={setPassword}
-                     onFocus={() => setPasswordFocused(true)}
-                     onBlur={() => setPasswordFocused(false)}
-                     secureTextEntry={false}
-                     autoCapitalize="none"
-                     keyboardType="number-pad"
-                     maxLength={6}
+           
+           {/* Email Form */}
+           <Animated.View entering={FadeInUp.delay(400).duration(800)} style={{ width: '100%', marginBottom: 20 }}>
+             {!showOtp ? (
+               <View>
+                 {Platform.OS === 'web' ? (
+                   <input
+                     type="email"
+                     placeholder="Email Address"
+                     value={email}
+                     onChange={(e) => setEmail(e.target.value)}
+                     disabled={isLoading}
+                     style={inputStyle}
                    />
-                   <View style={[s.focusLine, passwordFocused && s.focusLineActive]} />
-                 </View>
-               </Animated.View>
-             )}
-
-             {/* Resend Code / Forgot Pwd */}
-             <Animated.View entering={FadeInUp.delay(550).duration(800)} style={s.forgotPwdRow}>
-               <Pressable 
-                  onHoverIn={() => setHoverForgot(true)} 
-                  onHoverOut={() => setHoverForgot(false)}
-                  style={s.forgotPwdPress}
-                  onPress={() => awaitingOtp && onLogin && onLogin(identifier.toLowerCase().trim())}
-               >
-                 <Text style={[s.forgotPwdText, hoverForgot && s.forgotPwdTextHover]}>
-                   {awaitingOtp ? 'Resend code?' : ''}
-                 </Text>
-                 <View style={[s.forgotPwdLine, hoverForgot && s.forgotPwdLineHover]} />
-               </Pressable>
-             </Animated.View>
-
-             {/* Gold Login CTA */}
-             <Animated.View entering={FadeInUp.delay(650).duration(800)} style={s.ctaContainer}>
-               <Animated.View style={[s.ctaGlow, ctaGlowStyle]} />
-               <Pressable
-                 onHoverIn={() => setHoverCTA(true)}
-                 onHoverOut={() => setHoverCTA(false)}
-                 onPress={handleLogin}
-               >
-                 {({ pressed }) => (
-                   <Animated.View style={[s.loginBtnScale, { transform: [{ scale: pressed ? 0.98 : (hoverCTA ? 1.02 : 1) }] }]}>
-                     <LinearGradient colors={['#D4AF37', '#B8962E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.loginBtnGradient}>
-                       <Text style={s.loginBtnText}>{awaitingOtp ? 'VERIFY & SIGN IN' : 'SEND SECURE LINK'}</Text>
-                     </LinearGradient>
-                   </Animated.View>
+                 ) : (
+                   <Text>Email input requires Web Platform in this snippet</Text>
                  )}
-               </Pressable>
-             </Animated.View>
-           </View>
+                 <TouchableOpacity onPress={handleSendOtp} disabled={isLoading} style={s.primaryBtn}>
+                   <Text style={s.primaryBtnText}>{isLoading ? 'SENDING...' : 'CONTINUE WITH EMAIL'}</Text>
+                 </TouchableOpacity>
+               </View>
+             ) : (
+               <View>
+                 <Text style={{ textAlign: 'center', fontSize: 13, color: '#6E6E6E', marginBottom: 12, ...Platform.select({ web: { fontFamily: SANS } as any }) }}>
+                   Code sent to {email}. <Text onPress={() => setShowOtp(false)} style={{ color: '#D4AF37', cursor: 'pointer' } as any}>Edit</Text>
+                 </Text>
+                 {Platform.OS === 'web' ? (
+                   <input
+                     type="text"
+                     placeholder="6-Digit OTP"
+                     value={otp}
+                     onChange={(e) => setOtp(e.target.value)}
+                     disabled={isLoading}
+                     style={inputStyle}
+                   />
+                 ) : (
+                   <Text>OTP input unsupported</Text>
+                 )}
+                 <TouchableOpacity onPress={handleVerifyOtp} disabled={isLoading} style={s.primaryBtn}>
+                   <Text style={s.primaryBtnText}>{isLoading ? 'VERIFYING...' : 'SIGN IN'}</Text>
+                 </TouchableOpacity>
+               </View>
+             )}
+             {errorMsg ? <Text style={{ color: 'red', fontSize: 12, textAlign: 'center', marginTop: 10, ...Platform.select({ web: { fontFamily: SANS } as any }) }}>{errorMsg}</Text> : null}
+           </Animated.View>
 
            {/* Divider */}
-           <Animated.View entering={FadeInUp.delay(750).duration(800)} style={s.dividerRow}>
+           <Animated.View entering={FadeInUp.delay(500).duration(800)} style={s.dividerRow}>
              <View style={s.dividerLine} />
-             <Text style={s.dividerText}>OR CONTINUE WITH</Text>
+             <Text style={s.dividerText}>OR</Text>
              <View style={s.dividerLine} />
            </Animated.View>
 
-           {/* Google Auth */}
-           <Animated.View entering={FadeInUp.delay(850).duration(800)} style={{ width: '100%' }}>
+           {/* Google Sign-In CTA */}
+           <Animated.View entering={FadeInUp.delay(600).duration(800)} style={s.ctaContainer}>
+             <Animated.View style={[s.ctaGlow, ctaGlowStyle]} />
              <Pressable
-               onHoverIn={() => setHoverGoogle(true)}
-               onHoverOut={() => setHoverGoogle(false)}
+               onHoverIn={() => setHoverCTA(true)}
+               onHoverOut={() => setHoverCTA(false)}
+               onPress={handleGoogleLogin}
+               disabled={isLoading}
              >
-               {({ pressed }) => (
-                 <View style={[s.googleBtn, hoverGoogle && s.googleBtnHover, pressed && s.googleBtnPressed]}>
-                   <GoogleIcon />
-                   <Text style={s.googleBtnText}>Continue with Google</Text>
-                 </View>
+               {({ pressed }: { pressed: boolean }) => (
+                 <Animated.View style={[s.loginBtnScale, { transform: [{ scale: pressed ? 0.98 : (hoverCTA ? 1.02 : 1) }] }]}>
+                   <LinearGradient colors={['#D4AF37', '#B8962E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.loginBtnGradient}>
+                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 } as any}>
+                       <GoogleIcon />
+                       <Text style={s.loginBtnText}>CONTINUE WITH GOOGLE</Text>
+                     </View>
+                   </LinearGradient>
+                 </Animated.View>
                )}
              </Pressable>
            </Animated.View>
 
            {/* Terms */}
-           <Animated.View entering={FadeInUp.delay(950).duration(800)} style={s.termsRow}>
+           <Animated.View entering={FadeInUp.delay(850).duration(800)} style={s.termsRow}>
              <Text style={s.termsText}>
                BY SIGNING IN, YOU AGREE TO OUR{' '}
                <Pressable onHoverIn={() => setHoverTerms(true)} onHoverOut={() => setHoverTerms(false)}>
@@ -316,7 +318,7 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
            </Animated.View>
 
            {/* Footer */}
-           <Animated.View entering={FadeIn.delay(1050).duration(800)} style={s.footerSection}>
+           <Animated.View entering={FadeIn.delay(950).duration(800)} style={s.footerSection}>
              <Text style={s.footerText}>Elevating the essence of beauty since 2024</Text>
            </Animated.View>
 
@@ -325,6 +327,18 @@ export function Demo({ onSkip, onLogin, onVerify, awaitingOtp }: { onSkip?: () =
     </View>
   );
 }
+
+const inputStyle = {
+  width: '100%',
+  padding: '16px 20px',
+  borderRadius: '10px',
+  border: '1px solid rgba(0,0,0,0.1)',
+  backgroundColor: 'rgba(255,255,255,0.5)',
+  fontSize: '14px',
+  marginBottom: '16px',
+  outline: 'none',
+  fontFamily: SANS,
+} as any;
 
 // ═══════════════════════════════════════════════
 // STYLES
@@ -338,7 +352,6 @@ const s = StyleSheet.create({
     zIndex: 2,
   } as any,
 
-  // ── Left Panel (Desktop) ──
   leftPanel: {
     width: '55%',
     position: 'relative',
@@ -391,10 +404,9 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { fontFamily: SANS } as any }),
   },
 
-  // ── Right Panel ──
   rightPanel: {
     flex: 1,
-    backgroundColor: 'transparent', // controlled by gradients
+    backgroundColor: 'transparent',
     zIndex: 3,
   },
   rightPanelMobile: {
@@ -410,7 +422,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // ── Form Container ──
   formContainerDesk: {
     width: '100%',
     maxWidth: 480,
@@ -432,10 +443,9 @@ const s = StyleSheet.create({
     }),
   },
 
-  // ── Skip ──
   skipBtn: {
     position: 'absolute',
-    top: 0, // absolute within formContainer
+    top: 0,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -451,7 +461,6 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { fontFamily: SANS } as any }),
   },
 
-  // ── Brand ──
   brandSection: {
     alignItems: 'center',
     marginBottom: 44,
@@ -482,11 +491,10 @@ const s = StyleSheet.create({
     letterSpacing: 10,
     fontWeight: '500',
     marginTop: 18,
-    marginLeft: 10, // offset letterspacing visual
+    marginLeft: 10,
     ...Platform.select({ web: { fontFamily: SERIF } as any }),
   },
 
-  // ── Welcome ──
   welcomeSection: {
     alignItems: 'center',
     marginBottom: 44,
@@ -507,88 +515,22 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { fontFamily: SANS } as any }),
   },
 
-  // ── Inputs ──
-  inputContainer: {
+  primaryBtn: {
     width: '100%',
-    marginBottom: 26,
+    backgroundColor: '#0F2F46',
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
   },
-  inputLabel: {
-    fontSize: 10,
-    color: C.goldMuted,
-    letterSpacing: 4,
-    fontWeight: '600',
-    marginBottom: 10,
-    textTransform: 'uppercase',
+  primaryBtnText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 3,
     ...Platform.select({ web: { fontFamily: SANS } as any }),
   },
-  inputWrapper: {
-    position: 'relative',
-    backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(163,145,113,0.2)',
-    ...Platform.select({ web: { transition: 'box-shadow 0.4s ease' } as any }),
-  },
-  inputWrapperFocused: {
-    ...Platform.select({ web: { boxShadow: '0 10px 30px -15px rgba(212,175,55,0.15)' } as any }),
-  },
-  textInput: {
-    width: '100%',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    fontSize: 16,
-    color: C.onSurface,
-    fontWeight: '400',
-    ...Platform.select({
-      web: { fontFamily: SANS, outlineStyle: 'none' } as any,
-    }),
-  } as any,
-  focusLine: {
-    position: 'absolute',
-    bottom: -1,
-    left: '50%',
-    height: 1.5,
-    width: '0%',
-    backgroundColor: '#D4AF37',
-    transform: [{ translateX: '-50%' }],
-    ...Platform.select({ web: { transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)' } as any }),
-  } as any,
-  focusLineActive: {
-    width: '100%',
-  } as any,
 
-  // ── Forgot Password ──
-  forgotPwdRow: {
-    width: '100%',
-    alignItems: 'flex-end',
-    marginBottom: 36,
-    marginTop: -8,
-  },
-  forgotPwdPress: {
-    paddingVertical: 6,
-    paddingLeft: 12,
-  },
-  forgotPwdText: {
-    fontSize: 12,
-    color: '#8A8A8A',
-    fontWeight: '400',
-    letterSpacing: 0.5,
-    ...Platform.select({ web: { fontFamily: SANS, transition: 'color 0.3s ease' } as any }),
-  },
-  forgotPwdTextHover: {
-    color: '#B8962E',
-  },
-  forgotPwdLine: {
-    height: 1,
-    width: '0%',
-    backgroundColor: '#B8962E',
-    marginTop: 2,
-    ...Platform.select({ web: { transition: 'width 0.4s ease' } as any }),
-  },
-  forgotPwdLineHover: {
-    width: '100%',
-  },
-
-  // ── CTA Button ──
   ctaContainer: {
     position: 'relative',
     width: '100%',
@@ -620,13 +562,12 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { fontFamily: SANS, textShadow: '0 2px 10px rgba(0,0,0,0.1)' } as any }),
   },
 
-  // ── Divider ──
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     width: '100%',
-    paddingVertical: 32,
+    paddingVertical: 20,
   } as any,
   dividerLine: {
     flex: 1,
@@ -638,39 +579,9 @@ const s = StyleSheet.create({
     color: '#A0A0A0',
     letterSpacing: 8,
     fontWeight: '500',
-    marginLeft: 8, // offset letterspacing
     ...Platform.select({ web: { fontFamily: SANS } as any }),
   },
 
-  // ── Google ──
-  googleBtn: {
-    width: '100%',
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderRadius: 10,
-    ...Platform.select({ web: { boxShadow: '0 2px 10px rgba(0,0,0,0.02)', transition: 'all 0.3s ease' } as any }),
-  } as any,
-  googleBtnHover: {
-    borderColor: 'rgba(212,175,55,0.3)',
-    ...Platform.select({ web: { transform: 'translateY(-1px)', boxShadow: '0 8px 20px rgba(0,0,0,0.06)' } as any }),
-  },
-  googleBtnPressed: {
-    ...Platform.select({ web: { transform: 'translateY(1px)', boxShadow: '0 2px 5px rgba(0,0,0,0.04)' } as any }),
-  },
-  googleBtnText: {
-    fontSize: 14,
-    color: '#333333',
-    fontWeight: '500',
-    ...Platform.select({ web: { fontFamily: SANS } as any }),
-  },
-
-  // ── Terms ──
   termsRow: {
     marginTop: 40,
     width: '100%',
@@ -693,7 +604,6 @@ const s = StyleSheet.create({
     color: '#D4AF37',
   },
 
-  // ── Footer ──
   footerSection: {
     marginTop: 48,
     opacity: 0.4,
