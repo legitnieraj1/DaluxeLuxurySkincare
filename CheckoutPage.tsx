@@ -162,45 +162,27 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
       return;
     }
 
-    if (Platform.OS === 'web') {
-      const loaded = await loadRazorpayScript();
-      if (!loaded) {
-        alert('Failed to load Razorpay. Please check your connection.');
-        setLoading(false); return;
+      try {
+        const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
+          method: 'POST', 
+          headers: authHeaders,
+          body: JSON.stringify({ amount: grandTotal })
+        });
+        const data = await res.json();
+        
+        if (data.success && data.url) {
+          // Redirect the user to PhonePe payment URL
+          window.location.href = data.url;
+        } else {
+          setLoading(false);
+          alert('Failed to initiate PhonePe payment: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err: any) { 
+        setLoading(false); 
+        alert('Could not connect to payment gateway.'); 
       }
-      const key = razorpayKeyId || (typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_RAZORPAY_KEY_ID : '') || '';
-      
-      const options = {
-        key, amount: grandTotal * 100, currency: 'INR', name: 'DALUXE',
-        description: `${items.length} item${items.length > 1 ? 's' : ''}`,
-        handler: async (res: any) => {
-          try {
-            const verifyRes = await fetch(`${API_URL}/api/checkout/verify`, {
-              method: 'POST', headers: authHeaders,
-              body: JSON.stringify({
-                razorpay_order_id: res.razorpay_order_id || 'LOCAL',
-                razorpay_payment_id: res.razorpay_payment_id,
-                razorpay_signature: res.razorpay_signature || 'LOCAL',
-                orderPayload, cartItems: cartPayload
-              })
-            });
-            const data = await verifyRes.json();
-            setLoading(false);
-            if (data.success) {
-               setPaymentDone(true);
-               setTimeout(() => onSuccess(data.order.order_number), 2000);
-            } else { alert('Verification failed, but payment was deducted. Please contact support.'); }
-          } catch(e) { setLoading(false); alert('System error verifying payment.'); }
-        },
-        prefill: { name: form.name, email: form.email, contact: '91' + form.phone },
-        notes: { address: `${form.address}, ${form.city}, ${form.state} - ${form.pincode}` },
-        theme: { color: GOLD },
-        modal: { ondismiss: () => setLoading(false) },
-      };
-      try { const rzp = new (window as any).Razorpay(options); rzp.open(); }
-      catch (err) { setLoading(false); alert('Could not open payment window.'); }
     } else {
-       setLoading(false); alert('Native payments not implemented in this snippet for brevity');
+       setLoading(false); alert('Native payments must use Deep Links or WebViews for PhonePe');
     }
   }
 

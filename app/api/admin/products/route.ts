@@ -2,29 +2,20 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export async function PATCH(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
     await requireAdmin();
-    const { id } = await props.params;
-    const updates = await request.json();
 
-    if (!id) {
-       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-    }
-
-    const { data: product, error } = await supabaseAdmin
+    const { data: products, error } = await supabaseAdmin
       .from('products')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, product });
+    return NextResponse.json({ success: true, products });
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return NextResponse.json({ error: error.message }, { status: error.message === 'Unauthorized' ? 401 : 403 });
@@ -33,26 +24,27 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request) {
   try {
     await requireAdmin();
-    const { id } = await props.params;
+    const payload = await request.json();
 
-    if (!id) {
-       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    // Basic validation
+    if (!payload.name || !payload.price || !payload.stock_quantity) {
+       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    const { data: product, error } = await supabaseAdmin
       .from('products')
-      .delete()
-      .eq('id', id);
+      .insert({
+         ...payload
+      })
+      .select()
+      .single();
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, message: 'Product deleted' });
+    return NextResponse.json({ success: true, product });
   } catch (error: any) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return NextResponse.json({ error: error.message }, { status: error.message === 'Unauthorized' ? 401 : 403 });
