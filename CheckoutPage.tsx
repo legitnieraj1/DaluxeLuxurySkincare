@@ -162,6 +162,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
       return;
     }
 
+    if (Platform.OS === 'web') {
       try {
         const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
           method: 'POST', 
