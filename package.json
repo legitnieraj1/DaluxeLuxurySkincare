@@ -6,8 +6,11 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
-    "build": "expo export -p web"
+    "web": "expo start --web --port 8082",
+    "build": "expo export -p web",
+    "admin": "cd admin && npx next dev --turbopack --port 3001",
+    "proxy": "node dev-proxy.js",
+    "dev": "lsof -ti:8081 | xargs kill -9 2>/dev/null; concurrently --names \"PROXY,EXPO,ADMIN\" --prefix-colors \"cyan,yellow,magenta\" \"node dev-proxy.js\" \"expo start --web --port 8082\" \"cd admin && npx next dev --turbopack --port 3001\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
@@ -31,6 +34,9 @@
     "@types/react": "~19.2.2",
     "@vercel/node": "^5.7.5",
     "babel-preset-expo": "^55.0.10",
+    "concurrently": "^9.2.1",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.2"
   },

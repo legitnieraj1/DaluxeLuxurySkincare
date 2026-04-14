@@ -24,7 +24,7 @@ import HomeSections from './HomeSections';
 import ContactPage from './ContactPage';
 import CheckoutPage from './CheckoutPage';
 import { Demo as LoginPage } from './components/ui/demo';
-import ProfilePage from './ProfilePage';
+import AccountDashboard from './AccountDashboard';
 import TermsPage from './TermsPage';
 import PrivacyPolicyPage from './PrivacyPolicyPage';
 import RefundPolicyPage from './RefundPolicyPage';
@@ -954,7 +954,8 @@ export default function App() {
   return (
     <View style={[styles.container, (isCollection || currentPage === 'our-story' || currentPage === 'contact') && { backgroundColor: '#FDFBF7' }]}>
 
-      {/* Navbar (Fixed - always visible) */}
+      {/* Navbar (Fixed - always visible except profile) */}
+      {currentPage !== 'profile' && (
       <Animated.View pointerEvents="box-none" style={[styles.navbar, isMobile && mobileStyles.navbar, navbarAnimatedStyle as any]}>
         {!hideNavbarLinks ? (
           <TouchableOpacity onPress={() => setCurrentPage('product')}>
@@ -1001,6 +1002,7 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+      )}
 
       {/* Mobile Menu Overlay */}
       {isMobile && menuOpen && (
@@ -1253,9 +1255,10 @@ export default function App() {
       {/* ===== PROFILE PAGE ===== */}
       {currentPage === 'profile' && userEmail && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
-          <ProfilePage 
-            userEmail={userEmail} 
+          <AccountDashboard
+            userEmail={userEmail}
             onBack={() => setCurrentPage('product')}
+            onNavigate={(p: string) => setCurrentPage(p as any)}
             onLogout={async () => {
               await supabaseClient.auth.signOut();
               setCurrentPage('login');
