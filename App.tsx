@@ -1236,7 +1236,6 @@ export default function App() {
               setCartItems([]);
               setTimeout(() => setCurrentPage('product'), 2500);
             }}
-            razorpayKeyId={(typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_RAZORPAY_KEY_ID) || ''}
           />
         </View>
       )}

@@ -21,28 +21,15 @@ interface CheckoutPageProps {
   items: CheckoutItem[];
   onBack: () => void;
   onSuccess: (paymentId: string) => void;
-  razorpayKeyId?: string;
 }
 
 const GOLD = '#C9A227';
 const GOLD_LIGHT = '#E9C349';
 const TEXT = '#1A1A1A';
 
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') return resolve(false);
-    if ((window as any).Razorpay) return resolve(true);
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
 type Step = 'details' | 'review' | 'payment';
 
-export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }: CheckoutPageProps) {
+export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageProps) {
   const [step, setStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
@@ -108,7 +95,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
     setLoading(true);
 
     const orderPayload = {
-      user_id: null, // Will hook into session later
+      user_id: null,
       total_amount: grandTotal,
       email: form.email,
       shipping_address: {
@@ -126,7 +113,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
     const token = session?.access_token || '';
     const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
-    // PRE-FLIGHT STOCK & RATE-LIMIT VALIDATION
+    // PRE-FLIGHT STOCK VALIDATION
     try {
       const validateRes = await fetch(`${API_URL}/api/checkout/validate`, {
         method: 'POST', headers: authHeaders,
@@ -135,15 +122,16 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
       const validateData = await validateRes.json();
       if (!validateRes.ok || !validateData.success) {
         setLoading(false);
-        alert(validateData.error || 'Validation failed. Some items may be out of stock.');
+        alert(validateData.error || 'Some items may be out of stock.');
         return;
       }
     } catch (e: any) {
       setLoading(false);
-      alert('Error verifying stock or network connection. Please try again.');
+      alert('Network error. Please check your connection and try again.');
       return;
     }
 
+    // COD FLOW
     if (paymentMethod === 'cod') {
       try {
         const res = await fetch(`${API_URL}/api/checkout/cod`, {
@@ -162,25 +150,29 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
       return;
     }
 
+    // PHONEPE PREPAID FLOW
     if (Platform.OS === 'web') {
       try {
         const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
           method: 'POST', 
           headers: authHeaders,
-          body: JSON.stringify({ amount: grandTotal })
+          body: JSON.stringify({ 
+            amount: grandTotal,
+            cart_items: cartPayload,
+            shipping_address: orderPayload.shipping_address
+          })
         });
         const data = await res.json();
         
-        if (data.success && data.url) {
-          // Redirect the user to PhonePe payment URL
-          window.location.href = data.url;
+        if (data.success && data.data?.url) {
+          window.location.href = data.data.url;
         } else {
           setLoading(false);
-          alert('Failed to initiate PhonePe payment: ' + (data.error || 'Unknown error'));
+          alert('Payment gateway error: ' + (data.error || 'Could not initiate payment'));
         }
       } catch (err: any) { 
         setLoading(false); 
-        alert('Could not connect to payment gateway.'); 
+        alert('Network error connecting to payment gateway.'); 
       }
     } else {
        setLoading(false); alert('Native payments must use Deep Links or WebViews for PhonePe');
@@ -236,142 +228,134 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
       {/* Steps */}
       <View style={s.steps}>
         {(['details', 'review', 'payment'] as Step[]).map((t, i) => (
-          <View key={t} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <React.Fragment key={t}>
+            {i > 0 && <View style={s.stepLine} />}
             <View style={[s.dot, step === t && s.dotActive, stepDone(t) && s.dotDone]}>
               {stepDone(t)
-                ? <Check color="#fff" size={12} strokeWidth={3} />
-                : <Text style={[s.dotNum, (step === t || stepDone(t)) && { color: '#fff' }]}>{i + 1}</Text>
+                ? <Check color="#fff" size={13} strokeWidth={3} />
+                : <Text style={[s.dotNum, step === t && { color: '#fff' }]}>{i + 1}</Text>
               }
             </View>
-            <Text style={[s.dotLabel, step === t && s.dotLabelActive]}>
-              {t === 'details' ? 'You' : t === 'review' ? 'Review' : 'Pay'}
-            </Text>
-            {i < 2 && <View style={s.stepLine} />}
-          </View>
+            <Text style={[s.dotLabel, step === t && s.dotLabelActive]}>{['You', 'Review', 'Pay'][i]}</Text>
+          </React.Fragment>
         ))}
       </View>
 
-      {/* Scrollable Body */}
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <ScrollView
-          ref={scrollRef}
-          style={s.scroll}
-          contentContainerStyle={s.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-          scrollEventThrottle={16}
-        >
-          <View style={s.body}>
+      {/* Content */}
+      <ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Animated.View style={[s.body, { opacity: fadeAnim }]}>
 
-            {/* ── STEP 1: DETAILS ── */}
-            {step === 'details' && <>
-              <SectionHead icon={User} label="Personal Details" />
-              <Field label="Full Name" value={form.name} error={errors.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Ananya Sharma" autoComplete="name" textContentType="name" />
-              <Field label="Mobile Number" value={form.phone} error={errors.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="9876543210" keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
-              <Field label="Email Address" value={form.email} error={errors.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
+          {/* ── STEP 1: DETAILS ── */}
+          {step === 'details' && <>
+            <SectionHead icon={User} label="Your Details" />
+            <Field label="Full Name" value={form.name} onChange={(v: string) => setForm(p => ({ ...p, name: v }))} placeholder="e.g. Priya Sharma" error={errors.name} autoComplete="name" textContentType="name" />
+            <Field label="Phone Number" value={form.phone} onChange={(v: string) => setForm(p => ({ ...p, phone: v.replace(/\D/g, '').slice(0, 10) }))} placeholder="10-digit mobile number" error={errors.phone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
+            <Field label="Email Address" value={form.email} onChange={(v: string) => setForm(p => ({ ...p, email: v }))} placeholder="you@example.com" error={errors.email} keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" />
 
+            <View style={s.divider} />
+            <SectionHead icon={MapPin} label="Shipping Address" />
+            <Field label="Street Address" value={form.address} onChange={(v: string) => setForm(p => ({ ...p, address: v }))} placeholder="House/flat no., street" error={errors.address} multiline numberOfLines={2} autoComplete="street-address" textContentType="streetAddressLine1" />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Field label="City" value={form.city} onChange={(v: string) => setForm(p => ({ ...p, city: v }))} placeholder="City" error={errors.city} autoComplete="address-level2" textContentType="addressCity" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field label="Pincode" value={form.pincode}
+                  onChange={(v: string) => {
+                    const cleaned = v.replace(/\D/g, '').slice(0, 6);
+                    setForm(p => ({ ...p, pincode: cleaned }));
+                  }}
+                  onBlur={() => checkShipping(form.pincode)}
+                  placeholder="6-digit" error={errors.pincode || pincodeError} keyboardType="number-pad" autoComplete="postal-code" textContentType="postalCode" />
+              </View>
+            </View>
+            <Field label="State" value={form.state} onChange={(v: string) => setForm(p => ({ ...p, state: v }))} placeholder="State" error={errors.state} autoComplete="address-level1" textContentType="addressState" />
+
+            <GoldButton label="Continue to Review" onPress={() => { if (validate()) { checkShipping(form.pincode); animateStep('review'); } }} />
+          </>}
+
+          {/* ── STEP 2: REVIEW ── */}
+          {step === 'review' && <>
+            <SectionHead icon={ShoppingBag} label="Order Summary" />
+            {items.map((item) => (
+              <View key={item.id} style={s.reviewRow}>
+                <View style={s.reviewImgBox}>
+                  <Image source={item.image} style={s.reviewImg} resizeMode="contain" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.reviewName}>{item.name}</Text>
+                  <Text style={s.reviewSub}>{item.sizeDetail} · Qty {item.quantity}</Text>
+                </View>
+                <Text style={s.reviewPrice}>{item.priceDisplay}</Text>
+              </View>
+            ))}
+
+            <View style={s.priceBox}>
+              <PriceLine label="Subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
+              <PriceLine label="Shipping" value={displayShipping} green={shipping === 0} />
               <View style={s.divider} />
-              <SectionHead icon={MapPin} label="Delivery Address" />
-              <Field label="Flat / House, Street, Area" value={form.address} error={errors.address} onChange={v => setForm(f => ({ ...f, address: v }))} placeholder="12 Rose Garden, Sector 21" multiline numberOfLines={2} autoComplete="street-address" textContentType="fullStreetAddress" />
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <View style={{ flex: 1 }}><Field label="City" value={form.city} error={errors.city} onChange={v => setForm(f => ({ ...f, city: v }))} placeholder="Mumbai" autoComplete="address-level2" textContentType="addressCity" /></View>
-                <View style={{ flex: 1 }}><Field label="Pincode" value={form.pincode} error={errors.pincode || pincodeError} onChange={v => {
-                    setForm(f => ({ ...f, pincode: v }));
-                    if (v.length === 6) checkShipping(v);
-                  }} onBlur={() => checkShipping(form.pincode)} placeholder="400001" keyboardType="numeric" autoComplete="postal-code" textContentType="postalCode" /></View>
+              <PriceLine label="Total" value={`₹${grandTotal.toLocaleString('en-IN')}`} bold />
+            </View>
+
+            <View style={s.addrBox}>
+              <MapPin color={GOLD} size={15} strokeWidth={1.8} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.addrName}>{form.name}</Text>
+                <Text style={s.addrText}>{form.address}, {form.city}, {form.state} – {form.pincode}</Text>
+                <Text style={s.addrText}>{form.phone} · {form.email}</Text>
               </View>
-              <Field label="State" value={form.state} error={errors.state} onChange={v => setForm(f => ({ ...f, state: v }))} placeholder="Maharashtra" autoComplete="address-level1" textContentType="addressState" />
+            </View>
 
-              <GoldButton label={shipping === 'CALCULATING' ? 'CALCULATING SHIPPING...' : 'REVIEW ORDER →'} disabled={shipping === 'CALCULATING'} onPress={() => { if (validate()) animateStep('review'); }} />
-            </>}
+            <GoldButton label="Continue to Payment" onPress={() => animateStep('payment')} />
+            <TouchableOpacity onPress={() => animateStep('details')} style={s.ghostBtn} activeOpacity={0.7}>
+              <Text style={s.ghostBtnText}>← Edit Details</Text>
+            </TouchableOpacity>
+          </>}
 
-            {/* ── STEP 2: REVIEW ── */}
-            {step === 'review' && <>
-              <SectionHead icon={ShoppingBag} label="Order Summary" />
-              {items.map(item => (
-                <View key={item.id} style={s.reviewRow}>
-                  <View style={s.reviewImgBox}>
-                    <Image source={item.image} style={s.reviewImg} resizeMode="contain" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.reviewName}>{item.name}</Text>
-                    <Text style={s.reviewSub}>{item.sizeDetail} · Qty {item.quantity}</Text>
-                  </View>
-                  <Text style={s.reviewPrice}>₹{(item.price * item.quantity).toLocaleString('en-IN')}</Text>
+          {/* ── STEP 3: PAYMENT ── */}
+          {step === 'payment' && <>
+            <View style={s.payCard}>
+              <LinearGradient colors={['rgba(201,162,39,0.07)', 'rgba(233,195,73,0.03)']} style={s.payCardInner}>
+                <Text style={s.payAmount}>₹{grandTotal.toLocaleString('en-IN')}</Text>
+                <Text style={s.payLabel}>Total Payable</Text>
+                <View style={s.payPill}>
+                  <Text style={s.payPillText}>{items.length} item{items.length > 1 ? 's' : ''} · Delivered to {form.city}</Text>
                 </View>
-              ))}
+              </LinearGradient>
+            </View>
 
-              <View style={s.priceBox}>
-                <PriceLine label="Subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
-                <PriceLine label="Shipping" value={displayShipping} green={shipping === 0} />
-                <View style={s.divider} />
-                <PriceLine label="Total Payable" value={`₹${grandTotal.toLocaleString('en-IN')}`} bold />
-              </View>
-
-              <View style={s.addrBox}>
-                <MapPin color={GOLD} size={15} strokeWidth={1.5} style={{ marginTop: 1 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.addrName}>{form.name} · +91{form.phone}</Text>
-                  <Text style={s.addrText}>{form.address}, {form.city}, {form.state} – {form.pincode}</Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 24 }}>
-                <TouchableOpacity onPress={() => animateStep('details')} style={s.ghostBtn} activeOpacity={0.7}>
-                  <Text style={s.ghostBtnText}>← Edit</Text>
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                  <GoldButton label="PROCEED TO PAY →" onPress={() => animateStep('payment')} />
-                </View>
-              </View>
-            </>}
-
-            {/* ── STEP 3: PAYMENT ── */}
-            {step === 'payment' && <>
-              <View style={s.payCard}>
-                <LinearGradient colors={['rgba(201,162,39,0.07)', 'rgba(233,195,73,0.03)']} style={s.payCardInner}>
-                  <Text style={s.payAmount}>₹{grandTotal.toLocaleString('en-IN')}</Text>
-                  <Text style={s.payLabel}>Total Payable</Text>
-                  <View style={s.payPill}>
-                    <Text style={s.payPillText}>{items.length} item{items.length > 1 ? 's' : ''} · Delivered to {form.city}</Text>
-                  </View>
-                </LinearGradient>
-              </View>
-
-              <SectionHead icon={ShoppingBag} label="Payment Method" />
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-                <TouchableOpacity onPress={() => { setPaymentMethod('prepaid'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'prepaid' && s.paymentToggleActive]} activeOpacity={0.8}>
-                  {paymentMethod === 'prepaid' && <View style={s.paymentToggleDot} />}
-                  <Text style={[s.paymentToggleText, paymentMethod === 'prepaid' && s.paymentToggleTextActive]}>PhonePe / UPI / Cards</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setPaymentMethod('cod'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'cod' && s.paymentToggleActive]} activeOpacity={0.8}>
-                  {paymentMethod === 'cod' && <View style={s.paymentToggleDot} />}
-                  <Text style={[s.paymentToggleText, paymentMethod === 'cod' && s.paymentToggleTextActive]}>Cash on Delivery</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={s.secureRow}>
-                <Lock color={GOLD} size={13} />
-                <Text style={s.secureText}>
-                  {paymentMethod === 'prepaid' 
-                    ? '100% secure payment powered by PhonePe. Your card details are never stored.'
-                    : 'Pay physically with cash or UPI at the time of delivery to your doorstep.'}
-                </Text>
-              </View>
-
-              <GoldButton label={loading ? '' : paymentMethod === 'cod' ? `PLACE ORDER (COD)` : `PAY ₹${grandTotal.toLocaleString('en-IN')}`} onPress={handlePayment} disabled={loading}
-                loading={loading} />
-
-              <TouchableOpacity onPress={() => animateStep('review')} style={{ alignItems: 'center', marginTop: 16, paddingVertical: 8 }} activeOpacity={0.7}>
-                <Text style={s.ghostBtnText}>← Back to Review</Text>
+            <SectionHead icon={ShoppingBag} label="Payment Method" />
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+              <TouchableOpacity onPress={() => { setPaymentMethod('prepaid'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'prepaid' && s.paymentToggleActive]} activeOpacity={0.8}>
+                {paymentMethod === 'prepaid' && <View style={s.paymentToggleDot} />}
+                <Text style={[s.paymentToggleText, paymentMethod === 'prepaid' && s.paymentToggleTextActive]}>PhonePe / UPI / Cards</Text>
               </TouchableOpacity>
-            </>}
+              <TouchableOpacity onPress={() => { setPaymentMethod('cod'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'cod' && s.paymentToggleActive]} activeOpacity={0.8}>
+                {paymentMethod === 'cod' && <View style={s.paymentToggleDot} />}
+                <Text style={[s.paymentToggleText, paymentMethod === 'cod' && s.paymentToggleTextActive]}>Cash on Delivery</Text>
+              </TouchableOpacity>
+            </View>
 
-            <View style={{ height: 60 }} />
-          </View>
-        </ScrollView>
-      </Animated.View>
+            <View style={s.secureRow}>
+              <Lock color={GOLD} size={13} />
+              <Text style={s.secureText}>
+                {paymentMethod === 'prepaid' 
+                  ? '100% secure payment powered by PhonePe. Your card details are never stored.'
+                  : 'Pay physically with cash or UPI at the time of delivery to your doorstep.'}
+              </Text>
+            </View>
+
+            <GoldButton label={loading ? '' : paymentMethod === 'cod' ? `PLACE ORDER (COD)` : `PAY ₹${grandTotal.toLocaleString('en-IN')}`} onPress={handlePayment} disabled={loading}
+              loading={loading} />
+
+            <TouchableOpacity onPress={() => animateStep('review')} style={{ alignItems: 'center', marginTop: 16, paddingVertical: 8 }} activeOpacity={0.7}>
+              <Text style={s.ghostBtnText}>← Back to Review</Text>
+            </TouchableOpacity>
+          </>}
+
+          <View style={{ height: 60 }} />
+        </Animated.View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

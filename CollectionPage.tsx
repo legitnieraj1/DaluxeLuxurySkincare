@@ -1490,7 +1490,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
   useEffect(() => {
     const fetchInventory = async () => {
       try {
-        const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || 'http://localhost:3000';
+        const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
         const res = await fetch(`${API_URL}/api/products`);
         const data = await res.json();
         if (data.products) {
