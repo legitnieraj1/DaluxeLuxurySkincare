@@ -58,7 +58,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
     setPincodeError('');
     try {
       const w = 0.5; // default weight 500g
-      const res = await fetch(`${API_URL}/api/checkout/shipping?pincode=${pincode}&weight=${w}&payment=${paymentMethod}`).then(r => r.json());
+      const res = await fetch(`${API_URL}/api/checkout?action=shipping&pincode=${pincode}&weight=${w}&payment=${paymentMethod}`).then(r => r.json());
       if (res.serviceable) {
         setShipping(res.rate);
       } else {
@@ -115,7 +115,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
 
     // PRE-FLIGHT STOCK VALIDATION
     try {
-      const validateRes = await fetch(`${API_URL}/api/checkout/validate`, {
+      const validateRes = await fetch(`${API_URL}/api/checkout?action=validate`, {
         method: 'POST', headers: authHeaders,
         body: JSON.stringify({ cart_items: cartPayload })
       });
@@ -134,7 +134,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
     // COD FLOW
     if (paymentMethod === 'cod') {
       try {
-        const res = await fetch(`${API_URL}/api/checkout/cod`, {
+        const res = await fetch(`${API_URL}/api/checkout?action=cod`, {
           method: 'POST', headers: authHeaders,
           body: JSON.stringify({ orderPayload, cartItems: cartPayload })
         });
@@ -153,7 +153,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
     // PHONEPE PREPAID FLOW
     if (Platform.OS === 'web') {
       try {
-        const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
+        const res = await fetch(`${API_URL}/api/phonepe?action=initiate`, {
           method: 'POST', 
           headers: authHeaders,
           body: JSON.stringify({ 
