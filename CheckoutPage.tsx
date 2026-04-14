@@ -63,7 +63,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
   const getShippingAmount = () => (shipping === 'CALCULATING' ? 0 : shipping);
   const displayShipping = shipping === 'CALCULATING' ? '...' : (shipping === 0 ? 'FREE' : `₹${shipping}`);
   const grandTotal = total + getShippingAmount();
-  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || 'http://localhost:3000';
+  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
 
   async function checkShipping(pincode: string) {
     if (!pincode || pincode.length < 6) return;
@@ -343,7 +343,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
                 <TouchableOpacity onPress={() => { setPaymentMethod('prepaid'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'prepaid' && s.paymentToggleActive]} activeOpacity={0.8}>
                   {paymentMethod === 'prepaid' && <View style={s.paymentToggleDot} />}
-                  <Text style={[s.paymentToggleText, paymentMethod === 'prepaid' && s.paymentToggleTextActive]}>Razorpay / Cards</Text>
+                  <Text style={[s.paymentToggleText, paymentMethod === 'prepaid' && s.paymentToggleTextActive]}>PhonePe / UPI / Cards</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setPaymentMethod('cod'); checkShipping(form.pincode); }} style={[s.paymentToggle, paymentMethod === 'cod' && s.paymentToggleActive]} activeOpacity={0.8}>
                   {paymentMethod === 'cod' && <View style={s.paymentToggleDot} />}
@@ -355,7 +355,7 @@ export default function CheckoutPage({ items, onBack, onSuccess, razorpayKeyId }
                 <Lock color={GOLD} size={13} />
                 <Text style={s.secureText}>
                   {paymentMethod === 'prepaid' 
-                    ? '100% secure payment powered by Razorpay. Your card details are never stored.'
+                    ? '100% secure payment powered by PhonePe. Your card details are never stored.'
                     : 'Pay physically with cash or UPI at the time of delivery to your doorstep.'}
                 </Text>
               </View>
