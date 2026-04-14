@@ -120,14 +120,30 @@ export function Demo({ onSkip, onSuccess, onNavigate }: {
   const shimmerOpacity = useSharedValue(0.1);
   const ctaGlowOpacity = useSharedValue(0.4);
 
-  // Check if this is a password reset callback (has access_token in hash)
+  // Listen for Supabase PASSWORD_RECOVERY event — works for both PKCE and legacy flows.
+  // When the user clicks the reset link in their email, Supabase redirects back and
+  // fires this event. We switch to the reset-password view so they can set a new password.
   useEffect(() => {
+    const { supabaseClient } = require('../../lib/supabaseClient');
+
+    // Also handle legacy implicit flow where hash contains type=recovery
     if (Platform.OS === 'web') {
       const hash = window.location.hash;
       if (hash && hash.includes('type=recovery')) {
         setAuthView('reset-password');
       }
     }
+
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+      (event: string) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthView('reset-password');
+          setErrorMsg('');
+          setSuccessMsg('');
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -246,6 +262,9 @@ export function Demo({ onSkip, onSuccess, onNavigate }: {
 
     const { supabaseClient } = require('../../lib/supabaseClient');
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    // redirectTo must be the exact URL the user is sent to after clicking the link.
+    // Supabase appends ?code=... (PKCE) or #access_token=...&type=recovery (implicit)
+    // to this URL. Our onAuthStateChange listener handles the PASSWORD_RECOVERY event.
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/login`,
     });
@@ -275,8 +294,18 @@ export function Demo({ onSkip, onSuccess, onNavigate }: {
     if (error) {
       setErrorMsg(error.message);
     } else {
-      setSuccessMsg('Password updated successfully! Signing you in...');
-      setTimeout(() => onSuccess && onSuccess(), 1500);
+      setSuccessMsg('Password updated! Redirecting to login...');
+      // Sign out the recovery session so the user logs in fresh with the new password
+      await supabaseClient.auth.signOut();
+      setTimeout(() => {
+        setSuccessMsg('');
+        setPassword('');
+        setAuthView('login');
+        if (Platform.OS === 'web') {
+          // Clean the URL hash so the recovery token is not reused
+          window.history.replaceState({}, '', '/login');
+        }
+      }, 1800);
     }
   };
 
