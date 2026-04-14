@@ -23,7 +23,7 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 
 // ═══════════════════════════════════════════════
@@ -63,25 +63,72 @@ const GoogleIcon = () => (
 );
 
 // ═══════════════════════════════════════════════
+// AUTH VIEW TYPES
+// ═══════════════════════════════════════════════
+type AuthView = 'login' | 'signup' | 'forgot-password' | 'reset-password';
+
+// ═══════════════════════════════════════════════
+// PROFILE SYNC HELPER
+// ═══════════════════════════════════════════════
+async function ensureProfile(user: any, displayName?: string) {
+  try {
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const { data: existing } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existing) {
+      await supabaseClient.from('profiles').insert({
+        id: user.id,
+        email: user.email,
+        full_name: displayName || user.user_metadata?.full_name || '',
+        avatar_url: user.user_metadata?.avatar_url || null,
+      });
+    }
+  } catch (e) {
+    // Profile likely exists via trigger — safe to ignore
+  }
+}
+
+// ═══════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════
-export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: () => void }) {
+export function Demo({ onSkip, onSuccess, onNavigate }: {
+  onSkip?: () => void;
+  onSuccess?: () => void;
+  onNavigate?: (page: string) => void;
+}) {
   const [hoverCTA, setHoverCTA] = useState(false);
   const [hoverTerms, setHoverTerms] = useState(false);
   const [hoverPrivacy, setHoverPrivacy] = useState(false);
 
   // Auth States
+  const [authView, setAuthView] = useState<AuthView>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [showOtp, setShowOtp] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
   const shimmerOpacity = useSharedValue(0.1);
   const ctaGlowOpacity = useSharedValue(0.4);
+
+  // Check if this is a password reset callback (has access_token in hash)
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        setAuthView('reset-password');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     shimmerOpacity.value = withRepeat(
@@ -111,53 +158,297 @@ export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: (
     transform: [{ scale: hoverCTA ? 1.05 : 1 }],
   }));
 
-  const handleSendOtp = async () => {
-    if (!email || !email.includes('@')) {
+  // ─── VALIDATION ───
+  const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  const validatePassword = (p: string) => p.length >= 6;
+
+  // ─── LOGIN ───
+  const handleLogin = async () => {
+    if (!validateEmail(email)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    if (!validatePassword(password)) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsLoading(true);
+
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    setIsLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message);
+    } else if (data.user) {
+      await ensureProfile(data.user);
+      onSuccess && onSuccess();
+    }
+  };
+
+  // ─── SIGNUP ───
+  const handleSignup = async () => {
+    if (!name.trim()) {
+      setErrorMsg('Please enter your name.');
+      return;
+    }
+    if (!validateEmail(email)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    if (!validatePassword(password)) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsLoading(true);
+
+    const { supabaseClient } = require('../../lib/supabaseClient');
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name.trim() },
+      },
+    });
+    setIsLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message);
+    } else if (data.user) {
+      // Insert profile immediately
+      await ensureProfile(data.user, name.trim());
+
+      if (data.session) {
+        // Auto-confirmed — go to profile
+        onSuccess && onSuccess();
+      } else {
+        // Email confirmation required
+        setSuccessMsg('Account created! Please check your email to verify your account, then sign in.');
+        setAuthView('login');
+        setPassword('');
+      }
+    }
+  };
+
+  // ─── FORGOT PASSWORD ───
+  const handleForgotPassword = async () => {
+    if (!validateEmail(email)) {
       setErrorMsg('Please enter a valid email address.');
       return;
     }
     setErrorMsg('');
+    setSuccessMsg('');
     setIsLoading(true);
-    // dynamically import to avoid breaking react native build if needed, but App.tsx handles it
+
     const { supabaseClient } = require('../../lib/supabaseClient');
-    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/login`,
+    });
     setIsLoading(false);
-    
+
     if (error) {
       setErrorMsg(error.message);
     } else {
-      setShowOtp(true);
+      setSuccessMsg('Password reset link sent! Check your email inbox.');
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) {
-      setErrorMsg('Please enter the 6-digit code sent to your email.');
+  // ─── RESET PASSWORD ───
+  const handleResetPassword = async () => {
+    if (!validatePassword(password)) {
+      setErrorMsg('New password must be at least 6 characters.');
       return;
     }
     setErrorMsg('');
+    setSuccessMsg('');
     setIsLoading(true);
+
     const { supabaseClient } = require('../../lib/supabaseClient');
-    const { data, error } = await supabaseClient.auth.verifyOtp({ email, token: otp, type: 'email' });
+    const { error } = await supabaseClient.auth.updateUser({ password });
     setIsLoading(false);
-    
+
     if (error) {
-       setErrorMsg(error.message);
-    } else if (data.session) {
-       onSuccess && onSuccess();
+      setErrorMsg(error.message);
+    } else {
+      setSuccessMsg('Password updated successfully! Signing you in...');
+      setTimeout(() => onSuccess && onSuccess(), 1500);
     }
   };
 
+  // ─── GOOGLE LOGIN ───
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setErrorMsg('');
     const { supabaseClient } = require('../../lib/supabaseClient');
     const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: origin ? `${origin}/profile` : undefined }
+      options: { redirectTo: origin ? `${origin}/profile` : undefined },
     });
     if (error) setErrorMsg(error.message);
-    setIsLoading(false); // only matters if it fails to redirect
+    setIsLoading(false);
+  };
+
+  // ─── CLEAR STATE ON VIEW CHANGE ───
+  const switchView = (view: AuthView) => {
+    setAuthView(view);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setPassword('');
+    setShowPassword(false);
+  };
+
+  // ─── FORM TITLE & SUBTITLE ───
+  const getTitle = () => {
+    switch (authView) {
+      case 'signup': return 'Create Account';
+      case 'forgot-password': return 'Reset Password';
+      case 'reset-password': return 'New Password';
+      default: return 'Welcome Back';
+    }
+  };
+  const getSubtitle = () => {
+    switch (authView) {
+      case 'signup': return 'Begin your skincare journey';
+      case 'forgot-password': return 'We\'ll send you a reset link';
+      case 'reset-password': return 'Enter your new password below';
+      default: return 'Sign in to access your sanctuary';
+    }
+  };
+
+  // ─── RENDER FORM FIELDS ───
+  const renderForm = () => {
+    if (Platform.OS !== 'web') {
+      return <Text style={{ color: '#999', textAlign: 'center' }}>Auth requires Web Platform.</Text>;
+    }
+
+    return (
+      <View style={{ width: '100%' }}>
+        {/* Success message */}
+        {successMsg ? (
+          <View style={{ backgroundColor: 'rgba(52,168,83,0.08)', borderRadius: 10, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(52,168,83,0.2)' }}>
+            <Text style={{ color: '#2D7D46', fontSize: 13, textAlign: 'center', lineHeight: 20, ...Platform.select({ web: { fontFamily: SANS } as any }) }}>{successMsg}</Text>
+          </View>
+        ) : null}
+
+        {/* Name field (signup only) */}
+        {authView === 'signup' && (
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isLoading}
+            style={inputStyle}
+          />
+        )}
+
+        {/* Email field (not on reset-password) */}
+        {authView !== 'reset-password' && (
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            style={inputStyle}
+          />
+        )}
+
+        {/* Password field (login, signup, reset-password) */}
+        {authView !== 'forgot-password' && (
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={authView === 'reset-password' ? 'New Password' : 'Password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (authView === 'login') handleLogin();
+                  else if (authView === 'signup') handleSignup();
+                  else if (authView === 'reset-password') handleResetPassword();
+                }
+              }}
+              style={inputStyle}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={{ position: 'absolute', right: 16, top: 16, zIndex: 5 } as any}
+            >
+              {showPassword
+                ? <EyeOff color="#999" size={18} />
+                : <Eye color="#999" size={18} />}
+            </TouchableOpacity>
+          </div>
+        )}
+
+        {/* Forgot password link (login only) */}
+        {authView === 'login' && (
+          <TouchableOpacity onPress={() => switchView('forgot-password')} style={{ alignSelf: 'flex-end', marginBottom: 16, marginTop: -8 }}>
+            <Text style={{ fontSize: 12, color: C.primary, fontWeight: '500', ...Platform.select({ web: { fontFamily: SANS, cursor: 'pointer' } as any }) }}>
+              Forgot Password?
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Error message */}
+        {errorMsg ? (
+          <View style={{ backgroundColor: 'rgba(234,67,53,0.08)', borderRadius: 10, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(234,67,53,0.2)' }}>
+            <Text style={{ color: '#C62828', fontSize: 12, textAlign: 'center', ...Platform.select({ web: { fontFamily: SANS } as any }) }}>{errorMsg}</Text>
+          </View>
+        ) : null}
+
+        {/* Primary action button */}
+        <TouchableOpacity
+          onPress={() => {
+            if (authView === 'login') handleLogin();
+            else if (authView === 'signup') handleSignup();
+            else if (authView === 'forgot-password') handleForgotPassword();
+            else if (authView === 'reset-password') handleResetPassword();
+          }}
+          disabled={isLoading}
+          style={[s.primaryBtn, isLoading && { opacity: 0.7 }]}
+        >
+          <Text style={s.primaryBtnText}>
+            {isLoading ? 'PLEASE WAIT...' :
+              authView === 'login' ? 'SIGN IN' :
+              authView === 'signup' ? 'CREATE ACCOUNT' :
+              authView === 'forgot-password' ? 'SEND RESET LINK' :
+              'UPDATE PASSWORD'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Toggle between login/signup */}
+        {(authView === 'login' || authView === 'signup') && (
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 6 } as any}>
+            <Text style={{ fontSize: 13, color: '#6E6E6E', ...Platform.select({ web: { fontFamily: SANS } as any }) }}>
+              {authView === 'login' ? "Don't have an account?" : 'Already have an account?'}
+            </Text>
+            <TouchableOpacity onPress={() => switchView(authView === 'login' ? 'signup' : 'login')}>
+              <Text style={{ fontSize: 13, color: C.primary, fontWeight: '600', ...Platform.select({ web: { fontFamily: SANS, cursor: 'pointer' } as any }) }}>
+                {authView === 'login' ? 'Sign Up' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Back to login (from forgot-password) */}
+        {authView === 'forgot-password' && (
+          <TouchableOpacity onPress={() => switchView('login')} style={{ alignSelf: 'center', marginTop: 20 }}>
+            <Text style={{ fontSize: 13, color: C.primary, fontWeight: '600', ...Platform.select({ web: { fontFamily: SANS, cursor: 'pointer' } as any }) }}>
+              ← Back to Sign In
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -170,10 +461,15 @@ export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: (
         }} />
       )}
       <Animated.View entering={FadeIn.duration(1200)} style={StyleSheet.absoluteFillObject} pointerEvents="none">
-         {Platform.OS === 'web' && <div style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(0px)', transition: 'backdrop-filter 1.2s ease-out', animation: 'loadBlur 1s ease-out forwards' }} />}
+        {Platform.OS === 'web' && <div style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(0px)', transition: 'backdrop-filter 1.2s ease-out', animation: 'loadBlur 1s ease-out forwards' }} />}
       </Animated.View>
       {Platform.OS === 'web' && (
-        <style dangerouslySetInnerHTML={{ __html: `@keyframes loadBlur { from { backdrop-filter: blur(20px); } to { backdrop-filter: blur(0px); } }` }} />
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes loadBlur { from { backdrop-filter: blur(20px); } to { backdrop-filter: blur(0px); } }
+          input::placeholder { color: #A0A0A0; letter-spacing: 0.5px; }
+          input:focus { border-color: rgba(212,175,55,0.5) !important; box-shadow: 0 0 0 3px rgba(212,175,55,0.08) !important; }
+          input { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        ` }} />
       )}
 
       {/* Left Side: Desktop visual */}
@@ -186,7 +482,7 @@ export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: (
             <Text style={s.leftTitle}>Quiet Luxury,</Text>
             <Text style={s.leftTitleAccent}>Refined Skin</Text>
             <View style={s.leftDescBorder}>
-               <Text style={s.leftDesc}>Enter the sanctuary. Discover formulations guided by dermal-science and botanical perfection.</Text>
+              <Text style={s.leftDesc}>Enter the sanctuary. Discover formulations guided by dermal-science and botanical perfection.</Text>
             </View>
           </Animated.View>
         </View>
@@ -195,8 +491,8 @@ export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: (
       {/* Mobile background */}
       {!isDesktop && (
         <View style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}>
-           <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSkMu1P6bRgj405gsojScPrybk8mxP_O-fPNVrq7rjPVT8TCnihkVwhmUXP-CoqXqMjwbWribHxjdv21F7VTDlwMxSkQFi-RlD2vOvkzid35n4wL0zxvRvyQv7fBKR9HYSzWEpjQCUOL5ppfDgr3hph4cuPQCjhf-BpCuKNoU6TG_yUJQBC016CGKx0lIfppwNl0Js0mIUNayv1y14qb_tDBQhZ-RRSvPOlgSjiu44WSQ0ISfWQAHUjp5sESH6YGMuKbXm4NhjYMI' }} style={{ width: '100%', height: '100%', opacity: 0.6 } as any} blurRadius={20} resizeMode="cover" />
-           <LinearGradient colors={['rgba(248,246,242,0.6)', 'rgba(242,239,234,0.9)']} style={StyleSheet.absoluteFillObject} />
+          <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDSkMu1P6bRgj405gsojScPrybk8mxP_O-fPNVrq7rjPVT8TCnihkVwhmUXP-CoqXqMjwbWribHxjdv21F7VTDlwMxSkQFi-RlD2vOvkzid35n4wL0zxvRvyQv7fBKR9HYSzWEpjQCUOL5ppfDgr3hph4cuPQCjhf-BpCuKNoU6TG_yUJQBC016CGKx0lIfppwNl0Js0mIUNayv1y14qb_tDBQhZ-RRSvPOlgSjiu44WSQ0ISfWQAHUjp5sESH6YGMuKbXm4NhjYMI' }} style={{ width: '100%', height: '100%', opacity: 0.6 } as any} blurRadius={20} resizeMode="cover" />
+          <LinearGradient colors={['rgba(248,246,242,0.6)', 'rgba(242,239,234,0.9)']} style={StyleSheet.absoluteFillObject} />
         </View>
       )}
 
@@ -208,119 +504,83 @@ export function Demo({ onSkip, onSuccess }: { onSkip?: () => void, onSuccess?: (
       >
         <Animated.View entering={FadeInUp.delay(100).duration(800)} style={[isDesktop ? s.formContainerDesk : s.formContainerMob]}>
 
-           {/* Skip Button */}
-           <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
-             <Text style={s.skipText}>SKIP</Text>
-             <ChevronRight color={C.onSurfaceVariant} size={14} />
-           </TouchableOpacity>
+          {/* Skip Button */}
+          <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
+            <Text style={s.skipText}>SKIP</Text>
+            <ChevronRight color={C.onSurfaceVariant} size={14} />
+          </TouchableOpacity>
 
-           {/* Brand Logo */}
-           <Animated.View entering={FadeInDown.delay(200).duration(800)} style={s.brandSection}>
-             <View style={s.logoWrapper}>
-               <Animated.View style={[s.logoGlow, shimmerStyle]} />
-               <Image source={require('../../assets/logo.png')} style={s.brandLogo} resizeMode="contain" />
-             </View>
-             <Text style={s.brandSubtitle}>LUMINOUS SANCTUARY</Text>
-           </Animated.View>
+          {/* Brand Logo */}
+          <Animated.View entering={FadeInDown.delay(200).duration(800)} style={s.brandSection}>
+            <View style={s.logoWrapper}>
+              <Animated.View style={[s.logoGlow, shimmerStyle]} />
+              <Image source={require('../../assets/logo.png')} style={s.brandLogo} resizeMode="contain" />
+            </View>
+            <Text style={s.brandSubtitle}>LUMINOUS SANCTUARY</Text>
+          </Animated.View>
 
-           {/* Welcome Text */}
-           <Animated.View entering={FadeInUp.delay(300).duration(800)} style={s.welcomeSection}>
-             <Text style={s.welcomeTitle}>Welcome</Text>
-             <Text style={s.welcomeSubtitle}>Sign in to access your sanctuary</Text>
-           </Animated.View>
-           
-           {/* Email Form */}
-           <Animated.View entering={FadeInUp.delay(400).duration(800)} style={{ width: '100%', marginBottom: 20 }}>
-             {!showOtp ? (
-               <View>
-                 {Platform.OS === 'web' ? (
-                   <input
-                     type="email"
-                     placeholder="Email Address"
-                     value={email}
-                     onChange={(e) => setEmail(e.target.value)}
-                     disabled={isLoading}
-                     style={inputStyle}
-                   />
-                 ) : (
-                   <Text>Email input requires Web Platform in this snippet</Text>
-                 )}
-                 <TouchableOpacity onPress={handleSendOtp} disabled={isLoading} style={s.primaryBtn}>
-                   <Text style={s.primaryBtnText}>{isLoading ? 'SENDING...' : 'CONTINUE WITH EMAIL'}</Text>
-                 </TouchableOpacity>
-               </View>
-             ) : (
-               <View>
-                 <Text style={{ textAlign: 'center', fontSize: 13, color: '#6E6E6E', marginBottom: 12, ...Platform.select({ web: { fontFamily: SANS } as any }) }}>
-                   Code sent to {email}. <Text onPress={() => setShowOtp(false)} style={{ color: '#D4AF37', cursor: 'pointer' } as any}>Edit</Text>
-                 </Text>
-                 {Platform.OS === 'web' ? (
-                   <input
-                     type="text"
-                     placeholder="6-Digit OTP"
-                     value={otp}
-                     onChange={(e) => setOtp(e.target.value)}
-                     disabled={isLoading}
-                     style={inputStyle}
-                   />
-                 ) : (
-                   <Text>OTP input unsupported</Text>
-                 )}
-                 <TouchableOpacity onPress={handleVerifyOtp} disabled={isLoading} style={s.primaryBtn}>
-                   <Text style={s.primaryBtnText}>{isLoading ? 'VERIFYING...' : 'SIGN IN'}</Text>
-                 </TouchableOpacity>
-               </View>
-             )}
-             {errorMsg ? <Text style={{ color: 'red', fontSize: 12, textAlign: 'center', marginTop: 10, ...Platform.select({ web: { fontFamily: SANS } as any }) }}>{errorMsg}</Text> : null}
-           </Animated.View>
+          {/* Welcome Text */}
+          <Animated.View entering={FadeInUp.delay(300).duration(800)} style={s.welcomeSection}>
+            <Text style={s.welcomeTitle}>{getTitle()}</Text>
+            <Text style={s.welcomeSubtitle}>{getSubtitle()}</Text>
+          </Animated.View>
 
-           {/* Divider */}
-           <Animated.View entering={FadeInUp.delay(500).duration(800)} style={s.dividerRow}>
-             <View style={s.dividerLine} />
-             <Text style={s.dividerText}>OR</Text>
-             <View style={s.dividerLine} />
-           </Animated.View>
+          {/* Auth Form */}
+          <Animated.View entering={FadeInUp.delay(400).duration(800)} style={{ width: '100%', marginBottom: 10 }}>
+            {renderForm()}
+          </Animated.View>
 
-           {/* Google Sign-In CTA */}
-           <Animated.View entering={FadeInUp.delay(600).duration(800)} style={s.ctaContainer}>
-             <Animated.View style={[s.ctaGlow, ctaGlowStyle]} />
-             <Pressable
-               onHoverIn={() => setHoverCTA(true)}
-               onHoverOut={() => setHoverCTA(false)}
-               onPress={handleGoogleLogin}
-               disabled={isLoading}
-             >
-               {({ pressed }: { pressed: boolean }) => (
-                 <Animated.View style={[s.loginBtnScale, { transform: [{ scale: pressed ? 0.98 : (hoverCTA ? 1.02 : 1) }] }]}>
-                   <LinearGradient colors={['#D4AF37', '#B8962E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.loginBtnGradient}>
-                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 } as any}>
-                       <GoogleIcon />
-                       <Text style={s.loginBtnText}>CONTINUE WITH GOOGLE</Text>
-                     </View>
-                   </LinearGradient>
-                 </Animated.View>
-               )}
-             </Pressable>
-           </Animated.View>
+          {/* Divider — only for login/signup */}
+          {(authView === 'login' || authView === 'signup') && (
+            <>
+              <Animated.View entering={FadeInUp.delay(500).duration(800)} style={s.dividerRow}>
+                <View style={s.dividerLine} />
+                <Text style={s.dividerText}>OR</Text>
+                <View style={s.dividerLine} />
+              </Animated.View>
 
-           {/* Terms */}
-           <Animated.View entering={FadeInUp.delay(850).duration(800)} style={s.termsRow}>
-             <Text style={s.termsText}>
-               BY SIGNING IN, YOU AGREE TO OUR{' '}
-               <Pressable onHoverIn={() => setHoverTerms(true)} onHoverOut={() => setHoverTerms(false)}>
-                 <Text style={[s.termsLink, hoverTerms && s.termsLinkHover]}>TERMS</Text>
-               </Pressable>
-               {' '}&{' '}
-               <Pressable onHoverIn={() => setHoverPrivacy(true)} onHoverOut={() => setHoverPrivacy(false)}>
-                 <Text style={[s.termsLink, hoverPrivacy && s.termsLinkHover]}>PRIVACY POLICY</Text>
-               </Pressable>
-             </Text>
-           </Animated.View>
+              {/* Google Sign-In CTA */}
+              <Animated.View entering={FadeInUp.delay(600).duration(800)} style={s.ctaContainer}>
+                <Animated.View style={[s.ctaGlow, ctaGlowStyle]} />
+                <Pressable
+                  onHoverIn={() => setHoverCTA(true)}
+                  onHoverOut={() => setHoverCTA(false)}
+                  onPress={handleGoogleLogin}
+                  disabled={isLoading}
+                >
+                  {({ pressed }: { pressed: boolean }) => (
+                    <Animated.View style={[s.loginBtnScale, { transform: [{ scale: pressed ? 0.98 : (hoverCTA ? 1.02 : 1) }] }]}>
+                      <LinearGradient colors={['#D4AF37', '#B8962E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.loginBtnGradient}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 } as any}>
+                          <GoogleIcon />
+                          <Text style={s.loginBtnText}>CONTINUE WITH GOOGLE</Text>
+                        </View>
+                      </LinearGradient>
+                    </Animated.View>
+                  )}
+                </Pressable>
+              </Animated.View>
+            </>
+          )}
 
-           {/* Footer */}
-           <Animated.View entering={FadeIn.delay(950).duration(800)} style={s.footerSection}>
-             <Text style={s.footerText}>Elevating the essence of beauty since 2024</Text>
-           </Animated.View>
+          {/* Terms */}
+          <Animated.View entering={FadeInUp.delay(850).duration(800)} style={s.termsRow}>
+            <Text style={s.termsText}>
+              BY SIGNING IN, YOU AGREE TO OUR{' '}
+              <Pressable onHoverIn={() => setHoverTerms(true)} onHoverOut={() => setHoverTerms(false)}>
+                <Text style={[s.termsLink, hoverTerms && s.termsLinkHover]}>TERMS</Text>
+              </Pressable>
+              {' '}&{' '}
+              <Pressable onHoverIn={() => setHoverPrivacy(true)} onHoverOut={() => setHoverPrivacy(false)}>
+                <Text style={[s.termsLink, hoverPrivacy && s.termsLinkHover]}>PRIVACY POLICY</Text>
+              </Pressable>
+            </Text>
+          </Animated.View>
+
+          {/* Footer */}
+          <Animated.View entering={FadeIn.delay(950).duration(800)} style={s.footerSection}>
+            <Text style={s.footerText}>Elevating the essence of beauty since 2024</Text>
+          </Animated.View>
 
         </Animated.View>
       </ScrollView>
@@ -338,6 +598,8 @@ const inputStyle = {
   marginBottom: '16px',
   outline: 'none',
   fontFamily: SANS,
+  boxSizing: 'border-box',
+  letterSpacing: '0.3px',
 } as any;
 
 // ═══════════════════════════════════════════════
@@ -439,7 +701,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.8)',
     ...Platform.select({
-       web: { backdropFilter: 'blur(30px)', boxShadow: '0 20px 60px rgba(0,0,0,0.06)' } as any
+      web: { backdropFilter: 'blur(30px)', boxShadow: '0 20px 60px rgba(0,0,0,0.06)' } as any
     }),
   },
 
@@ -463,7 +725,7 @@ const s = StyleSheet.create({
 
   brandSection: {
     alignItems: 'center',
-    marginBottom: 44,
+    marginBottom: 32,
     marginTop: 20,
   },
   logoWrapper: {
@@ -497,7 +759,7 @@ const s = StyleSheet.create({
 
   welcomeSection: {
     alignItems: 'center',
-    marginBottom: 44,
+    marginBottom: 32,
   },
   welcomeTitle: {
     fontSize: 36,
@@ -583,7 +845,7 @@ const s = StyleSheet.create({
   },
 
   termsRow: {
-    marginTop: 40,
+    marginTop: 30,
     width: '100%',
     opacity: 0.6,
   } as any,
@@ -605,7 +867,7 @@ const s = StyleSheet.create({
   },
 
   footerSection: {
-    marginTop: 48,
+    marginTop: 36,
     opacity: 0.4,
   },
   footerText: {

@@ -669,17 +669,28 @@ export default function App() {
   const ourStoryScrollY = useSharedValue(0);
   const contactScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>('product');
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>('product');
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
   React.useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       setUserEmail(session?.user?.email || null);
+      // If user lands on /profile with a valid session (Google OAuth redirect)
+      if (session?.user && Platform.OS === 'web' && window.location.pathname === '/profile') {
+        setCurrentPage('profile');
+      }
     });
 
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       setUserEmail(session?.user?.email || null);
+      // Auto-navigate to profile on OAuth sign-in (SIGNED_IN after redirect)
+      if (event === 'SIGNED_IN' && session?.user && Platform.OS === 'web') {
+        const path = window.location.pathname;
+        if (path === '/profile' || path === '/login') {
+          setCurrentPage('profile');
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -717,37 +728,8 @@ export default function App() {
     setCurrentIndex((prev) => prev !== newIndex ? newIndex : prev);
   };
 
-  React.useEffect(() => {
-    if (Platform.OS === 'web') {
-      const path = window.location.pathname.toLowerCase();
-      if (path === '/collection' || path === '/collections') {
-        setCurrentPage('collection');
-      } else if (path === '/our-story') {
-        setCurrentPage('our-story');
-      } else if (path === '/contact') {
-        setCurrentPage('contact');
-      } else if (path === '/login') {
-        setCurrentPage('login');
-      } else if (path === '/home' || path === '/') {
-        setCurrentPage('product');
-      }
 
-      window.onpopstate = () => {
-        const currentPath = window.location.pathname.toLowerCase();
-        if (currentPath === '/collection' || currentPath === '/collections') {
-          setCurrentPage('collection');
-        } else if (currentPath === '/our-story') {
-          setCurrentPage('our-story');
-        } else if (currentPath === '/contact') {
-          setCurrentPage('contact');
-        } else if (currentPath === '/login') {
-          setCurrentPage('login');
-        } else {
-          setCurrentPage('product');
-        }
-      };
-    }
-  }, []);
+
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
@@ -763,6 +745,8 @@ export default function App() {
         setCurrentPage('contact');
       } else if (path === '/login') {
         setCurrentPage('login');
+      } else if (path === '/profile') {
+        setCurrentPage('profile');
       } else if (path === '/skin-assessment') {
         setCurrentPage('skin-assessment');
       } else if (path === '/terms-and-conditions') {
@@ -792,6 +776,8 @@ export default function App() {
           setCurrentPage('contact');
         } else if (currentPath === '/login') {
           setCurrentPage('login');
+        } else if (currentPath === '/profile') {
+          setCurrentPage('profile');
         } else if (currentPath === '/skin-assessment') {
           setCurrentPage('skin-assessment');
         } else if (currentPath === '/terms-and-conditions') {
