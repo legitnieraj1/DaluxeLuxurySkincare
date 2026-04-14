@@ -676,10 +676,14 @@ export default function App() {
   React.useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       setUserEmail(session?.user?.email || null);
-      // Handle case where user is already authenticated and lands on a real URL
       if (session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
-        if (path === '/profile') setCurrentPage('profile');
+        if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
+          // Clean the URL if it has a lingering hash
+          const cleanUrl = window.location.origin + path;
+          window.history.replaceState({}, '', cleanUrl);
+          setCurrentPage('profile');
+        }
       }
     });
 
