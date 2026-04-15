@@ -1,29 +1,70 @@
--- Run this in your Supabase SQL Editor
+-- ═══════════════════════════════════════════════════════════════════
+-- Daluxe Backend Schema - Run in Supabase SQL Editor
+-- ═══════════════════════════════════════════════════════════════════
 
--- 1. Create Promocodes Table
-CREATE TABLE IF NOT EXISTS public.promocodes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,
-  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
-  value NUMERIC NOT NULL CHECK (value > 0),
-  expiry TIMESTAMP WITH TIME ZONE NOT NULL,
-  usage_limit INTEGER DEFAULT NULL,
-  used_count INTEGER DEFAULT 0,
-  active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- 1. Ensure profiles table has all needed columns
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS state TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS pincode TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
--- 2. Create Persistent Cart Table
-CREATE TABLE IF NOT EXISTS public.cart_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  product_id TEXT NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, product_id)
-);
+-- 2. RLS for profiles (drop if exists first to avoid conflicts)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 3. Pending Orders (for idempotent PhonePe payment flow)
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+  DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+  DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+END $$;
+
+CREATE POLICY "Users can read own profile" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- 3. Auto-create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''),
+    'customer'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    name = COALESCE(NULLIF(EXCLUDED.name, ''), profiles.name);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- 4. RLS for orders
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "Users can read own orders" ON public.orders;
+END $$;
+
+CREATE POLICY "Users can read own orders" ON public.orders
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- 5. Pending orders table
 CREATE TABLE IF NOT EXISTS public.pending_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   transaction_id TEXT UNIQUE NOT NULL,
@@ -35,31 +76,16 @@ CREATE TABLE IF NOT EXISTS public.pending_orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. Modify Orders Table for PhonePe & Shiprocket
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS transaction_id TEXT UNIQUE;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_gateway TEXT DEFAULT 'phonepe';
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_id TEXT;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_url TEXT;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_status TEXT DEFAULT 'pending';
-
--- 5. Enable RLS
-ALTER TABLE public.promocodes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pending_orders ENABLE ROW LEVEL SECURITY;
 
--- Promocodes Policies
-CREATE POLICY "Public read active promocodes" ON public.promocodes FOR SELECT USING (active = true AND expiry > NOW());
-CREATE POLICY "Admin manage promocodes" ON public.promocodes FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-);
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "Users can view their own pending orders" ON public.pending_orders;
+END $$;
 
--- Cart Items Policies
-CREATE POLICY "Users can manage their own cart" ON public.cart_items FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "Users can view their own pending orders" ON public.pending_orders
+  FOR SELECT USING (user_id = auth.uid());
 
--- Pending Orders Policies
-CREATE POLICY "Users can view their own pending orders" ON public.pending_orders FOR SELECT USING (user_id = auth.uid());
-
--- 6. Stock Decrement RPC
+-- 6. Stock decrement function
 CREATE OR REPLACE FUNCTION decrement_stock(p_product_id TEXT, p_quantity INTEGER)
 RETURNS VOID AS $$
 BEGIN

@@ -20,8 +20,8 @@ export default function ProfilePage({ userEmail, onLogout, onBack }: { userEmail
       const { data: { session } } = await supabaseClient.auth.getSession();
       const token = session?.access_token || '';
 
-      const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || 'http://localhost:3000';
-      const res = await fetch(`${API_URL}/api/orders?email=${encodeURIComponent(userEmail)}`, {
+      const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
+      const res = await fetch(`${API_URL}/api/orders/user`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

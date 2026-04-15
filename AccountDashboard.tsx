@@ -218,15 +218,37 @@ const ProfileSection = ({ userEmail }: { userEmail: string }) => {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabaseClient.from('profiles').select('*').eq('email', userEmail).single();
-        if (data) setForm({ name: data.name || '', phone: data.phone || '', address: data.address || '', city: data.city || '', state: data.state || '', pincode: data.pincode || '' });
-      } catch (_) {}
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) return;
+        console.log('[Profile] Fetching profile for user:', userId);
+        const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+        if (error) console.error('[Profile] Fetch error:', error.message);
+        if (data) setForm({ name: data.name || data.full_name || '', phone: data.phone || '', address: data.address || '', city: data.city || '', state: data.state || '', pincode: data.pincode || '' });
+      } catch (e) { console.error('[Profile] Unexpected error:', e); }
     })();
   }, [userEmail]);
 
   const handleSave = async () => {
     setSaving(true);
-    try { await supabaseClient.from('profiles').upsert({ email: userEmail, ...form }); } catch (_) {}
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) { setSaving(false); return; }
+      console.log('[Profile] Saving profile for user:', userId, form);
+      const { error } = await supabaseClient.from('profiles').upsert({
+        id: userId,
+        email: userEmail,
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      if (error) console.error('[Profile] Save error:', error.message);
+    } catch (e) { console.error('[Profile] Save failed:', e); }
     setSaving(false); setEditing(false); setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
@@ -396,9 +418,14 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
     (async () => {
       setLoading(true);
       try {
-        const { data } = await supabaseClient.from('orders').select('*').eq('email', userEmail).order('created_at', { ascending: false });
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) { setOrders(MOCK_ORDERS); setLoading(false); return; }
+        console.log('[Orders] Fetching orders for user:', userId);
+        const { data, error } = await supabaseClient.from('orders').select('*, order_items(id, quantity, price, product_id)').eq('user_id', userId).order('created_at', { ascending: false });
+        if (error) console.error('[Orders] Fetch error:', error.message);
         setOrders(data?.length ? data : MOCK_ORDERS);
-      } catch (_) { setOrders(MOCK_ORDERS); }
+      } catch (e) { console.error('[Orders] Unexpected error:', e); setOrders(MOCK_ORDERS); }
       finally { setLoading(false); }
     })();
   }, [userEmail]);
@@ -613,13 +640,48 @@ const ChatSection = () => {
     { from: 'bot', text: "Hi! Welcome to Daluxe Support 👋 How can I help you today?" },
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const send = () => {
-    if (!input.trim()) return;
-    setMessages(m => [...m, { from: 'user', text: input }]);
+  const send = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setMessages(m => [...m, { from: 'user', text: userMsg }]);
     setInput('');
-    setTimeout(() => setMessages(m => [...m, { from: 'bot', text: "Thanks for reaching out! Our team will connect with you shortly via email. Please allow 24 hours for a response. 🌿" }]), 1000);
+    setLoading(true);
+
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const token = session?.access_token || '';
+
+      // Build conversation history for the API
+      const apiMessages = messages
+        .filter(m => m.from === 'user' || m.from === 'bot')
+        .slice(-10) // Last 10 messages for context
+        .map(m => ({ role: m.from === 'user' ? 'user' : 'assistant', content: m.text }))
+        .concat([{ role: 'user', content: userMsg }]);
+
+      console.log('[Chat] Sending message to /api/chat');
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      const data = await res.json();
+      console.log('[Chat] Response:', data.success, data.message?.content?.substring(0, 50));
+
+      if (data.success && data.message?.content) {
+        setMessages(m => [...m, { from: 'bot', text: data.message.content }]);
+      } else {
+        setMessages(m => [...m, { from: 'bot', text: data.error || 'Sorry, I could not process your request right now. Please try again.' }]);
+      }
+    } catch (e: any) {
+      console.error('[Chat] Error:', e);
+      setMessages(m => [...m, { from: 'bot', text: 'Connection error. Please check your internet and try again.' }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: true }); }, [messages]);

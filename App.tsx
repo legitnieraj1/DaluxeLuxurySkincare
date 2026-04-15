@@ -674,12 +674,13 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   React.useEffect(() => {
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    // 1. Check for existing session on load
+    supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('[Auth] Initial getSession:', session?.user?.email || 'no session', error?.message || '');
       setUserEmail(session?.user?.email || null);
       if (session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
         if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
-          // Clean the URL if it has a lingering hash
           const cleanUrl = window.location.origin + path;
           window.history.replaceState({}, '', cleanUrl);
           setCurrentPage('profile');
@@ -687,22 +688,26 @@ export default function App() {
       }
     });
 
+    // 2. Listen for all auth state changes
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] State change:', event, session?.user?.email || 'no session');
       setUserEmail(session?.user?.email || null);
 
-      if (event === 'SIGNED_IN' && session?.user && Platform.OS === 'web') {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
-        // Navigate to profile from any real page (/, /login, /home)
-        // /profile is a virtual SPA route so Supabase OAuth redirects to /login
         if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
-          // Clean the URL — strip #access_token hash and ?code= query params
           const cleanUrl = window.location.origin + path;
           window.history.replaceState({}, '', cleanUrl);
           setCurrentPage('profile');
         }
       }
 
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('[Auth] Token refreshed for:', session?.user?.email);
+      }
+
       if (event === 'SIGNED_OUT') {
+        console.log('[Auth] User signed out');
         setCurrentPage('login');
       }
     });
