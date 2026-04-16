@@ -122,6 +122,18 @@ export default function RefundPolicyPage({ onNavigate }: { onNavigate?: (page: s
           </Animated.View>
         </View>
 
+        {/* ═══ REPLACEMENT POLICY GLASS BOX ═══ */}
+        <Animated.View entering={FadeInUp.delay(300).duration(600)} style={[r.glassBox, { marginTop: 40, marginBottom: 20 }]}>
+          <LinearGradient 
+            colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)']} 
+            style={r.glassInner}
+          >
+            <Text style={r.glassText}>
+              Damaged or defective products will be replaced at no extra cost. And the replaced product will be delivered within 7 days.
+            </Text>
+          </LinearGradient>
+        </Animated.View>
+
       </View>
     </LegalPageShell>
   );
@@ -132,6 +144,35 @@ const r = StyleSheet.create({
   sectionBlock: { marginBottom: 12 },
   sectionEyebrow: { color: GOLD, fontSize: 10, fontWeight: '600', letterSpacing: 5, textTransform: 'uppercase', marginBottom: 4, ...Platform.select({ web: { fontFamily: SANS } as any }) },
   sectionTitle: { color: TEXT_LIGHT, fontSize: isMobile ? 24 : 30, fontWeight: '300', fontFamily: SERIF, letterSpacing: 1, marginBottom: 24 },
+
+  glassBox: {
+    width: '100%',
+    maxWidth: 700,
+    alignSelf: 'center',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#B8962E',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
+  },
+  glassInner: {
+    padding: 24,
+    alignItems: 'center',
+    ...Platform.select({ web: { backdropFilter: 'blur(12px)' } as any })
+  },
+  glassText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    textAlign: 'center',
+    lineHeight: 26,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    fontFamily: SERIF,
+  },
 
   timeline: { paddingLeft: 28, position: 'relative' } as any,
   timelineLine: { position: 'absolute', left: 15, top: 10, bottom: 10, width: 1.5, borderRadius: 1 } as any,

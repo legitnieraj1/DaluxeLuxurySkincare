@@ -27,6 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, Mail, Phone, MapPin, Clock, Send, Instagram, MessageCircle } from 'lucide-react-native';
+import { Footer } from './Footer';
 
 const { width: SW } = Dimensions.get('window');
 const isMobile = SW < 768;
@@ -140,7 +141,7 @@ const GoldButton = ({ label, onPress, icon }: { label: string; onPress: () => vo
 // ════════════════════════════════════════════════
 // MAIN
 // ════════════════════════════════════════════════
-export default function ContactPage({ externalScrollY }: { externalScrollY?: any }) {
+export default function ContactPage({ externalScrollY, onNavigate }: { externalScrollY?: any, onNavigate?: (page: string) => void }) {
   const internalScrollY = useSharedValue(0);
   const scrollY = externalScrollY || internalScrollY;
   const scrollHandler = useAnimatedScrollHandler({ onScroll: (e) => { scrollY.value = e.contentOffset.y; } });
@@ -322,13 +323,7 @@ export default function ContactPage({ externalScrollY }: { externalScrollY?: any
       </View>
 
       {/* ═══ FOOTER ═══ */}
-      <View style={c.footer}>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-        <Image source={require('./assets/logo.png')} style={c.footerLogo} resizeMode="contain" />
-        <Text style={c.footerText}>Dermal-Grade Botanical Formula</Text>
-        <Text style={c.footerText}>ISO & GMP Certified {'\u00B7'} Made in India</Text>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-      </View>
+      <Footer onNavigate={onNavigate} />
       <View style={{ height: 60 }} />
     </Animated.ScrollView>
   );

@@ -671,13 +671,15 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>('product');
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   React.useEffect(() => {
     // 1. Check for existing session on load
     supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
       console.log('[Auth] Initial getSession:', session?.user?.email || 'no session', error?.message || '');
       setUserEmail(session?.user?.email || null);
+      setAuthLoading(false);
+      
       if (session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
         if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
@@ -991,8 +993,15 @@ export default function App() {
         {/* Mobile + Desktop right icons */}
         <View style={isMobile ? mobileStyles.navIcons : styles.navIcons}>
           {!isMobile && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setCurrentPage(userEmail ? 'profile' : 'login')}>
-              <User color="#e9c349" size={20} />
+            <TouchableOpacity 
+              style={[styles.iconBtn, authLoading && { opacity: 0.6 }]} 
+              onPress={() => {
+                if (authLoading) return;
+                setCurrentPage(userEmail ? 'profile' : 'login');
+              }}
+              disabled={authLoading}
+            >
+              <User color={userEmail ? "#e9c349" : "rgba(233, 195, 73, 0.6)"} size={20} />
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.iconBtn} onPress={() => setCartVisible(true)}>
@@ -1201,27 +1210,28 @@ export default function App() {
           }}
           initialConcern={selectedConcern}
           onClearConcern={() => setSelectedConcern(null)}
+          onNavigate={(p: string) => setCurrentPage(p as any)}
         />
       )}
 
       {/* ===== OUR STORY PAGE ===== */}
       {currentPage === 'our-story' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
-          <OurStoryPage externalScrollY={ourStoryScrollY} />
+          <OurStoryPage externalScrollY={ourStoryScrollY} onNavigate={(p: string) => setCurrentPage(p as any)} />
         </View>
       )}
 
       {/* ===== AI SKIN ASSESSMENT ===== */}
       {currentPage === 'skin-assessment' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 }}>
-          <SkinAssessmentPage />
+          <SkinAssessmentPage onNavigate={(p: string) => setCurrentPage(p as any)} />
         </View>
       )}
 
       {/* ===== CONTACT PAGE ===== */}
       {currentPage === 'contact' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
-          <ContactPage externalScrollY={contactScrollY} />
+          <ContactPage externalScrollY={contactScrollY} onNavigate={(p: string) => setCurrentPage(p as any)} />
         </View>
       )}
 
@@ -1340,7 +1350,14 @@ export default function App() {
             <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('contact')}>
               <MessageCircle color={currentPage === 'contact' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
-            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage(userEmail ? 'profile' : 'login')}>
+            <TouchableOpacity 
+              style={{ padding: 10, alignItems: 'center', opacity: authLoading ? 0.6 : 1 }} 
+              onPress={() => {
+                if (authLoading) return;
+                setCurrentPage(userEmail ? 'profile' : 'login');
+              }}
+              disabled={authLoading}
+            >
               <User color={currentPage === 'login' || currentPage === 'profile' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
             </TouchableOpacity>
           </LinearGradient>

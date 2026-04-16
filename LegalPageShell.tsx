@@ -160,13 +160,7 @@ export default function LegalPageShell({
       </View>
 
       {/* ═══ FOOTER ═══ */}
-      <View style={ls.footer}>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-        <Image source={require('./assets/logo.png')} style={ls.footerLogo} resizeMode="contain" />
-        <Text style={ls.footerText}>Dermal-Grade Botanical Formula</Text>
-        <Text style={ls.footerText}>ISO & GMP Certified {'\u00B7'} Made in India</Text>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-      </View>
+      <Footer onNavigate={onNavigate} />
       <View style={{ height: 60 }} />
     </Animated.ScrollView>
   );

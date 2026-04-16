@@ -51,6 +51,7 @@ import {
   Award,
   ArrowLeft,
 } from 'lucide-react-native';
+import { Footer } from './Footer';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const isMobileDevice = SW < 768;
@@ -773,6 +774,7 @@ const CollectionGrid = ({
   onSelectProduct,
   onAddToCart,
   scrollY,
+  onNavigate,
 }: {
   activeCategory: string;
   setActiveCategory: (c: string) => void;
@@ -782,6 +784,7 @@ const CollectionGrid = ({
   onSelectProduct: (p: ProductType) => void;
   onAddToCart?: (p: ProductType, startX?: number, startY?: number) => void;
   scrollY?: any;
+  onNavigate?: (page: string) => void;
 }) => {
   const { width: winW } = useWindowDimensions();
   const isMob = winW < 768;
@@ -910,13 +913,7 @@ const CollectionGrid = ({
       </View>
 
       {/* Footer */}
-      <View style={g.footer}>
-        <View style={g.footerLine} />
-        <Image source={require('./assets/logo.png')} style={g.footerLogo} resizeMode="contain" />
-        <Text style={g.footerText}>Dermal-Grade Botanical Formula</Text>
-        <Text style={g.footerText}>ISO & GMP Certified {'\u00B7'} Made in India</Text>
-        <View style={g.footerLine} />
-      </View>
+      <Footer onNavigate={onNavigate} />
 
       <View style={{ height: 60 }} />
     </>
@@ -988,12 +985,14 @@ const ProductLandingPage = ({
   onAddToCart,
   allProducts,
   onSelectProduct,
+  onNavigate,
 }: {
   product: ProductType;
   onBack: () => void;
   onAddToCart: (p: ProductType, startX?: number, startY?: number) => void;
   allProducts: ProductType[];
   onSelectProduct: (p: ProductType) => void;
+  onNavigate?: (page: string) => void;
 }) => {
   const otherProducts = allProducts.filter((p) => p.id !== product.id);
   const { width: winW } = useWindowDimensions();
@@ -1224,27 +1223,8 @@ const ProductLandingPage = ({
         <DiscoverSlider products={otherProducts} onSelectProduct={onSelectProduct} />
       </View>
 
-      {/* Footer */}
-      <View style={[d.footerSection, isMob && { paddingHorizontal: 16 }]}>
-        <View style={[d.footerTrustRow, isMob && { gap: 16 }]}>
-          <View style={[d.footerTrustItem, isMob && { width: 120 }]}>
-            <Gift color={GOLD} size={isMob ? 18 : 22} />
-            <Text style={d.footerTrustText}>Free Shipping{'\n'}over \u20B9500</Text>
-          </View>
-          <View style={[d.footerTrustItem, isMob && { width: 120 }]}>
-            <Award color={GOLD} size={isMob ? 18 : 22} />
-            <Text style={d.footerTrustText}>ISO & GMP{'\n'}Certified</Text>
-          </View>
-          <View style={[d.footerTrustItem, isMob && { width: 120 }]}>
-            <Shield color={GOLD} size={isMob ? 18 : 22} />
-            <Text style={d.footerTrustText}>Sensitive{'\n'}Skin Safe</Text>
-          </View>
-          <View style={[d.footerTrustItem, isMob && { width: 120 }]}>
-            <Leaf color={GOLD} size={isMob ? 18 : 22} />
-            <Text style={d.footerTrustText}>100% Botanical{'\n'}Ingredients</Text>
-          </View>
-        </View>
-      </View>
+      {/* Main Footer */}
+      <Footer onNavigate={onNavigate} />
 
       <View style={{ height: 90 }} />
     </>
@@ -1476,9 +1456,10 @@ interface CollectionPageProps {
   onCheckout?: (items: CartItem[], total: number) => void;
   initialConcern?: string | null;
   onClearConcern?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart, initialProductId, onCheckout, initialConcern, onClearConcern }: CollectionPageProps) {
+export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart, initialProductId, onCheckout, initialConcern, onClearConcern, onNavigate }: CollectionPageProps) {
   const [view, setView] = useState<'grid' | 'detail'>('grid');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeConcern, setActiveConcern] = useState<string | null>(initialConcern || null);
@@ -1592,6 +1573,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
             onSelectProduct={openProduct}
             onAddToCart={handleAddToCart}
             scrollY={scrollY}
+            onNavigate={onNavigate}
           />
         )}
 
@@ -1602,6 +1584,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
             onAddToCart={handleAddToCart}
             allProducts={liveProducts}
             onSelectProduct={openProduct}
+            onNavigate={onNavigate}
           />
         )}
       </Animated.ScrollView>

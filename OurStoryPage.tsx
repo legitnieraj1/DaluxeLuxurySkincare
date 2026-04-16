@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, Award, Shield, Leaf, Heart, Gem, Droplets } from 'lucide-react-native';
+import { Footer } from './Footer';
 
 const { width: SW } = Dimensions.get('window');
 const isMobile = SW < 768;
@@ -111,7 +112,7 @@ const TimelineMilestone = ({ year, title, description, index }: { year: string; 
 // ════════════════════════════════════════════════
 // MAIN
 // ════════════════════════════════════════════════
-export default function OurStoryPage({ externalScrollY }: { externalScrollY?: any }) {
+export default function OurStoryPage({ externalScrollY, onNavigate }: { externalScrollY?: any, onNavigate?: (page: string) => void }) {
   const internalScrollY = useSharedValue(0);
   const scrollY = externalScrollY || internalScrollY;
   const scrollHandler = useAnimatedScrollHandler({ onScroll: (e) => { scrollY.value = e.contentOffset.y; } });
@@ -261,13 +262,7 @@ export default function OurStoryPage({ externalScrollY }: { externalScrollY?: an
       </View>
 
       {/* ═══ FOOTER ═══ */}
-      <View style={s.footer}>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-        <Image source={require('./assets/logo.png')} style={s.footerLogo} resizeMode="contain" />
-        <Text style={s.footerText}>Dermal-Grade Botanical Formula</Text>
-        <Text style={s.footerText}>ISO & GMP Certified {'\u00B7'} Made in India</Text>
-        <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 40, height: 1, marginVertical: 14 }} />
-      </View>
+      <Footer onNavigate={onNavigate} />
       <View style={{ height: 60 }} />
     </Animated.ScrollView>
   );

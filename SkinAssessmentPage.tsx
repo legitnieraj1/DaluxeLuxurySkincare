@@ -13,6 +13,7 @@ import {
   ArrowRight, ArrowLeft, Check, Droplets, Sun, Moon, Upload,
   Camera, Mail, Download, X, Star, Sparkles, ChevronRight, ScanFace
 } from 'lucide-react-native';
+import { Footer } from './Footer';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const isMob = SW < 768;
@@ -381,7 +382,7 @@ const RoutineItem = ({ step, label }: any) => (
   </View>
 );
 
-const ResultsPage = ({ name, onEmailReport }: any) => {
+const ResultsPage = ({ name, onEmailReport, onNavigate }: any) => {
   const r = MOCK_RESULTS;
 
   return (
@@ -477,6 +478,7 @@ const ResultsPage = ({ name, onEmailReport }: any) => {
           <GhostBtn label="Send to Email" icon={Mail} onPress={onEmailReport} />
         </Animated.View>
       </View>
+      <Footer onNavigate={onNavigate} />
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -593,7 +595,7 @@ const HeroSection = ({ onStart }: { onStart: () => void }) => {
 // ═══════════════════════════════════════
 type Phase = 'hero' | 'form' | 'loading' | 'results';
 
-export default function SkinAssessmentPage() {
+export default function SkinAssessmentPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const [phase, setPhase] = useState<Phase>('hero');
   const [step, setStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -625,7 +627,7 @@ export default function SkinAssessmentPage() {
   if (phase === 'loading') return <AnalysisScreen onDone={() => setPhase('results')} />;
   if (phase === 'results') return (
     <View style={{ flex: 1 }}>
-      <ResultsPage name={info.name} onEmailReport={() => setShowModal(true)} />
+      <ResultsPage name={info.name} onEmailReport={() => setShowModal(true)} onNavigate={onNavigate} />
       {showModal && <EmailModal email={info.email} onClose={() => setShowModal(false)} />}
     </View>
   );

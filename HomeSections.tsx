@@ -143,39 +143,39 @@ const SkinAssessment = ({ onStartScan }: any) => {
 // --------------------------------------------------------------------------
 // 4. CAMPAIGN BANNERS
 // --------------------------------------------------------------------------
-const CampaignBanners = () => {
+const CampaignBanners = ({ onNavigate }: any) => {
   const isMobile = useIsMobile();
   return (
     <View style={[styles.section, { backgroundColor: '#F8F6F0' }]}>
       <View style={[promoStyles.grid, isMobile && { flexDirection: 'column' }]}>
-        <View style={promoStyles.banner}>
+        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#E5F5F3', '#C6EBE5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>HYDROSOL INFUSION</Text>
               <Text style={promoStyles.desc}>Gentle floral waters like Rose Hydrosol calm, hydrate, and restore skin balance without irritation.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
-        </View>
-        <View style={promoStyles.banner}>
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#F5E6F3', '#E9C6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>AYURVEDIC HERBS</Text>
               <Text style={promoStyles.desc}>Saffron, Manjistha, Neem, and Tulsi work together to purify, brighten, and enhance natural glow.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
-        </View>
-        <View style={promoStyles.banner}>
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#EAE6F5', '#CDC6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BOTANICAL ACTIVES</Text>
               <Text style={promoStyles.desc}>Licorice, Alpha Arbutin, and Vitamin C help reduce pigmentation and even out skin tone gently.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
-        </View>
-        <View style={promoStyles.banner}>
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#E6F5ED', '#C6EBE1']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BARRIER + HYDRATION</Text>
               <Text style={promoStyles.desc}>Aloe Vera, Panthenol, Sodium Hyaluronate, and Gotu Kola deeply hydrate and strengthen skin barrier.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -196,13 +196,32 @@ const FeaturedIn = () => (
   </View>
 );
 
-const ReviewCard = () => (
+const REVIEWS_DATA = [
+  {
+    quote: "The most luxurious skincare I have ever used. My skin feels deeply hydrated and glowing.",
+    author: "Sarah J."
+  },
+  {
+    quote: "Absolutely transformed my skin texture. The natural glow is undeniable and it feels so lightweight.",
+    author: "Priya M."
+  },
+  {
+    quote: "A game changer for my daily routine. My open pores are visibly reduced within weeks.",
+    author: "Elena R."
+  },
+  {
+    quote: "It feels like a spa treatment every time I apply it. The scent and texture are divine.",
+    author: "Ananya K."
+  }
+];
+
+const ReviewCard = ({ review }: any) => (
   <View style={reviewStyles.card}>
     <View style={{ flexDirection: 'row', gap: 2, marginBottom: 8 }}>
       {[...Array(5)].map((_, i) => <Star key={i} size={14} color="#D4AF37" fill="#D4AF37" />)}
     </View>
-    <Text style={reviewStyles.quote}>"The most luxurious skincare I have ever used. My skin feels deeply hydrated and glowing."</Text>
-    <Text style={reviewStyles.author}>- Sarah J. <CheckCircle2 size={12} color="green" /></Text>
+    <Text style={reviewStyles.quote}>"{review.quote}"</Text>
+    <Text style={reviewStyles.author}>- {review.author} <CheckCircle2 size={12} color="green" /></Text>
   </View>
 );
 
@@ -212,10 +231,7 @@ const ReviewsSection = () => {
     <View style={reviewStyles.container}>
       <Text style={styles.sectionTitle}>Real People. Real Results.</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingHorizontal: 40, paddingBottom: 40 }} style={{ width: '100%' }}>
-         <ReviewCard />
-         <ReviewCard />
-         <ReviewCard />
-         <ReviewCard />
+         {REVIEWS_DATA.map((r, i) => <ReviewCard key={i} review={r} />)}
       </ScrollView>
     </View>
   );
@@ -238,7 +254,7 @@ export default function HomeSections({ onAddToCart, onProductClick, onStartScan,
       <ProductCarouselSection title="Our Most Loved Products" products={COLLECTION_PRODUCTS} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <SkinAssessment onStartScan={onStartScan} />
       <LuxuryMarquee />
-      <CampaignBanners />
+      <CampaignBanners onNavigate={onNavigate} />
       <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <ReviewsSection />
       <Footer onNavigate={onNavigate} />
@@ -311,7 +327,7 @@ const featStyles = StyleSheet.create({
 });
 
 const reviewStyles = StyleSheet.create({
-  container: { paddingVertical: 60, width: '100%', backgroundColor: '#FDFBF7' },
+  container: { paddingVertical: 60, width: '100%', backgroundColor: '#FDFBF7', alignItems: 'center' },
   card: { width: 280, backgroundColor: '#FFF', padding: 24, borderRadius: 20, borderWidth: 1, borderColor: '#EEE' },
   quote: { fontSize: 14, fontStyle: 'italic', color: '#555', lineHeight: 22, marginBottom: 16 },
   author: { fontSize: 12, fontWeight: '600', color: '#1A1A1A' },
