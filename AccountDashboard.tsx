@@ -380,6 +380,8 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
+  
+  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
 
   useEffect(() => {
     (async () => {
@@ -387,7 +389,7 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         const token = session?.access_token || '';
-        const res = await fetch('/api/orders/user', {
+        const res = await fetch(`${API_URL}/api/orders/user`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await res.json();
