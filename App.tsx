@@ -669,7 +669,24 @@ export default function App() {
   const ourStoryScrollY = useSharedValue(0);
   const contactScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>('product');
+  const getInitialPage = () => {
+    if (typeof window === 'undefined') return 'product';
+    const path = window.location.pathname.toLowerCase();
+    if (path === '/collection' || path === '/collections' || path === '/products') return 'collection';
+    if (path === '/our-story') return 'our-story';
+    if (path === '/contact') return 'contact';
+    if (path === '/login') return 'login';
+    if (path === '/profile') return 'profile';
+    if (path === '/skin-assessment') return 'skin-assessment';
+    if (path === '/terms-and-conditions') return 'terms';
+    if (path === '/privacy-policy') return 'privacy-policy';
+    if (path === '/refund-policy') return 'refund-policy';
+    if (path === '/return-policy') return 'return-policy';
+    if (path === '/shipping-policy') return 'shipping-policy';
+    return 'product';
+  };
+
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>(getInitialPage);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -707,12 +724,17 @@ export default function App() {
 
         if (session?.user && Platform.OS === 'web') {
           const path = window.location.pathname;
+          
+          // Detect if we just returned from Google OAuth
+          const isAuthRedirect = window.location.search.includes('code=') || window.location.hash.includes('access_token');
+          
           // Clean the URL: remove ?code= and #access_token params
-          if (window.location.search.includes('code=') || window.location.hash) {
+          if (isAuthRedirect || window.location.hash) {
             window.history.replaceState({}, '', path);
           }
-          // Redirect from login to profile
-          if (path === '/login') {
+          
+          // Redirect to profile if they just logged in, OR if they are a logged-in user hitting the login page
+          if (isAuthRedirect || path === '/login') {
             window.history.replaceState({}, '', '/profile');
             setCurrentPage('profile');
           } else if (path === '/profile') {
@@ -872,7 +894,9 @@ export default function App() {
       const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile', terms: '/terms-and-conditions', 'privacy-policy': '/privacy-policy', 'refund-policy': '/refund-policy', 'return-policy': '/return-policy', 'shipping-policy': '/shipping-policy' };
       const path = pathMap[currentPage] || '/home';
       if (window.location.pathname !== path) {
-        window.history.pushState({}, '', path);
+        // Preserve search params and hash (vitally important for OAuth callbacks)
+        const newUrl = path + window.location.search + window.location.hash;
+        window.history.pushState({}, '', newUrl);
       }
     }
   }, [currentPage]);
