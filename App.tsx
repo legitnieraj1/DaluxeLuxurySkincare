@@ -682,9 +682,11 @@ export default function App() {
       
       if (session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
-        if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
-          const cleanUrl = window.location.origin + path;
+        if (path === '/login') {
+          const cleanUrl = window.location.origin + '/profile';
           window.history.replaceState({}, '', cleanUrl);
+          setCurrentPage('profile');
+        } else if (path === '/profile') {
           setCurrentPage('profile');
         }
       }
@@ -697,9 +699,11 @@ export default function App() {
 
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
-        if (path === '/login' || path === '/' || path === '/home' || path === '/profile') {
-          const cleanUrl = window.location.origin + path;
+        if (path === '/login') {
+          const cleanUrl = window.location.origin + '/profile';
           window.history.replaceState({}, '', cleanUrl);
+          setCurrentPage('profile');
+        } else if (path === '/profile') {
           setCurrentPage('profile');
         }
       }

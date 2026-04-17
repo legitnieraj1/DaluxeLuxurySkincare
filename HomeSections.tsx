@@ -148,28 +148,28 @@ const CampaignBanners = ({ onNavigate }: any) => {
   return (
     <View style={[styles.section, { backgroundColor: '#F8F6F0' }]}>
       <View style={[promoStyles.grid, isMobile && { flexDirection: 'column' }]}>
-        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
            <LinearGradient colors={['#E5F5F3', '#C6EBE5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>HYDROSOL INFUSION</Text>
               <Text style={promoStyles.desc}>Gentle floral waters like Rose Hydrosol calm, hydrate, and restore skin balance without irritation.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
            <LinearGradient colors={['#F5E6F3', '#E9C6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>AYURVEDIC HERBS</Text>
               <Text style={promoStyles.desc}>Saffron, Manjistha, Neem, and Tulsi work together to purify, brighten, and enhance natural glow.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
            <LinearGradient colors={['#EAE6F5', '#CDC6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BOTANICAL ACTIVES</Text>
               <Text style={promoStyles.desc}>Licorice, Alpha Arbutin, and Vitamin C help reduce pigmentation and even out skin tone gently.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.8} style={promoStyles.banner} onPress={() => onNavigate && onNavigate('collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
            <LinearGradient colors={['#E6F5ED', '#C6EBE1']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BARRIER + HYDRATION</Text>
               <Text style={promoStyles.desc}>Aloe Vera, Panthenol, Sodium Hyaluronate, and Gotu Kola deeply hydrate and strengthen skin barrier.</Text>
@@ -196,32 +196,23 @@ const FeaturedIn = () => (
   </View>
 );
 
-const REVIEWS_DATA = [
-  {
-    quote: "The most luxurious skincare I have ever used. My skin feels deeply hydrated and glowing.",
-    author: "Sarah J."
-  },
-  {
-    quote: "Absolutely transformed my skin texture. The natural glow is undeniable and it feels so lightweight.",
-    author: "Priya M."
-  },
-  {
-    quote: "A game changer for my daily routine. My open pores are visibly reduced within weeks.",
-    author: "Elena R."
-  },
-  {
-    quote: "It feels like a spa treatment every time I apply it. The scent and texture are divine.",
-    author: "Ananya K."
-  }
+const REVIEWS = [
+  { id: 1, name: 'Sarah J.', text: '"The most luxurious skincare I have ever used. My skin feels deeply hydrated and glowing."', rating: 5 },
+  { id: 2, name: 'Priya M.', text: '"Absolutely in love with the Hydrosol Infusion. It calmed my skin in just two days!"', rating: 5 },
+  { id: 3, name: 'Emily R.', text: '"The botanical actives worked wonders for my pigmentation. Highly recommend!"', rating: 5 },
+  { id: 4, name: 'Anita K.', text: '"A premium experience from the packaging to the actual product. My daily go-to now."', rating: 5 },
+  { id: 5, name: 'Chloe T.', text: '"Truly transformative. My skin has never looked so clear and radiant before using these."', rating: 5 },
 ];
 
 const ReviewCard = ({ review }: any) => (
   <View style={reviewStyles.card}>
-    <View style={{ flexDirection: 'row', gap: 2, marginBottom: 8 }}>
-      {[...Array(5)].map((_, i) => <Star key={i} size={14} color="#D4AF37" fill="#D4AF37" />)}
-    </View>
-    <Text style={reviewStyles.quote}>"{review.quote}"</Text>
-    <Text style={reviewStyles.author}>- {review.author} <CheckCircle2 size={12} color="green" /></Text>
+    <LinearGradient colors={['rgba(255, 255, 255, 0.6)', 'rgba(255, 255, 255, 0.2)']} style={reviewStyles.glassInner}>
+      <View style={{ flexDirection: 'row', gap: 2, marginBottom: 12 }}>
+        {[...Array(review.rating)].map((_, i) => <Star key={i} size={16} color="#D4AF37" fill="#D4AF37" />)}
+      </View>
+      <Text style={reviewStyles.quote}>{review.text}</Text>
+      <Text style={reviewStyles.author}>- {review.name} <CheckCircle2 size={14} color="#2E7D32" style={{ marginLeft: 4 }} /></Text>
+    </LinearGradient>
   </View>
 );
 
@@ -230,8 +221,15 @@ const ReviewsSection = () => {
   return (
     <View style={reviewStyles.container}>
       <Text style={styles.sectionTitle}>Real People. Real Results.</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 20, paddingHorizontal: 40, paddingBottom: 40 }} style={{ width: '100%' }}>
-         {REVIEWS_DATA.map((r, i) => <ReviewCard key={i} review={r} />)}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        snapToInterval={isMobile ? 300 : 360}
+        decelerationRate="fast"
+        contentContainerStyle={{ gap: 20, paddingHorizontal: 40, paddingBottom: 40 }} 
+        style={{ width: '100%' }}
+      >
+         {REVIEWS.map((r) => <ReviewCard key={r.id} review={r} />)}
       </ScrollView>
     </View>
   );
@@ -327,8 +325,25 @@ const featStyles = StyleSheet.create({
 });
 
 const reviewStyles = StyleSheet.create({
-  container: { paddingVertical: 60, width: '100%', backgroundColor: '#FDFBF7', alignItems: 'center' },
-  card: { width: 280, backgroundColor: '#FFF', padding: 24, borderRadius: 20, borderWidth: 1, borderColor: '#EEE' },
-  quote: { fontSize: 14, fontStyle: 'italic', color: '#555', lineHeight: 22, marginBottom: 16 },
-  author: { fontSize: 12, fontWeight: '600', color: '#1A1A1A' },
+  container: { paddingVertical: 80, width: '100%', backgroundColor: '#FDFBF7' },
+  card: { 
+    width: Platform.OS === 'web' && width > 768 ? 340 : 280, 
+    borderRadius: 24, 
+    overflow: 'hidden',
+    borderWidth: 1.5, 
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(16px)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+      } as any,
+    }),
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  glassInner: {
+    padding: 24,
+    flex: 1,
+  },
+  quote: { fontSize: 15, fontStyle: 'italic', color: '#444', lineHeight: 24, marginBottom: 20 },
+  author: { fontSize: 13, fontWeight: '700', color: '#1A1A1A', flexDirection: 'row', alignItems: 'center' },
 });
