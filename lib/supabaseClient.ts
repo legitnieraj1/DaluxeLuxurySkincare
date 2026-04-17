@@ -5,9 +5,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env
 
 export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Let Supabase use its default flow (PKCE in v2.x) — do NOT override flowType.
-    // The server decides the flow; the client must match.
-    // detectSessionInUrl handles both implicit (#access_token) and PKCE (?code=) callbacks.
+    // Explicitly set flowType to implicit since the redirect relies on hash fragments (#access_token).
+    flowType: 'implicit',
     detectSessionInUrl: true,
     // Persist session in localStorage so users stay logged in across page refreshes
     persistSession: true,
