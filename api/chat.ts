@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'X-Title': 'Daluxe Luxury Skincare',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'openrouter/free',
         messages: [systemMessage, ...messages.slice(-10)],
         temperature: 0.7,
         max_tokens: 400,
@@ -98,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'X-Title': 'Daluxe Luxury Skincare',
         },
         body: JSON.stringify({
-          model: 'google/gemma-2-9b-it:free',
+          model: 'google/gemma-4-26b-a4b-it:free',
           messages: [systemMessage, ...messages.slice(-10)],
           temperature: 0.7,
           max_tokens: 400,
