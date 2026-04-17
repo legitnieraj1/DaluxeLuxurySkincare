@@ -145,14 +145,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const shippingAddress = pending.shipping_address ? JSON.parse(pending.shipping_address) : {};
           const orderNumber = `DLX-${Date.now().toString(36).toUpperCase()}`;
 
+          const userRes = await supabaseAdmin.auth.admin.getUserById(pending.user_id);
+          const email = userRes.data?.user?.email || 'customer@daluxeskincare.com';
+
           const { data: order } = await supabaseAdmin.from('orders').insert({
-            user_id: pending.user_id, order_number: orderNumber, total_amount: pending.amount,
+            user_id: pending.user_id, email, order_number: orderNumber, total_amount: pending.amount,
             transaction_id: orderId, payment_gateway: 'phonepe', status: 'confirmed',
             shipment_status: 'pending', shipping_address: shippingAddress,
           }).select().single();
 
           if (order) {
-            const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price }));
+            const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price }));
             await supabaseAdmin.from('order_items').insert(orderItems);
             await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', orderId);
             for (const item of cartItems) {
@@ -234,14 +237,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const shippingAddress = pending.shipping_address ? JSON.parse(pending.shipping_address) : {};
           const orderNumber = `DLX-${Date.now().toString(36).toUpperCase()}`;
 
+          const userRes = await supabaseAdmin.auth.admin.getUserById(pending.user_id);
+          const email = userRes.data?.user?.email || 'customer@daluxeskincare.com';
+
           const { data: order } = await supabaseAdmin.from('orders').insert({
-            user_id: pending.user_id, order_number: orderNumber, total_amount: pending.amount,
+            user_id: pending.user_id, email, order_number: orderNumber, total_amount: pending.amount,
             transaction_id: orderId, payment_gateway: 'phonepe', status: 'confirmed',
             shipment_status: 'pending', shipping_address: shippingAddress,
           }).select().single();
 
           if (order) {
-            const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price }));
+            const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price }));
             await supabaseAdmin.from('order_items').insert(orderItems);
             await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', orderId);
             for (const item of cartItems) {
