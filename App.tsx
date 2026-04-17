@@ -802,6 +802,16 @@ export default function App() {
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
   const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
 
+  // Catch PhonePe success redirect, clear cart, and navigate to Orders
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('order-success')) {
+      setCartItems([]);
+      localStorage.removeItem('daluxe_cart');
+      setCurrentPage('profile');
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
   // Sync to localStorage constantly
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
