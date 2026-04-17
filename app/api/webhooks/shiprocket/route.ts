@@ -3,51 +3,63 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: Request) {
   try {
-    // Shiprocket sends webhook data containing tracking updates
-    // Make sure you have configured a Webhook Token for security in Shiprocket Dashboard
     const token = request.headers.get('x-api-key');
-
-    if (token !== process.env.SHIPROCKET_WEBHOOK_TOKEN && process.env.NODE_ENV === 'production') {
-       // Optional: Security check to ensure it's actually Shiprocket
-       // return NextResponse.json({ error: 'Unauthorized payload' }, { status: 401 });
+    if (process.env.NODE_ENV === 'production' && token !== process.env.SHIPROCKET_WEBHOOK_TOKEN) {
+      console.warn('[Shiprocket Webhook] Unauthorized attempt');
+      return NextResponse.json({ success: false, error: 'Unauthorized webhook' }, { status: 401 });
     }
 
     const payload = await request.json();
+    const { awb, current_status, shipment_id, order_id } = payload;
+    console.log('[Shiprocket Webhook] Received:', { awb, current_status, shipment_id, order_id });
 
-    // Typical Shiprocket payload for AWB update has awb, current_status, order_id, etc.
-    const { awb, current_status, order_id } = payload;
-
-    if (!awb || !current_status) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    if (!current_status) {
+      return NextResponse.json({ success: false, error: 'Missing current_status' }, { status: 400 });
     }
 
-    // Map Shiprocket status strings to our internal shipment_status formats
-    // e.g. "PICKED UP" -> "shipped", "DELIVERED" -> "delivered", etc.
-    let mappedStatus = 'pending';
-    const rawStatus = current_status.toUpperCase();
-    
-    if (rawStatus.includes('DELIVERED')) mappedStatus = 'delivered';
-    else if (rawStatus.includes('OUT FOR DELIVERY')) mappedStatus = 'out_for_delivery';
-    else if (rawStatus.includes('SHIPPED') || rawStatus.includes('PICKED UP')) mappedStatus = 'shipped';
-    else if (rawStatus.includes('CANCELLED')) mappedStatus = 'cancelled';
-    else mappedStatus = 'processing';
+    const raw = current_status.toUpperCase();
+    let mapped = 'processing';
+    if (raw.includes('DELIVERED')) mapped = 'delivered';
+    else if (raw.includes('OUT FOR DELIVERY')) mapped = 'out_for_delivery';
+    else if (raw.includes('IN TRANSIT')) mapped = 'in_transit';
+    else if (raw.includes('SHIPPED') || raw.includes('PICKED UP')) mapped = 'shipped';
+    else if (raw.includes('CANCELLED') || raw.includes('RTO')) mapped = 'cancelled';
+    else if (raw.includes('RETURNED')) mapped = 'returned';
 
-    // Update the local database via AWB match (which we stored as shipment_id initially)
-    // Or we match by order_id if it maps to our Daluxe `id` or `order_number`
-    const { error } = await supabaseAdmin
-      .from('orders')
-      .update({ shipment_status: mappedStatus })
-      .eq('shipment_id', awb); // Assuming we store the AWB as shipment_id
+    // Try matching by awb_code first, then shipment_id
+    let updateResult = null;
 
-    if (error) {
-       console.error('Failed to update DB for Shiprocket update:', error);
-       throw error;
+    if (awb) {
+      const { data, error } = await supabaseAdmin.from('orders')
+        .update({ shipment_status: mapped })
+        .eq('awb_code', awb)
+        .select('id');
+      if (!error && data && data.length > 0) {
+        updateResult = data;
+        console.log('[Shiprocket Webhook] Updated by AWB:', awb, '→', mapped);
+      }
     }
 
-    return NextResponse.json({ success: true, message: 'Status synced' });
+    if (!updateResult && shipment_id) {
+      const { data, error } = await supabaseAdmin.from('orders')
+        .update({ shipment_status: mapped })
+        .eq('shipment_id', String(shipment_id))
+        .select('id');
+      if (!error && data && data.length > 0) {
+        updateResult = data;
+        console.log('[Shiprocket Webhook] Updated by shipment_id:', shipment_id, '→', mapped);
+      }
+    }
+
+    if (!updateResult) {
+      console.warn('[Shiprocket Webhook] No matching order found for awb:', awb, 'shipment_id:', shipment_id);
+      return NextResponse.json({ success: false, message: 'No matching order found' });
+    }
+
+    return NextResponse.json({ success: true, message: 'Status synced', status: mapped });
 
   } catch (error: any) {
-    console.error('Shiprocket webhook error:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    console.error('[Shiprocket Webhook] Error:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

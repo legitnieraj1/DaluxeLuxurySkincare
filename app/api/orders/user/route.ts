@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  try {
-    const user = await requireAuth();
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
-    // Fetch orders and their nested items joined with products
+export async function GET(request: Request) {
+  try {
+    const user = await getUser(request);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const { data: orders, error } = await supabaseAdmin
       .from('orders')
       .select(`
@@ -17,10 +25,12 @@ export async function GET() {
           id,
           quantity,
           price,
+          product_id,
           products (
             id,
             name,
-            images
+            images,
+            price
           )
         )
       `)
@@ -29,9 +39,8 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, orders });
+    return NextResponse.json({ success: true, orders: orders || [] });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

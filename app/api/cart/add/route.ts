@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
-    const { product_id, quantity = 1 } = await request.json();
+    const user = await getUser(request);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
+    const { product_id, quantity = 1 } = await request.json();
     if (!product_id || quantity < 1) {
-      return NextResponse.json({ error: 'Invalid product_id or quantity' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid product_id or quantity' }, { status: 400 });
     }
 
-    // Check product stock and existence
     const { data: product, error: productError } = await supabaseAdmin
       .from('products')
       .select('stock_quantity')
@@ -19,11 +27,9 @@ export async function POST(request: Request) {
       .single();
 
     if (productError || !product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
 
-    // Check if item already exists in cart mapped to this user_id and product_id (handled by unique constraint)
-    // We can do an upsert
     const { data: existingItem } = await supabaseAdmin
       .from('cart_items')
       .select('id, quantity')
@@ -37,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     if (newQuantity > product.stock_quantity) {
-      return NextResponse.json({ error: 'Not enough stock available' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Not enough stock available' }, { status: 400 });
     }
 
     const { error: upsertError } = await supabaseAdmin
@@ -52,7 +58,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, message: 'Added to cart' });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

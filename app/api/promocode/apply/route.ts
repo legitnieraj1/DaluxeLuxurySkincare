@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
+    const user = await getUser(request);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const { code, cart_total } = await request.json();
 
     if (!code || typeof cart_total !== 'number' || cart_total <= 0) {
-      return NextResponse.json({ error: 'Invalid promocode or cart total' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid promocode or cart total' }, { status: 400 });
     }
 
     // 1. Fetch Promocode
@@ -19,20 +29,20 @@ export async function POST(request: Request) {
       .single();
 
     if (promoError || !promo) {
-      return NextResponse.json({ error: 'Invalid promocode' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Invalid promocode' }, { status: 404 });
     }
 
     // 2. Validate Promocode
     if (!promo.active) {
-      return NextResponse.json({ error: 'Promocode is inactive' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Promocode is inactive' }, { status: 400 });
     }
     
     if (new Date(promo.expiry) < new Date()) {
-      return NextResponse.json({ error: 'Promocode has expired' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Promocode has expired' }, { status: 400 });
     }
 
     if (promo.usage_limit !== null && promo.used_count >= promo.usage_limit) {
-      return NextResponse.json({ error: 'Usage limit reached' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Usage limit reached' }, { status: 400 });
     }
 
     // 3. Calculate Discount
@@ -56,7 +66,6 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    if (error.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

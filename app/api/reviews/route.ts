@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAuth } from '@/lib/auth';
+
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
+    const user = await getUser(request);
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const body = await request.json();
     const { product_id, order_id, rating, comment } = body;
 

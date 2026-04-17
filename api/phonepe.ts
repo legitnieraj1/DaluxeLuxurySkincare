@@ -226,14 +226,81 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const statusData = await statusRes.json();
       const state = statusData.state || statusData.orderState;
 
-      if (state === 'COMPLETED') return res.status(200).json({ success: true, state: 'COMPLETED' });
+      if (state === 'COMPLETED') {
+        // Payment confirmed — create order if not already created (handles race with callback)
+        const { data: pending } = await supabaseAdmin.from('pending_orders').select('*').eq('transaction_id', orderId).single();
+        if (pending && pending.status !== 'completed') {
+          const cartItems = JSON.parse(pending.cart_items);
+          const shippingAddress = pending.shipping_address ? JSON.parse(pending.shipping_address) : {};
+          const orderNumber = `DLX-${Date.now().toString(36).toUpperCase()}`;
+
+          const { data: order } = await supabaseAdmin.from('orders').insert({
+            user_id: pending.user_id, order_number: orderNumber, total_amount: pending.amount,
+            transaction_id: orderId, payment_gateway: 'phonepe', status: 'confirmed',
+            shipment_status: 'pending', shipping_address: shippingAddress,
+          }).select().single();
+
+          if (order) {
+            const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price }));
+            await supabaseAdmin.from('order_items').insert(orderItems);
+            await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', orderId);
+            for (const item of cartItems) {
+              await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+            }
+
+            // Clear user's cart
+            await supabaseAdmin.from('cart_items').delete().eq('user_id', pending.user_id);
+
+            // Trigger Shiprocket (non-blocking)
+            const addr = shippingAddress || {};
+            createShiprocketOrder({
+              order_id: order.id,
+              order_number: orderNumber,
+              order_date: new Date().toISOString().split('T')[0],
+              billing_customer_name: addr.name || '',
+              billing_phone: addr.phone || '',
+              billing_address: addr.address_line1 || '',
+              billing_city: addr.city || '',
+              billing_state: addr.state || '',
+              billing_pincode: addr.pincode || '',
+              billing_email: '',
+              shipping_is_billing: true,
+              payment_method: 'Prepaid',
+              sub_total: pending.amount,
+              items: cartItems.map((item: any) => ({
+                name: item.name || `Product ${item.product_id}`,
+                sku: item.product_id,
+                units: item.quantity,
+                selling_price: item.price,
+                weight: '0.5',
+              })),
+            }).then(async (srResult) => {
+              if (srResult.success) {
+                await supabaseAdmin.from('orders').update({
+                  shipment_id: srResult.shipment_id || null,
+                  awb_code: srResult.awb_code || null,
+                  tracking_url: srResult.tracking_url || null,
+                }).eq('id', order.id);
+                console.log('[PhonePe/Verify] Shiprocket synced for', orderNumber);
+              } else {
+                console.warn('[PhonePe/Verify] Shiprocket failed for', orderNumber, srResult.error);
+              }
+            }).catch(e => console.error('[PhonePe/Verify] Shiprocket error:', e));
+
+            return res.status(200).json({ success: true, state: 'COMPLETED', order: { order_number: order.order_number } });
+          }
+        }
+        return res.status(200).json({ success: true, state: 'COMPLETED' });
+      }
       if (state === 'FAILED') return res.status(200).json({ success: false, state: 'FAILED', error: statusData.errorContext?.description || 'Payment failed' });
       
       return res.status(200).json({ success: false, state: state || 'UNKNOWN', error: 'Payment not completed' });
     } catch (error: any) {
+      console.error('[PhonePe/Verify] Error:', error);
       return res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
     }
   }
 
   return res.status(400).json({ success: false, error: 'Invalid action' });
 }
+

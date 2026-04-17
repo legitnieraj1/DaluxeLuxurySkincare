@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+// Extract user from Authorization header using service role client
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export async function POST(request: Request) {
   // --- 1. Validate environment ---
@@ -15,7 +24,13 @@ export async function POST(request: Request) {
 
   try {
     // --- 2. Auth ---
-    const user = await requireAuth();
+    const user = await getUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Please log in to use the chat.' },
+        { status: 401 }
+      );
+    }
 
     // --- 3. Parse & validate request body ---
     const body = await request.json();
@@ -28,105 +43,103 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- 4. Load user order context ---
-    const { data: userOrders, error: ordersError } = await supabaseAdmin
-      .from('orders')
-      .select('id, shipment_status, created_at, order_items(products(name))')
-      .eq('user_id', user.id)
-      .limit(3)
-      .order('created_at', { ascending: false });
+    console.log('[Chat] User:', user.id, 'Messages count:', messages.length);
 
-    if (ordersError) {
-      console.error('[Chat] Failed to fetch user orders:', ordersError.message);
-    }
-
+    // --- 4. Load user order context (best-effort) ---
     let orderContext = 'The user has no recent orders.';
-    if (userOrders && userOrders.length > 0) {
-      orderContext =
-        "User's recent orders:\n" +
-        userOrders
-          .map(
-            (o: any) =>
-              `Order ${o.id.substring(0, 8)} (${o.shipment_status}): ` +
-              o.order_items.map((i: any) => i.products?.name ?? 'Unknown product').join(', ')
-          )
-          .join('\n');
+    try {
+      const { data: userOrders } = await supabaseAdmin
+        .from('orders')
+        .select('id, order_number, status, shipment_status, total_amount, created_at')
+        .eq('user_id', user.id)
+        .limit(3)
+        .order('created_at', { ascending: false });
+
+      if (userOrders && userOrders.length > 0) {
+        orderContext = 'User recent orders:\n' + userOrders.map((o: any) =>
+          `Order ${o.order_number} (Status: ${o.status}, Shipment: ${o.shipment_status || 'pending'}, Amount: ₹${o.total_amount})`
+        ).join('\n');
+      }
+    } catch (e) {
+      console.log('[Chat] Could not fetch orders for context:', e);
     }
 
     const systemMessage = {
       role: 'system',
-      content: `You are the Daluxe AI Assistant, an elegant and helpful AI representing a luxury skincare brand. 
-Maintain a refined, soothing, and premium tone. Never mention you are an AI model unless legally required.
-${orderContext}`,
+      content: `You are the Daluxe AI Assistant for a luxury skincare brand called "Daluxe". Be elegant, helpful, and refined in your responses. You know about skincare, beauty routines, and the following products: Kumkumadi Face Serum, Daluxe Face Wash, Luxury Hair Serum, and Restoration Night Cream. Keep responses concise (under 150 words). If asked about shipping, mention 3-5 business days across India.\n\n${orderContext}`,
     };
 
-    const apiMessages = [systemMessage, ...messages];
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app';
 
-    // --- 5. Call OpenRouter ---
+    // --- 5. Call OpenRouter with primary model ---
+    console.log('[Chat] Calling OpenRouter API...');
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'Daluxe',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': APP_URL,
+        'X-Title': 'Daluxe Luxury Skincare',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
-        messages: apiMessages,
+        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        messages: [systemMessage, ...messages.slice(-10)],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 400,
       }),
     });
 
-    // --- 6. Validate HTTP status before parsing ---
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `[Chat] OpenRouter returned HTTP ${response.status} ${response.statusText}:`,
-        errorText
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error: `AI service returned an error (HTTP ${response.status}). Please try again later.`,
-        },
-        { status: 502 }
-      );
-    }
-
-    // --- 7. Parse and validate response shape ---
     const data = await response.json();
+    console.log('[Chat] OpenRouter status:', response.status);
 
     if (data.error) {
-      console.error('[Chat] OpenRouter API error object:', data.error);
-      throw new Error(data.error.message || 'OpenRouter API returned an error.');
+      console.error('[Chat] OpenRouter error:', JSON.stringify(data.error));
+
+      // Fallback to another free model
+      console.log('[Chat] Trying fallback model...');
+      const fallbackRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': APP_URL,
+          'X-Title': 'Daluxe Luxury Skincare',
+        },
+        body: JSON.stringify({
+          model: 'google/gemma-2-9b-it:free',
+          messages: [systemMessage, ...messages.slice(-10)],
+          temperature: 0.7,
+          max_tokens: 400,
+        }),
+      });
+      const fallbackData = await fallbackRes.json();
+
+      if (fallbackData.choices?.[0]?.message) {
+        console.log('[Chat] Fallback succeeded');
+        return NextResponse.json({ success: true, message: fallbackData.choices[0].message });
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'AI service temporarily unavailable. Please try again.' },
+        { status: 500 }
+      );
     }
 
-    const messageContent: string | undefined = data?.choices?.[0]?.message?.content;
-    if (!messageContent) {
-      console.error('[Chat] Unexpected response shape from OpenRouter:', JSON.stringify(data));
-      throw new Error('Received an empty or malformed response from the AI service.');
+    if (!data.choices?.[0]?.message) {
+      console.error('[Chat] No choices in response:', JSON.stringify(data));
+      return NextResponse.json(
+        { success: false, error: 'AI returned empty response' },
+        { status: 500 }
+      );
     }
 
-    // --- 8. Return success ---
-    // Response shape keeps `message` for frontend compatibility
-    return NextResponse.json({
-      success: true,
-      message: data.choices[0].message,
-    });
+    console.log('[Chat] Success, response length:', data.choices[0].message.content?.length);
+    return NextResponse.json({ success: true, message: data.choices[0].message });
+
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.error('[Chat] Unhandled error:', error);
+    console.error('[Chat] Fatal error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'AI service temporarily unavailable. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      },
+      { success: false, error: 'Chat service error. Please try again.' },
       { status: 500 }
     );
   }

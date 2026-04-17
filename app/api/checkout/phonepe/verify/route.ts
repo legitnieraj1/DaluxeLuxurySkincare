@@ -1,101 +1,124 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import crypto from 'crypto';
 
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'TESTMERCHANT';
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY || 'test-salt-key';
-const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
-const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT'; 
+const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;
+const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET!;
+const PHONEPE_CLIENT_VERSION = process.env.PHONEPE_CLIENT_VERSION || '1';
+const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT';
 
-const PHONEPE_HOST = PHONEPE_ENV === 'PROD' 
-  ? 'https://api.phonepe.com/apis/hermes'
+const PHONEPE_HOST = PHONEPE_ENV === 'PROD'
+  ? 'https://api.phonepe.com/apis/pg'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+const PHONEPE_AUTH_HOST = PHONEPE_ENV === 'PROD'
+  ? 'https://api.phonepe.com/apis/identity-manager'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
+  const res = await fetch(`${PHONEPE_AUTH_HOST}/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: PHONEPE_CLIENT_ID,
+      client_secret: PHONEPE_CLIENT_SECRET,
+      client_version: PHONEPE_CLIENT_VERSION,
+      grant_type: 'client_credentials',
+    }).toString(),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.access_token) throw new Error(data.message || 'Failed to get PhonePe access token');
+  cachedToken = data.access_token;
+  tokenExpiresAt = (data.expires_at || Date.now() + 14 * 60 * 1000) - 60000;
+  return cachedToken!;
+}
 
 export async function POST(request: Request) {
   try {
-    // Note: This is an S2S callback or Frontend verify endpoint, meaning we might not have `requireAuth()` headers if it's a raw webhook from PhonePe.
-    // If called from frontend, we can parse standard JSON. If from PhonePe webhook, it's Base64.
-    
-    let transactionId = '';
-    let isSuccess = false;
-
-    // Check Content-Type to see if it's a direct API call or a Webhook
-    const contentType = request.headers.get('content-type') || '';
-    
-    if (contentType.includes('application/json')) {
-      const bodyText = await request.text();
-      
-      // Attempt to parse. Might be raw PhonePe Webhook or our custom verify schema
-      const json = JSON.parse(bodyText);
-
-      if (json.transactionId) {
-        // Direct verify from Frontend Client
-        transactionId = json.transactionId;
-        
-        // Let's verify Status with PhonePe exactly
-        const endpoint = `/pg/v1/status/${PHONEPE_MERCHANT_ID}/${transactionId}`;
-        const stringForHash = endpoint + PHONEPE_SALT_KEY;
-        const sha256 = crypto.createHash('sha256').update(stringForHash).digest('hex');
-        const checksum = sha256 + '###' + PHONEPE_SALT_INDEX;
-
-        const checkRes = await fetch(`${PHONEPE_HOST}${endpoint}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-VERIFY': checksum,
-            'X-MERCHANT-ID': PHONEPE_MERCHANT_ID
-          }
-        });
-        const checkData = await checkRes.json();
-        
-        if (checkData.success && checkData.code === 'PAYMENT_SUCCESS') {
-          isSuccess = true;
-        }
-
-      } else if (json.response) {
-        // Raw PhonePe base64 webhook
-        const decodedStr = Buffer.from(json.response, 'base64').toString('utf8');
-        const payload = JSON.parse(decodedStr);
-        transactionId = payload.data.merchantTransactionId;
-        
-        if (payload.code === 'PAYMENT_SUCCESS') {
-          isSuccess = true;
-        }
-      }
-    }
+    const body = await request.json();
+    const transactionId = body.transactionId || body.orderId;
 
     if (!transactionId) {
-      return NextResponse.json({ error: 'Bad Request: No transaction processing possible' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Missing transactionId' }, { status: 400 });
     }
 
-    // Checking if Order already created for idempotency to prevent duplicate orders
+    // Check if order already exists (idempotent)
     const { data: existingOrder } = await supabaseAdmin
       .from('orders')
-      .select('id')
+      .select('id, order_number')
       .eq('transaction_id', transactionId)
       .single();
 
     if (existingOrder) {
-      return NextResponse.json({ success: true, message: 'Order already processed' });
+      return NextResponse.json({ success: true, message: 'Order already processed', order: existingOrder });
     }
 
-    if (isSuccess) {
-      // 🚀 IF SUCCESS: Create the order here
-      // 1. Recover user info / Cart from DB based on transaction mapping, or require frontend to send payload safely.
-      // Note: In an ideal system, a "pending_orders" table maps transactionId -> items. 
-      // Assuming a generic creation approach matching user prompt:
+    // Verify with PhonePe
+    const accessToken = await getAccessToken();
+    const statusRes = await fetch(`${PHONEPE_HOST}/checkout/v2/order/${transactionId}/status?details=true&errorContext=true`, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': `O-Bearer ${accessToken}` },
+    });
+    const statusData = await statusRes.json();
+    const state = statusData.state || statusData.orderState;
 
-      // (Logic simplified for Daluxe: requires mapping transactionId back to the user's cart dynamically in a real flow.
-      // We assume custom payload fetching logic runs here)
-      // await supabaseAdmin.from('orders').insert({...})
-      
-      return NextResponse.json({ success: true, message: 'Payment verified and order created' });
+    if (state === 'COMPLETED') {
+      // Process order from pending_orders
+      const { data: pending } = await supabaseAdmin
+        .from('pending_orders')
+        .select('*')
+        .eq('transaction_id', transactionId)
+        .single();
+
+      if (pending && pending.status !== 'completed') {
+        const cartItems = JSON.parse(pending.cart_items);
+        const shippingAddress = pending.shipping_address ? JSON.parse(pending.shipping_address) : {};
+        const orderNumber = `DLX-${Date.now().toString(36).toUpperCase()}`;
+
+        const { data: order } = await supabaseAdmin.from('orders').insert({
+          user_id: pending.user_id,
+          order_number: orderNumber,
+          total_amount: pending.amount,
+          transaction_id: transactionId,
+          payment_gateway: 'phonepe',
+          status: 'confirmed',
+          shipment_status: 'pending',
+          shipping_address: shippingAddress,
+        }).select().single();
+
+        if (order) {
+          const orderItems = cartItems.map((item: any) => ({
+            order_id: order.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price,
+          }));
+          await supabaseAdmin.from('order_items').insert(orderItems);
+          await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', transactionId);
+
+          for (const item of cartItems) {
+            await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+          }
+
+          // Clear user's cart
+          await supabaseAdmin.from('cart_items').delete().eq('user_id', pending.user_id);
+
+          return NextResponse.json({ success: true, message: 'Payment verified and order created', order: { order_number: orderNumber } });
+        }
+      }
+      return NextResponse.json({ success: true, state: 'COMPLETED' });
     }
 
-    return NextResponse.json({ success: false, message: 'Payment failed or pending' });
+    if (state === 'FAILED') {
+      return NextResponse.json({ success: false, state: 'FAILED', error: statusData.errorContext?.description || 'Payment failed' });
+    }
+
+    return NextResponse.json({ success: false, state: state || 'UNKNOWN', error: 'Payment not completed' });
 
   } catch (error: any) {
-    console.error('Verify error:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    console.error('[PhonePe/Verify] Error:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

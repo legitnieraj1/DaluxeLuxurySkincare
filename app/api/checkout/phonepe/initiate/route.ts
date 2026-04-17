@@ -1,78 +1,108 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import crypto from 'crypto';
 
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'TESTMERCHANT';
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY || 'test-salt-key';
-const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
-const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT'; // 'UAT' or 'PROD'
+const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;
+const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET!;
+const PHONEPE_CLIENT_VERSION = process.env.PHONEPE_CLIENT_VERSION || '1';
+const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT';
 
-const PHONEPE_HOST = PHONEPE_ENV === 'PROD' 
-  ? 'https://api.phonepe.com/apis/hermes'
+const PHONEPE_HOST = PHONEPE_ENV === 'PROD'
+  ? 'https://api.phonepe.com/apis/pg'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+const PHONEPE_AUTH_HOST = PHONEPE_ENV === 'PROD'
+  ? 'https://api.phonepe.com/apis/identity-manager'
+  : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
+  const res = await fetch(`${PHONEPE_AUTH_HOST}/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: PHONEPE_CLIENT_ID,
+      client_secret: PHONEPE_CLIENT_SECRET,
+      client_version: PHONEPE_CLIENT_VERSION,
+      grant_type: 'client_credentials',
+    }).toString(),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.access_token) throw new Error(data.message || 'Failed to get PhonePe access token');
+  cachedToken = data.access_token;
+  tokenExpiresAt = (data.expires_at || Date.now() + 14 * 60 * 1000) - 60000;
+  return cachedToken!;
+}
+
+async function getUser(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !user) return null;
+  return user;
+}
 
 export async function POST(request: Request) {
   try {
-    const user = await requireAuth();
-    const { amount, redirect_url } = await request.json();
-
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    const user = await getUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    // In a full implementation, you should recalculate the amount here against the DB cart_items
-    // But for modularity, we accept amount from frontend if it was pre-calculated.
-    // Ensure amount matches db backend strictly as a bonus! (Assuming we calculate DB total)
-    
-    // For this example, we generate a unique transaction ID
-    const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
+    const { amount, cart_items, shipping_address } = await request.json();
+    if (!amount || amount <= 0) {
+      return NextResponse.json({ success: false, error: 'Invalid payment amount' }, { status: 400 });
+    }
 
-    const payload = {
-      merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId: transactionId,
-      merchantUserId: user.id,
-      amount: Math.round(amount * 100), // in paise
-      redirectUrl: redirect_url || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/verify?id=${transactionId}`,
-      redirectMode: 'POST',
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/checkout/phonepe/verify`, 
-      mobileNumber: "9999999999", // Can be dynamic
-      paymentInstrument: {
-        type: 'PAY_PAGE'
-      }
+    const merchantOrderId = `DALUXE-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
+    // Save pending order for post-payment processing
+    if (cart_items && cart_items.length > 0) {
+      await supabaseAdmin.from('pending_orders').upsert({
+        transaction_id: merchantOrderId,
+        user_id: user.id,
+        cart_items: JSON.stringify(cart_items),
+        shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
+        amount,
+        status: 'initiated',
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    const accessToken = await getAccessToken();
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
+
+    const paymentPayload = {
+      merchantOrderId,
+      amount: Math.round(amount * 100),
+      expireAfter: 1200,
+      paymentFlow: {
+        type: 'PG_CHECKOUT',
+        merchantUrls: {
+          redirectUrl: `${appUrl}/api/phonepe?action=callback&orderId=${merchantOrderId}`,
+        },
+      },
+      metaInfo: { udf1: user.id, udf2: user.email || '' },
     };
 
-    const base64EncodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const endpoint = '/pg/v1/pay';
-    const stringForHash = base64EncodedPayload + endpoint + PHONEPE_SALT_KEY;
-    const sha256 = crypto.createHash('sha256').update(stringForHash).digest('hex');
-    const checksum = sha256 + '###' + PHONEPE_SALT_INDEX;
-
-    const response = await fetch(`${PHONEPE_HOST}${endpoint}`, {
+    const phonePeRes = await fetch(`${PHONEPE_HOST}/checkout/v2/pay`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum
-      },
-      body: JSON.stringify({ request: base64EncodedPayload })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `O-Bearer ${accessToken}` },
+      body: JSON.stringify(paymentPayload),
     });
 
-    const data = await response.json();
+    const phonePeData = await phonePeRes.json();
 
-    if (data.success) {
-      // Return the PhonePe redirect URL to the frontend
-      return NextResponse.json({ 
-        success: true, 
-        transactionId,
-        url: data.data.instrumentResponse.redirectInfo.url 
-      });
-    } else {
-      console.error('PhonePe error:', data);
-      return NextResponse.json({ error: 'Failed to initiate payment', details: data.message }, { status: 400 });
+    if (phonePeRes.ok && phonePeData.redirectUrl) {
+      return NextResponse.json({ success: true, data: { orderId: merchantOrderId, redirectUrl: phonePeData.redirectUrl } });
     }
 
+    return NextResponse.json({ success: false, error: phonePeData.message || 'Failed to create payment session' }, { status: 400 });
   } catch (error: any) {
-    if (error.message === 'Unauthorized') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    console.error('[PhonePe/Initiate] Error:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

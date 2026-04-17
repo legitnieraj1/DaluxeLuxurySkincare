@@ -674,7 +674,19 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   React.useEffect(() => {
-    // 1. Check for existing session on load
+    // 1. On web, detect if the URL hash contains an access_token (OAuth redirect).
+    // Supabase's detectSessionInUrl will parse it, but we must ensure we don't
+    // route away before it processes the token from the hash.
+    let hasOAuthHash = false;
+    if (Platform.OS === 'web') {
+      const hash = window.location.hash;
+      hasOAuthHash = hash.includes('access_token') || hash.includes('type=recovery');
+      if (hasOAuthHash) {
+        console.log('[Auth] Detected OAuth hash fragment, waiting for Supabase to process...');
+      }
+    }
+
+    // 2. Check for existing session on load
     supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
       console.log('[Auth] Initial getSession:', session?.user?.email || 'no session', error?.message || '');
       setUserEmail(session?.user?.email || null);
@@ -682,7 +694,9 @@ export default function App() {
       
       if (session?.user && Platform.OS === 'web') {
         const path = window.location.pathname;
+        // If user has a valid session and is on login page, redirect to profile
         if (path === '/login') {
+          // Clean the hash so the token isn't persisted in the URL
           const cleanUrl = window.location.origin + '/profile';
           window.history.replaceState({}, '', cleanUrl);
           setCurrentPage('profile');
@@ -692,12 +706,28 @@ export default function App() {
       }
     });
 
-    // 2. Listen for all auth state changes
+    // 3. Listen for all auth state changes (this fires for OAuth redirects)
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       console.log('[Auth] State change:', event, session?.user?.email || 'no session');
       setUserEmail(session?.user?.email || null);
 
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && Platform.OS === 'web') {
+      if (event === 'SIGNED_IN' && session?.user && Platform.OS === 'web') {
+        setAuthLoading(false);
+        const path = window.location.pathname;
+        // Always clean the URL hash after OAuth sign-in to avoid reprocessing
+        if (window.location.hash) {
+          window.history.replaceState({}, '', path);
+        }
+        // Redirect from login (or any page with OAuth hash) to profile
+        if (path === '/login' || path === '/') {
+          const cleanUrl = window.location.origin + '/profile';
+          window.history.replaceState({}, '', cleanUrl);
+          setCurrentPage('profile');
+        }
+      }
+
+      if (event === 'INITIAL_SESSION' && session?.user && Platform.OS === 'web') {
+        setAuthLoading(false);
         const path = window.location.pathname;
         if (path === '/login') {
           const cleanUrl = window.location.origin + '/profile';
@@ -714,6 +744,7 @@ export default function App() {
 
       if (event === 'SIGNED_OUT') {
         console.log('[Auth] User signed out');
+        setUserEmail(null);
         setCurrentPage('login');
       }
     });
