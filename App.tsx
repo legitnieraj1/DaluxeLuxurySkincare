@@ -687,7 +687,13 @@ export default function App() {
       }
     }
 
-    // The onAuthStateChange listener is the MOST RELIABLE way to detect auth.
+    // 1. Initial check: force Supabase to process URL and storage immediately
+    // Supabase SDK recommends calling this to trigger parsing of hash/query parameters.
+    supabaseClient.auth.getSession().then(({ data, error }) => {
+      console.log('[Auth] Initial getSession:', data.session?.user?.email || 'no session', error?.message || '');
+    });
+
+    // 2. The onAuthStateChange listener is the MOST RELIABLE way to detect auth.
     // Supabase's internal _initialize() processes the URL callback and fires
     // INITIAL_SESSION (with session if callback succeeds) or SIGNED_IN events.
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -808,12 +814,7 @@ export default function App() {
       } else if (path === '/contact') {
         setCurrentPage('contact');
       } else if (path === '/login') {
-        // DON'T set currentPage to 'login' if the URL has OAuth callback params.
-        // The auth useEffect will handle the redirect to profile after processing.
-        const hasAuthCallback = searchParams.has('code') || window.location.hash.includes('access_token');
-        if (!hasAuthCallback) {
-          setCurrentPage('login');
-        }
+        setCurrentPage('login');
       } else if (path === '/profile') {
         setCurrentPage('profile');
       } else if (path === '/skin-assessment') {
@@ -844,8 +845,7 @@ export default function App() {
         } else if (currentPath === '/contact') {
           setCurrentPage('contact');
         } else if (currentPath === '/login') {
-          const hasAuthCb = params.has('code') || window.location.hash.includes('access_token');
-          if (!hasAuthCb) setCurrentPage('login');
+          setCurrentPage('login');
         } else if (currentPath === '/profile') {
           setCurrentPage('profile');
         } else if (currentPath === '/skin-assessment') {
