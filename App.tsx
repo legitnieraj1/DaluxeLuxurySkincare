@@ -791,28 +791,92 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collectionView, setCollectionView] = useState<'grid' | 'detail'>('grid');
   const [isScrolled, setIsScrolled] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('daluxe_cart');
+      if (saved) return JSON.parse(saved);
+    }
+    return [];
+  });
   const [cartVisible, setCartVisible] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
   const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
 
-  const addToCart = React.useCallback((product: ProductType) => {
+  // Sync to localStorage constantly
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('daluxe_cart', JSON.stringify(cartItems));
+    }
+  }, [cartItems]);
+
+  // Sync to Supabase when logged in
+  React.useEffect(() => {
+    const syncDbCart = async () => {
+      if (!userEmail) return;
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const { data: dbCart } = await supabaseClient.from('cart_items').select('quantity, products(*)').eq('user_id', user.id);
+      
+      // Merge
+      const dbItems = (dbCart || []).filter(item => item.products).map(item => ({ product: item.products, quantity: item.quantity }));
+      const mergedMap = new Map();
+      dbItems.forEach(item => mergedMap.set(item.product.id, item));
+      
+      let needsDbUpdate = false;
+      cartItems.forEach(lItem => {
+        if (mergedMap.has(lItem.product.id)) {
+          mergedMap.get(lItem.product.id).quantity = Math.max(mergedMap.get(lItem.product.id).quantity, lItem.quantity);
+        } else {
+          mergedMap.set(lItem.product.id, lItem);
+          needsDbUpdate = true;
+        }
+      });
+      
+      const mergedArray = Array.from(mergedMap.values());
+      setCartItems(mergedArray);
+
+      // Force push guest cart items that weren't in DB
+      for (const m of mergedArray) {
+        await supabaseClient.from('cart_items').upsert({ user_id: user.id, product_id: m.product.id, quantity: m.quantity }, { onConflict: 'user_id,product_id' });
+      }
+    };
+    syncDbCart();
+    // Intentionally omit cartItems from dep array so we only run this on login/auth change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userEmail]);
+
+  const addToCart = React.useCallback(async (product: ProductType) => {
+    let newQuantity = 1;
     setCartItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
-      if (existing) return prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      newQuantity = existing ? existing.quantity + 1 : 1;
+      if (existing) return prev.map((i) => i.product.id === product.id ? { ...i, quantity: newQuantity } : i);
       return [...prev, { product, quantity: 1 }];
     });
-    // Delay cart drawer to allow fly-to-cart animation to complete
     setTimeout(() => setCartVisible(true), 850);
-  }, []);
 
-  const updateQuantity = React.useCallback((id: string, qty: number) => {
+    if (userEmail) {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) await supabaseClient.from('cart_items').upsert({ user_id: user.id, product_id: product.id, quantity: newQuantity }, { onConflict: 'user_id,product_id' });
+    }
+  }, [userEmail]);
+
+  const updateQuantity = React.useCallback(async (id: string, qty: number) => {
     setCartItems((prev) => prev.map((i) => (i.product.id === id ? { ...i, quantity: qty } : i)));
-  }, []);
+    if (userEmail) {
+       const { data: { user } } = await supabaseClient.auth.getUser();
+       if (user) await supabaseClient.from('cart_items').update({ quantity: qty }).eq('user_id', user.id).eq('product_id', id);
+    }
+  }, [userEmail]);
 
-  const removeFromCart = React.useCallback((id: string) => {
+  const removeFromCart = React.useCallback(async (id: string) => {
     setCartItems((prev) => prev.filter((i) => i.product.id !== id));
-  }, []);
+    if (userEmail) {
+       const { data: { user } } = await supabaseClient.auth.getUser();
+       if (user) await supabaseClient.from('cart_items').delete().eq('user_id', user.id).eq('product_id', id);
+    }
+  }, [userEmail]);
 
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 

@@ -84,7 +84,7 @@ export async function createShiprocketOrder(params: ShiprocketOrderParams): Prom
     const orderPayload = {
       order_id: params.order_number,
       order_date: params.order_date,
-      pickup_location: 'Primary',
+      pickup_location: 'Home',
       billing_customer_name: params.billing_customer_name,
       billing_last_name: '',
       billing_address: params.billing_address,
