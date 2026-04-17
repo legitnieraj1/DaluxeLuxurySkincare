@@ -136,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `O-Bearer ${accessToken}` },
       });
       const statusData = await statusRes.json();
-      const state = statusData.state || statusData.orderState;
+      const state = statusData.state || statusData.orderState || statusData.data?.state || statusData.data?.orderState;
 
       if (state === 'COMPLETED') {
         const { data: pending } = await supabaseAdmin.from('pending_orders').select('*').eq('transaction_id', orderId).single();
@@ -224,7 +224,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `O-Bearer ${accessToken}` },
       });
       const statusData = await statusRes.json();
-      const state = statusData.state || statusData.orderState;
+      const state = statusData.state || statusData.orderState || statusData.data?.state || statusData.data?.orderState;
 
       if (state === 'COMPLETED') {
         // Payment confirmed — create order if not already created (handles race with callback)
