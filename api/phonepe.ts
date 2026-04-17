@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { createShiprocketOrder } from './shiprocket';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -157,6 +158,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             for (const item of cartItems) {
               await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
             }
+
+            // Clear user's cart
+            await supabaseAdmin.from('cart_items').delete().eq('user_id', pending.user_id);
+
+            // Trigger Shiprocket (non-blocking)
+            const addr = shippingAddress || {};
+            createShiprocketOrder({
+              order_id: order.id,
+              order_number: orderNumber,
+              order_date: new Date().toISOString().split('T')[0],
+              billing_customer_name: addr.name || '',
+              billing_phone: addr.phone || '',
+              billing_address: addr.address_line1 || '',
+              billing_city: addr.city || '',
+              billing_state: addr.state || '',
+              billing_pincode: addr.pincode || '',
+              billing_email: '',
+              shipping_is_billing: true,
+              payment_method: 'Prepaid',
+              sub_total: pending.amount,
+              items: cartItems.map((item: any) => ({
+                name: item.name || `Product ${item.product_id}`,
+                sku: item.product_id,
+                units: item.quantity,
+                selling_price: item.price,
+                weight: '0.5',
+              })),
+            }).then(async (srResult) => {
+              if (srResult.success) {
+                await supabaseAdmin.from('orders').update({
+                  shipment_id: srResult.shipment_id || null,
+                  awb_code: srResult.awb_code || null,
+                  tracking_url: srResult.tracking_url || null,
+                }).eq('id', order.id);
+                console.log('[PhonePe/Callback] Shiprocket synced for', orderNumber);
+              } else {
+                console.warn('[PhonePe/Callback] Shiprocket failed for', orderNumber, srResult.error);
+              }
+            }).catch(e => console.error('[PhonePe/Callback] Shiprocket error:', e));
           }
         }
         return res.redirect(302, `${appUrl}/home#order-success`);

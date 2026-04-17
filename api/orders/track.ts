@@ -23,13 +23,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await getUser(req);
     if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
+    const query = (req.query.query as string || '').trim();
+    if (!query) return res.status(400).json({ success: false, error: 'Search query required' });
+
+    // Search by order_number or awb_code
     const { data: orders, error } = await supabaseAdmin
       .from('orders')
       .select('*, order_items(id, quantity, price, product_id, products(id, name, images, price))')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .or(`order_number.ilike.%${query}%,awb_code.ilike.%${query}%`)
+      .order('created_at', { ascending: false })
+      .limit(5);
 
     if (error) throw error;
+
+    if (!orders || orders.length === 0) {
+      return res.status(200).json({ success: false, error: 'No order found with that ID or AWB number.' });
+    }
 
     return res.status(200).json({ success: true, orders });
 

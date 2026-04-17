@@ -66,6 +66,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'DELETE') {
+      const action = req.query.action as string;
+
+      // Clear entire cart for user
+      if (action === 'clear') {
+        await supabaseAdmin.from('cart_items').delete().eq('user_id', user.id);
+        return res.status(200).json({ success: true, message: 'Cart cleared' });
+      }
+
+      // Remove single item
       const product_id = req.query.product_id as string;
       if (!product_id) return res.status(400).json({ success: false, error: 'product_id required' });
 

@@ -177,9 +177,9 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
       <View style={c.section}>
         <Animated.View entering={FadeInDown.duration(600)}><Text style={c.sectionEyebrow}>REACH US</Text><GoldDivider width={40} /></Animated.View>
         <View style={c.infoCardsRow}>
-          <ContactInfoCard icon={Mail} title="Email" lines={['care@daluxe.in', 'business@daluxe.in']} index={0} />
-          <ContactInfoCard icon={Phone} title="Phone" lines={['+91 98765 43210', 'Mon–Sat, 10am–7pm IST']} index={1} />
-          <ContactInfoCard icon={MapPin} title="Address" lines={['DaLuxe Skincare Pvt. Ltd.', 'Chennai, Tamil Nadu, India']} index={2} />
+          <ContactInfoCard icon={Mail} title="Email" lines={['mydaluxe@gmail.com']} index={0} />
+          <ContactInfoCard icon={Phone} title="Phone" lines={['+91 6201 503 466', '+91 8879621636']} index={1} />
+          <ContactInfoCard icon={MapPin} title="Address" lines={['Sanaullah compound dharavi', 'Near by - Tasmia medical', 'Mahim East, Mumbai 400017']} index={2} />
           <ContactInfoCard icon={Clock} title="Hours" lines={['Monday – Saturday', '10:00 AM – 7:00 PM IST']} index={3} />
         </View>
       </View>
@@ -301,8 +301,8 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
         <View style={c.socialRow}>
           {[
             { icon: Instagram, label: 'Instagram', handle: '@daluxe.in' },
-            { icon: MessageCircle, label: 'WhatsApp', handle: '+91 98765 43210' },
-            { icon: Mail, label: 'Email', handle: 'care@daluxe.in' },
+            { icon: MessageCircle, label: 'WhatsApp', handle: '+91 6201 503 466' },
+            { icon: Mail, label: 'Email', handle: 'mydaluxe@gmail.com' },
           ].map((social, i) => (
             <Animated.View key={i} entering={FadeInUp.delay(200 + i * 150).duration(600)} style={c.socialCard}>
               <View style={c.socialIconWrap}><social.icon color={GOLD} size={22} /></View>

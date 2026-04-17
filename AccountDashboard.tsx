@@ -26,40 +26,7 @@ const SERIF: any = Platform.select({ web: '"Playfair Display", Georgia, serif', 
 
 const isMobileDevice = () => Dimensions.get('window').width < 768;
 
-// ─── Mock Orders ──────────────────────────────────────────────────────────────
-const MOCK_ORDERS = [
-  {
-    id: 'DLX-2024-001', order_number: '#DLX-2024-001', created_at: '2024-03-10T10:30:00Z',
-    total_amount: 1498, status: 'delivered', items_count: 2,
-    expected_delivery: '2024-03-14', tracking_id: 'SHIP123456',
-    products: [
-      { name: 'Kumkumadi Face Serum', qty: 1, price: 799, image: require('./assets/faceserumproductcard.png') },
-      { name: 'Restoration Night Cream', qty: 1, price: 699, image: require('./assets/night cream product cARD.png') },
-    ],
-    address: '42, MG Road, Bangalore, Karnataka - 560001',
-    payment_status: 'Paid',
-  },
-  {
-    id: 'DLX-2024-002', order_number: '#DLX-2024-002', created_at: '2024-04-01T14:15:00Z',
-    total_amount: 799, status: 'shipped', items_count: 1,
-    expected_delivery: '2024-04-05', tracking_id: 'SHIP789012',
-    products: [
-      { name: 'Luxury Hair Serum', qty: 1, price: 799, image: require('./assets/hairserumproductcard.png') },
-    ],
-    address: '12, Linking Road, Mumbai, Maharashtra - 400050',
-    payment_status: 'Paid',
-  },
-  {
-    id: 'DLX-2024-003', order_number: '#DLX-2024-003', created_at: '2024-04-10T09:00:00Z',
-    total_amount: 899, status: 'pending', items_count: 1,
-    expected_delivery: '2024-04-15', tracking_id: null,
-    products: [
-      { name: 'Daluxe Face Wash', qty: 1, price: 899, image: require('./assets/facewashproductcard.png') },
-    ],
-    address: '7, Anna Nagar, Chennai, Tamil Nadu - 600040',
-    payment_status: 'Paid',
-  },
-];
+// Status configs and mock orders removed — using real API data
 
 const MENU = [
   { key: 'profile', label: 'Profile',         Icon: User },
@@ -419,13 +386,39 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
       setLoading(true);
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        const userId = session?.user?.id;
-        if (!userId) { setOrders(MOCK_ORDERS); setLoading(false); return; }
-        console.log('[Orders] Fetching orders for user:', userId);
-        const { data, error } = await supabaseClient.from('orders').select('*, order_items(id, quantity, price, product_id)').eq('user_id', userId).order('created_at', { ascending: false });
-        if (error) console.error('[Orders] Fetch error:', error.message);
-        setOrders(data?.length ? data : MOCK_ORDERS);
-      } catch (e) { console.error('[Orders] Unexpected error:', e); setOrders(MOCK_ORDERS); }
+        const token = session?.access_token || '';
+        const res = await fetch('/api/orders/user', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success && data.orders) {
+          // Transform API data to match UI expectations
+          const transformed = data.orders.map((order: any) => {
+            const products = (order.order_items || []).map((item: any) => ({
+              name: item.products?.name || 'Product',
+              qty: item.quantity,
+              price: item.price,
+              image: null, // API images are URLs, handled by Image component
+              imageUrl: item.products?.images?.[0] || null,
+            }));
+            const addr = order.shipping_address || {};
+            const addressStr = typeof addr === 'string' ? addr :
+              [addr.address_line1, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
+            return {
+              ...order,
+              products,
+              items_count: products.length,
+              address: addressStr,
+              tracking_id: order.awb_code || order.shipment_id || null,
+              payment_status: order.payment_gateway === 'cod' ? 'COD' : 'Paid',
+              expected_delivery: order.expected_delivery || null,
+            };
+          });
+          setOrders(transformed);
+        } else {
+          setOrders([]);
+        }
+      } catch (e) { console.error('[Orders] Fetch error:', e); setOrders([]); }
       finally { setLoading(false); }
     })();
   }, [userEmail]);
@@ -496,9 +489,32 @@ const TrackSection = ({ initialId = '' }: { initialId?: string }) => {
   const doSearch = async () => {
     if (!query.trim()) return;
     setLoading(true); setError(''); setResult(null);
-    await new Promise(r => setTimeout(r, 1200));
-    const found = MOCK_ORDERS.find(o => o.id.toLowerCase().includes(query.toLowerCase()) || o.tracking_id?.toLowerCase().includes(query.toLowerCase()));
-    if (found) setResult(found); else setError('No order found with that ID or AWB number.');
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const token = session?.access_token || '';
+      const res = await fetch(`/api/orders/track?query=${encodeURIComponent(query.trim())}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && data.orders?.length > 0) {
+        const order = data.orders[0];
+        // Transform to match UI
+        const products = (order.order_items || []).map((item: any) => ({
+          name: item.products?.name || 'Product',
+          qty: item.quantity,
+          price: item.price,
+        }));
+        setResult({
+          ...order,
+          products,
+          tracking_id: order.awb_code || order.shipment_id || null,
+        });
+      } else {
+        setError(data.error || 'No order found with that ID or AWB number.');
+      }
+    } catch (e) {
+      setError('Network error. Please try again.');
+    }
     setLoading(false);
   };
 
@@ -614,9 +630,10 @@ const ContactSection = ({ userEmail }: { userEmail: string }) => {
       <Card style={{ gap: 16 }}>
         <Text style={sec.cardTitle}>Other Ways to Reach Us</Text>
         {[
-          { icon: Mail,  label: 'Email',    value: 'support@daluxe.in' },
-          { icon: Clock, label: 'Hours',    value: 'Mon–Sat, 10am–6pm IST' },
-          { icon: MapPin,label: 'Location', value: 'Chennai, Tamil Nadu, India' },
+          { icon: Mail,  label: 'Email',    value: 'mydaluxe@gmail.com' },
+          { icon: Phone, label: 'Phone',    value: '+91 6201 503 466\n+91 8879621636' },
+          { icon: Clock, label: 'Hours',    value: 'Mon–Sat, 10:00 AM–7:00 PM IST' },
+          { icon: MapPin,label: 'Location', value: 'Sanaullah compound dharavi\nNear by - Tasmia medical\nMahim East, Mumbai 400017' },
         ].map(({ icon: Icon, label, value }) => (
           <View key={label} style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
             <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(201,162,39,0.08)', borderWidth: 1, borderColor: BORDER, justifyContent: 'center', alignItems: 'center' }}>
