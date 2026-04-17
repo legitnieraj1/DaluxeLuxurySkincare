@@ -674,77 +674,84 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   React.useEffect(() => {
-    // 1. On web, detect if the URL hash contains an access_token (OAuth redirect).
-    // Supabase's detectSessionInUrl will parse it, but we must ensure we don't
-    // route away before it processes the token from the hash.
-    let hasOAuthHash = false;
+    // Detect if the URL contains an OAuth callback (PKCE or implicit).
+    // PKCE: ?code=... (Supabase v2 default)
+    // Implicit: #access_token=...
+    let isOAuthCallback = false;
     if (Platform.OS === 'web') {
+      const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
-      hasOAuthHash = hash.includes('access_token') || hash.includes('type=recovery');
-      if (hasOAuthHash) {
-        console.log('[Auth] Detected OAuth hash fragment, waiting for Supabase to process...');
+      isOAuthCallback = params.has('code') || hash.includes('access_token') || hash.includes('type=recovery');
+      if (isOAuthCallback) {
+        console.log('[Auth] OAuth callback detected in URL, Supabase will process automatically...');
       }
     }
 
-    // 2. Check for existing session on load
-    supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('[Auth] Initial getSession:', session?.user?.email || 'no session', error?.message || '');
-      setUserEmail(session?.user?.email || null);
-      setAuthLoading(false);
-      
-      if (session?.user && Platform.OS === 'web') {
-        const path = window.location.pathname;
-        // If user has a valid session and is on login page, redirect to profile
-        if (path === '/login') {
-          // Clean the hash so the token isn't persisted in the URL
-          const cleanUrl = window.location.origin + '/profile';
-          window.history.replaceState({}, '', cleanUrl);
-          setCurrentPage('profile');
-        } else if (path === '/profile') {
-          setCurrentPage('profile');
-        }
-      }
-    });
-
-    // 3. Listen for all auth state changes (this fires for OAuth redirects)
+    // The onAuthStateChange listener is the MOST RELIABLE way to detect auth.
+    // Supabase's internal _initialize() processes the URL callback and fires
+    // INITIAL_SESSION (with session if callback succeeds) or SIGNED_IN events.
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       console.log('[Auth] State change:', event, session?.user?.email || 'no session');
-      setUserEmail(session?.user?.email || null);
 
-      if (event === 'SIGNED_IN' && session?.user && Platform.OS === 'web') {
+      if (event === 'INITIAL_SESSION') {
+        // This fires once on startup after Supabase processes the URL/storage.
+        // If we have a session (from OAuth callback or saved session), use it.
+        setUserEmail(session?.user?.email || null);
         setAuthLoading(false);
-        const path = window.location.pathname;
-        // Always clean the URL hash after OAuth sign-in to avoid reprocessing
-        if (window.location.hash) {
-          window.history.replaceState({}, '', path);
-        }
-        // Redirect from login (or any page with OAuth hash) to profile
-        if (path === '/login' || path === '/') {
-          const cleanUrl = window.location.origin + '/profile';
-          window.history.replaceState({}, '', cleanUrl);
-          setCurrentPage('profile');
+
+        if (session?.user && Platform.OS === 'web') {
+          const path = window.location.pathname;
+          // Clean the URL: remove ?code= and #access_token params
+          if (window.location.search.includes('code=') || window.location.hash) {
+            window.history.replaceState({}, '', path);
+          }
+          // Redirect from login to profile
+          if (path === '/login') {
+            window.history.replaceState({}, '', '/profile');
+            setCurrentPage('profile');
+          } else if (path === '/profile') {
+            setCurrentPage('profile');
+          }
+        } else if (!session && Platform.OS === 'web') {
+          // No session — if on /profile, redirect to login
+          const path = window.location.pathname;
+          if (path === '/profile') {
+            window.history.replaceState({}, '', '/login');
+            setCurrentPage('login');
+          }
         }
       }
 
-      if (event === 'INITIAL_SESSION' && session?.user && Platform.OS === 'web') {
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[Auth] User signed in:', session.user.email);
+        setUserEmail(session.user.email || null);
         setAuthLoading(false);
-        const path = window.location.pathname;
-        if (path === '/login') {
-          const cleanUrl = window.location.origin + '/profile';
-          window.history.replaceState({}, '', cleanUrl);
-          setCurrentPage('profile');
-        } else if (path === '/profile') {
-          setCurrentPage('profile');
+
+        if (Platform.OS === 'web') {
+          const path = window.location.pathname;
+          // Clean the URL
+          if (window.location.search.includes('code=') || window.location.hash) {
+            window.history.replaceState({}, '', path);
+          }
+          // Always redirect from login to profile on sign-in
+          if (path === '/login' || path === '/') {
+            window.history.replaceState({}, '', '/profile');
+            setCurrentPage('profile');
+          }
         }
       }
 
       if (event === 'TOKEN_REFRESHED') {
         console.log('[Auth] Token refreshed for:', session?.user?.email);
+        if (session?.user) setUserEmail(session.user.email || null);
       }
 
       if (event === 'SIGNED_OUT') {
         console.log('[Auth] User signed out');
         setUserEmail(null);
+        if (Platform.OS === 'web') {
+          window.history.replaceState({}, '', '/login');
+        }
         setCurrentPage('login');
       }
     });
@@ -801,7 +808,12 @@ export default function App() {
       } else if (path === '/contact') {
         setCurrentPage('contact');
       } else if (path === '/login') {
-        setCurrentPage('login');
+        // DON'T set currentPage to 'login' if the URL has OAuth callback params.
+        // The auth useEffect will handle the redirect to profile after processing.
+        const hasAuthCallback = searchParams.has('code') || window.location.hash.includes('access_token');
+        if (!hasAuthCallback) {
+          setCurrentPage('login');
+        }
       } else if (path === '/profile') {
         setCurrentPage('profile');
       } else if (path === '/skin-assessment') {
@@ -832,7 +844,8 @@ export default function App() {
         } else if (currentPath === '/contact') {
           setCurrentPage('contact');
         } else if (currentPath === '/login') {
-          setCurrentPage('login');
+          const hasAuthCb = params.has('code') || window.location.hash.includes('access_token');
+          if (!hasAuthCb) setCurrentPage('login');
         } else if (currentPath === '/profile') {
           setCurrentPage('profile');
         } else if (currentPath === '/skin-assessment') {
