@@ -36,10 +36,10 @@ export async function GET(request: Request) {
           quantity,
           price,
           product_id,
+          name,
           products (
             id,
             name,
-            images,
             price
           )
         )

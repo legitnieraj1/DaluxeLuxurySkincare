@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data: orders, error } = await supabaseAdmin
       .from('orders')
-      .select('*, order_items(id, quantity, price, product_id, products(id, name, images, price))')
+      .select('*, order_items(id, quantity, price, product_id, name, products(id, name, price))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
