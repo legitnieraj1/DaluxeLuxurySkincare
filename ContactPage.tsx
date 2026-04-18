@@ -175,118 +175,12 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
 
       {/* ═══ INFO CARDS ═══ */}
       <View style={c.section}>
-        <Animated.View entering={FadeInDown.duration(600)}><Text style={c.sectionEyebrow}>REACH US</Text><GoldDivider width={40} /></Animated.View>
+        <Animated.View entering={FadeInDown.duration(600)}><Text style={c.sectionEyebrow}>OTHER WAYS TO REACH US</Text><GoldDivider width={40} /></Animated.View>
         <View style={c.infoCardsRow}>
           <ContactInfoCard icon={Mail} title="Email" lines={['mydaluxe@gmail.com']} index={0} />
           <ContactInfoCard icon={Phone} title="Phone" lines={['+91 6201 503 466', '+91 8879621636']} index={1} />
           <ContactInfoCard icon={MapPin} title="Address" lines={['Sanaullah compound dharavi', 'Near by - Tasmia medical', 'Mahim East, Mumbai 400017']} index={2} />
-          <ContactInfoCard icon={Clock} title="Hours" lines={['Monday – Saturday', '10:00 AM – 7:00 PM IST']} index={3} />
-        </View>
-      </View>
-
-      {/* ═══ FORM + ASSURANCE ═══ */}
-      <View style={[c.section, { backgroundColor: BG_SECTION_ALT }]}>
-        <View style={isMobile ? c.formBlockMobile : c.formBlock}>
-          {/* FORM */}
-          <Animated.View entering={FadeInLeft.delay(100).duration(700)} style={isMobile ? { width: '100%' } : { flex: 1.4 }}>
-            <Text style={c.sectionEyebrow}>SEND A MESSAGE</Text>
-            <GoldDivider width={30} style={{ alignItems: 'flex-start' }} />
-            <Text style={c.formTitle}>We're Here to Help</Text>
-
-            {submitted ? (
-              <Animated.View entering={FadeInUp.duration(500)} style={c.successBlock}>
-                <Sparkles color={GOLD} size={36} style={{ marginBottom: 16 }} />
-                <Text style={c.successTitle}>Message Received</Text>
-                <Text style={c.successText}>Thank you for reaching out. Our team will get back to you within 24 hours.</Text>
-                <GoldButton label="Send Another" onPress={() => { setSubmitted(false); setFormData({ name: '', email: '', subject: '', message: '' }); }} />
-              </Animated.View>
-            ) : (
-              <View style={c.form}>
-                <View style={c.formRow}>
-                  <View style={[c.inputGroup, { flex: 1 }]}>
-                    <Text style={c.inputLabel}>FULL NAME</Text>
-                    <TextInput
-                      style={[c.input, focusedField === 'name' && c.inputFocused] as any}
-                      value={formData.name}
-                      onChangeText={(t) => setFormData((p) => ({ ...p, name: t }))}
-                      placeholder="Your name"
-                      placeholderTextColor={TEXT_MUTED}
-                      onFocus={() => setFocusedField('name')}
-                      onBlur={() => setFocusedField(null)}
-                    />
-                    <View style={[c.focusLine, focusedField === 'name' && c.focusLineActive]} />
-                  </View>
-                  <View style={[c.inputGroup, { flex: 1 }]}>
-                    <Text style={c.inputLabel}>EMAIL ADDRESS</Text>
-                    <TextInput
-                      style={[c.input, focusedField === 'email' && c.inputFocused] as any}
-                      value={formData.email}
-                      onChangeText={(t) => setFormData((p) => ({ ...p, email: t }))}
-                      placeholder="your@email.com"
-                      placeholderTextColor={TEXT_MUTED}
-                      keyboardType="email-address"
-                      onFocus={() => setFocusedField('email')}
-                      onBlur={() => setFocusedField(null)}
-                    />
-                    <View style={[c.focusLine, focusedField === 'email' && c.focusLineActive]} />
-                  </View>
-                </View>
-
-                <View style={c.inputGroup}>
-                  <Text style={c.inputLabel}>SUBJECT</Text>
-                  <TextInput
-                    style={[c.input, focusedField === 'subject' && c.inputFocused] as any}
-                    value={formData.subject}
-                    onChangeText={(t) => setFormData((p) => ({ ...p, subject: t }))}
-                    placeholder="How can we help?"
-                    placeholderTextColor={TEXT_MUTED}
-                    onFocus={() => setFocusedField('subject')}
-                    onBlur={() => setFocusedField(null)}
-                  />
-                  <View style={[c.focusLine, focusedField === 'subject' && c.focusLineActive]} />
-                </View>
-
-                <View style={c.inputGroup}>
-                  <Text style={c.inputLabel}>MESSAGE</Text>
-                  <TextInput
-                    style={[c.input, c.textarea, focusedField === 'message' && c.inputFocused] as any}
-                    value={formData.message}
-                    onChangeText={(t) => setFormData((p) => ({ ...p, message: t }))}
-                    placeholder="Tell us more..."
-                    placeholderTextColor={TEXT_MUTED}
-                    multiline numberOfLines={5} textAlignVertical="top"
-                    onFocus={() => setFocusedField('message')}
-                    onBlur={() => setFocusedField(null)}
-                  />
-                  <View style={[c.focusLine, focusedField === 'message' && c.focusLineActive]} />
-                </View>
-
-                <GoldButton label="Send Message" onPress={handleSubmit} icon={<Send color="#3c2f00" size={14} />} />
-              </View>
-            )}
-          </Animated.View>
-
-          {/* ASSURANCE PANEL */}
-          <Animated.View entering={FadeInRight.delay(300).duration(700)} style={isMobile ? { width: '100%' } : { flex: 1 }}>
-            <View style={c.assuranceCard}>
-              <Sparkles color={GOLD} size={20} style={{ marginBottom: 18, opacity: 0.7 }} />
-              <Text style={c.assuranceTitle}>The DaLuxe{'\n'}Experience</Text>
-              <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 36, height: 1, marginVertical: 18 }} />
-              {[
-                { n: '01', text: 'Personalized skincare consultations' },
-                { n: '02', text: 'Expert guidance on your routine' },
-                { n: '03', text: 'Priority access to new launches' },
-                { n: '04', text: 'Complimentary samples with orders' },
-              ].map((item, i) => (
-                <View key={i} style={c.assuranceItem}>
-                  <Text style={c.assuranceNum}>{item.n}</Text>
-                  <Text style={c.assuranceText}>{item.text}</Text>
-                </View>
-              ))}
-              <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 36, height: 1, marginTop: 20, marginBottom: 16, alignSelf: 'center' }} />
-              <Text style={c.assuranceFooter}>Every message answered{'\n'}within 24 hours</Text>
-            </View>
-          </Animated.View>
+          <ContactInfoCard icon={Clock} title="Hours" lines={['Mon–Sat, 10:00 AM–7:00 PM IST']} index={3} />
         </View>
       </View>
 

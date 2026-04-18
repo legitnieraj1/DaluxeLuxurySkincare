@@ -148,28 +148,28 @@ const CampaignBanners = ({ onNavigate }: any) => {
   return (
     <View style={[styles.section, { backgroundColor: '#F8F6F0' }]}>
       <View style={[promoStyles.grid, isMobile && { flexDirection: 'column' }]}>
-        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#E5F5F3', '#C6EBE5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>HYDROSOL INFUSION</Text>
               <Text style={promoStyles.desc}>Gentle floral waters like Rose Hydrosol calm, hydrate, and restore skin balance without irritation.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#F5E6F3', '#E9C6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>AYURVEDIC HERBS</Text>
               <Text style={promoStyles.desc}>Saffron, Manjistha, Neem, and Tulsi work together to purify, brighten, and enhance natural glow.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#EAE6F5', '#CDC6E5']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BOTANICAL ACTIVES</Text>
               <Text style={promoStyles.desc}>Licorice, Alpha Arbutin, and Vitamin C help reduce pigmentation and even out skin tone gently.</Text>
               <Text style={promoStyles.link}>Shop Now →</Text>
            </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('Collection')}>
+        <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
            <LinearGradient colors={['#E6F5ED', '#C6EBE1']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BARRIER + HYDRATION</Text>
               <Text style={promoStyles.desc}>Aloe Vera, Panthenol, Sodium Hyaluronate, and Gotu Kola deeply hydrate and strengthen skin barrier.</Text>
