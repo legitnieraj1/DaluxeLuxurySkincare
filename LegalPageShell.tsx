@@ -25,6 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, ChevronRight, Mail } from 'lucide-react-native';
+import { Footer } from './Footer';
 
 const { width: SW } = Dimensions.get('window');
 const isMobile = SW < 768;
