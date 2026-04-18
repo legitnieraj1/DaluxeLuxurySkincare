@@ -64,9 +64,43 @@ export async function POST(request: Request) {
       console.log('[Chat] Could not fetch orders for context:', e);
     }
 
+    // --- Input Filtering Logic ---
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    const offTopicKeywords = ['recipe', 'cook ', 'bake', 'biriyani', 'biryani', 'python', 'javascript', 'html', 'css', 'react', 'math problem', 'politics', 'movie', 'sports'];
+    const isOffTopic = offTopicKeywords.some(kw => lastUserMessage.includes(kw)) && 
+                       !lastUserMessage.includes('skin') && !lastUserMessage.includes('face') && 
+                       !lastUserMessage.includes('hair') && !lastUserMessage.includes('cream') && 
+                       !lastUserMessage.includes('wash');
+
+    if (isOffTopic) {
+      return NextResponse.json({
+        success: true,
+        message: {
+          role: 'assistant',
+          content: "I am a Daluxe skincare assistant, exclusively dedicated to luxury skincare and beauty. I cannot assist with unrelated topics. Please let me know how I can help you with your skincare routine or provide product recommendations!"
+        }
+      });
+    }
+
+    // --- System Prompt Setup ---
     const systemMessage = {
       role: 'system',
-      content: `You are the Daluxe AI Assistant for a luxury skincare brand called "Daluxe". Be elegant, helpful, and refined in your responses. You know about skincare, beauty routines, and the following products: Kumkumadi Face Serum, Daluxe Face Wash, Luxury Hair Serum, and Restoration Night Cream. Keep responses concise (under 150 words). If asked about shipping, mention 3-5 business days across India.\n\n${orderContext}`,
+      content: `You are the Daluxe skincare assistant, exclusively representing Daluxe Luxury Skincare. You MUST ONLY answer questions related to skincare, beauty routines, products, and ingredients. If a user asks about anything unrelated (such as cooking, coding, math, politics, etc.), politely refuse and state you are a skincare assistant.
+
+Brand Products Context:
+1. Weightless Perfection Hair Serum (₹349, 30ml): Dermal-Grade Botanical Formula. Weightless Smoothness, Natural Shine. Zero Silicone Feel.
+2. Reveal Your Glow Face Serum (₹449, 30ml): Ultra Sensitive Glow & Correct. Correct Tone, Boost Glow, Stay Calm. 
+3. Gold Glow Face Wash (₹249): Gentle cleanser for radiant skin.
+4. Overnight Restoration Night Cream (₹399, 30g): Ultra Sensitive Repair. Repair Overnight, Restore Calm, Wake Up Renewed.
+
+Tone Guidelines:
+- Use a premium, elegant, and polite tone.
+- Be helpful and concise (under 150 words).
+- Proactively encourage product recommendations from the Daluxe catalog when appropriate.
+- Shipping is 3-5 business days across India.
+
+Recent User Context:
+${orderContext}`
     };
 
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app';
