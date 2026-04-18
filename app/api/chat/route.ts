@@ -103,7 +103,7 @@ Recent User Context:
 ${orderContext}`
     };
 
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app';
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in';
 
     // --- 5. Call OpenRouter with primary model ---
     console.log('[Chat] Calling OpenRouter API...');

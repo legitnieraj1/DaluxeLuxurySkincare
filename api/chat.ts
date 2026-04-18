@@ -104,7 +104,7 @@ ${orderContext}`
       headers: {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in',
         'X-Title': 'Daluxe Luxury Skincare',
       },
       body: JSON.stringify({
@@ -128,7 +128,7 @@ ${orderContext}`
         headers: {
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in',
           'X-Title': 'Daluxe Luxury Skincare',
         },
         body: JSON.stringify({

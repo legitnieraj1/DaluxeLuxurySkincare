@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     }
 
     const accessToken = await getAccessToken();
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
 
     const paymentPayload = {
       merchantOrderId,

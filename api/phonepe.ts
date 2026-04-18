@@ -84,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const accessToken = await getAccessToken();
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
 
       const paymentPayload = {
         merchantOrderId,
@@ -125,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!orderId) return res.status(400).json({ success: false, error: 'Missing orderId' });
 
       const { data: existingOrder } = await supabaseAdmin.from('orders').select('id, order_number').eq('transaction_id', orderId).single();
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
       
       if (existingOrder) {
         return res.redirect(302, `${appUrl}/home#order-success`);
@@ -208,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (state === 'FAILED' || state === 'CANCELLED') return res.redirect(302, `${appUrl}/home#payment-failed`);
       return res.redirect(302, `${appUrl}/home#payment-pending`);
     } catch (error: any) {
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxex-elevex.vercel.app').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
       return res.redirect(302, `${appUrl}/home#payment-error`);
     }
   }
