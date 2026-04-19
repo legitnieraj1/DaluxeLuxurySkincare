@@ -25,36 +25,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
     try {
       const user = await getUser(req);
-      if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      if (!user) return res.status(401).json({ success: false, error: 'Unauthorized. Please log in.' });
 
       const { cart_items } = req.body;
       if (!cart_items || !Array.isArray(cart_items) || cart_items.length === 0) {
         return res.status(400).json({ success: false, error: 'Cart is empty' });
       }
 
-      for (const item of cart_items) {
-        if (!item.product_id || typeof item.quantity !== 'number' || item.quantity < 1) {
-          return res.status(400).json({ success: false, error: 'Invalid cart item format' });
-        }
+      const { data: allProducts, error } = await supabaseAdmin
+        .from('products')
+        .select('id, name, stock_quantity')
+        .eq('active', true);
+
+      if (error) {
+        console.error('Database Error:', error);
+        return res.status(500).json({ success: false, error: 'Database error' });
       }
 
-      const { data: allProducts, error } = await supabaseAdmin.from('products').select('id, name, stock_quantity, price').eq('active', true);
-      if (error) return res.status(500).json({ success: false, error: 'Database error while checking stock' });
-
       for (const item of cart_items) {
-        let product = allProducts?.find((p: any) => p.id === item.product_id);
-        if (!product && item.name) {
-          const itemNameUpper = item.name.toUpperCase();
-          product = allProducts?.find((p: any) => p.name?.toUpperCase().includes(itemNameUpper) || itemNameUpper.includes(p.name?.toUpperCase()));
-        }
-        if (!product) continue; // Skip hardcoded products not in DB
-
-        if (product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity < item.quantity) {
+        const product = allProducts?.find((p: any) => p.id === item.product_id);
+        if (!product) continue;
+        if (product.stock_quantity !== null && product.stock_quantity < item.quantity) {
           return res.status(400).json({ success: false, error: `"${product.name}" is out of stock (only ${product.stock_quantity} available)` });
         }
       }
       return res.status(200).json({ success: true, message: 'Stock validated' });
     } catch (error: any) {
+      console.error('Validation Error:', error);
       return res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
     }
   }
