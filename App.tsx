@@ -31,6 +31,7 @@ import RefundPolicyPage from './RefundPolicyPage';
 import ReturnPolicyPage from './ReturnPolicyPage';
 import ShippingPolicyPage from './ShippingPolicyPage';
 import { supabaseClient } from './lib/supabaseClient';
+import WhatsAppButton from './components/WhatsAppButton';
 import './assets/output.css';
 
 const { height, width } = Dimensions.get('window');
@@ -799,6 +800,7 @@ export default function App() {
     return [];
   });
   const [cartVisible, setCartVisible] = useState(false);
+  const [cartPromo, setCartPromo] = useState<{ code: string; discountAmount: number; label: string } | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
   const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
 
@@ -1394,9 +1396,12 @@ export default function App() {
               priceDisplay: i.product.priceDisplay,
               sizeDetail: i.product.sizeDetail,
             }))}
+            promoCode={cartPromo?.code}
+            promoDiscount={cartPromo?.discountAmount ?? 0}
             onBack={() => { setCurrentPage('product'); setCartVisible(false); }}
             onSuccess={() => {
               setCartItems([]);
+              setCartPromo(null);
               setTimeout(() => setCurrentPage('product'), 2500);
             }}
           />
@@ -1517,11 +1522,15 @@ export default function App() {
         onClose={() => setCartVisible(false)}
         onUpdateQuantity={updateQuantity}
         onRemove={removeFromCart}
-        onCheckout={() => {
+        onCheckout={(promo) => {
+          setCartPromo(promo ?? null);
           setCartVisible(false);
           setCurrentPage('checkout');
         }}
       />
+
+      {/* WhatsApp Floating Button — web only */}
+      <WhatsAppButton />
 
     </View>
   );

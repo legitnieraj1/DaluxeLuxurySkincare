@@ -73,22 +73,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const orderNumber = `DLX-COD-${Date.now().toString(36).toUpperCase()}`;
 
+      // Resolve promo code if provided
+      let promoCodeId: string | null = null;
+      let discountAmount: number = orderPayload.discount_amount || 0;
+      if (orderPayload.promo_code) {
+        const { data: promo } = await supabaseAdmin
+          .from('promo_codes')
+          .select('id, active, expires_at, usage_limit, used_count, commission_pct, influencer_name')
+          .eq('code', orderPayload.promo_code.toUpperCase())
+          .single();
+        if (promo && promo.active) promoCodeId = promo.id;
+      }
+
       const { data: order, error: orderError } = await supabaseAdmin.from('orders').insert({
-        user_id: user.id, order_number: orderNumber, total_amount: orderPayload.total_amount,
-        payment_gateway: 'cod', status: 'confirmed', shipment_status: 'pending',
+        user_id: user.id,
+        order_number: orderNumber,
+        total_amount: orderPayload.total_amount,
+        discount_amount: discountAmount,
+        promo_code_id: promoCodeId,
+        promo_code_used: orderPayload.promo_code?.toUpperCase() || null,
+        payment_method: 'cod',
+        status: 'confirmed',
         shipping_address: orderPayload.shipping_address,
       }).select().single();
 
       if (orderError) return res.status(500).json({ success: false, error: 'Failed to create order' });
 
       const orderItems = cartItems.map((item: any) => ({
-        order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price,
+        order_id: order.id, product_id: item.product_id, quantity: item.quantity,
+        unit_price: item.price, total_price: item.price * item.quantity,
       }));
 
       await supabaseAdmin.from('order_items').insert(orderItems);
-      
+
       for (const item of cartItems) {
-        await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        await supabaseAdmin.rpc('decrement_stock', { product_id: item.product_id, qty: item.quantity });
+      }
+
+      // Record commission if influencer promo code was used
+      if (promoCodeId && orderPayload.promo_code) {
+        const { data: promo } = await supabaseAdmin
+          .from('promo_codes')
+          .select('commission_pct, influencer_name')
+          .eq('id', promoCodeId)
+          .single();
+        if (promo?.influencer_name) {
+          const commissionAmt = parseFloat(((orderPayload.total_amount * promo.commission_pct) / 100).toFixed(2));
+          await Promise.all([
+            supabaseAdmin.from('commissions').insert({
+              promo_code_id: promoCodeId,
+              order_id: order.id,
+              influencer_name: promo.influencer_name,
+              order_amount: orderPayload.total_amount,
+              commission_pct: promo.commission_pct,
+              commission_amount: commissionAmt,
+            }),
+            // Increment total_commission atomically
+            supabaseAdmin.rpc('increment_commission', {
+              code_id: promoCodeId,
+              amount: commissionAmt,
+            }),
+          ]);
+        }
       }
 
       // Clear user's cart after successful order

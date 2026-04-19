@@ -21,6 +21,8 @@ interface CheckoutPageProps {
   items: CheckoutItem[];
   onBack: () => void;
   onSuccess: (paymentId: string) => void;
+  promoCode?: string;
+  promoDiscount?: number;
 }
 
 const GOLD = '#C9A227';
@@ -29,7 +31,7 @@ const TEXT = '#1A1A1A';
 
 type Step = 'details' | 'review' | 'payment';
 
-export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageProps) {
+export default function CheckoutPage({ items, onBack, onSuccess, promoCode, promoDiscount = 0 }: CheckoutPageProps) {
   const [step, setStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
@@ -46,7 +48,8 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const total = subtotal - promoDiscount;
   const getShippingAmount = () => (shipping === 'CALCULATING' ? 0 : shipping);
   const displayShipping = shipping === 'CALCULATING' ? '...' : (shipping === 0 ? 'FREE' : `₹${shipping}`);
   const grandTotal = total + getShippingAmount();
@@ -126,6 +129,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
         return;
       }
     } catch (e: any) {
+      console.error('Validation Error:', e);
       setLoading(false);
       alert('Network error. Please check your connection and try again.');
       return;
@@ -171,6 +175,7 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
           alert('Payment gateway error: ' + (data.error || 'Could not initiate payment'));
         }
       } catch (err: any) { 
+        console.error('PhonePe Initiation Error:', err);
         setLoading(false); 
         alert('Network error connecting to payment gateway.'); 
       }
@@ -291,7 +296,10 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
             ))}
 
             <View style={s.priceBox}>
-              <PriceLine label="Subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
+              <PriceLine label="Subtotal" value={`₹${subtotal.toLocaleString('en-IN')}`} />
+              {promoCode && promoDiscount > 0 && (
+                <PriceLine label={`Promo (${promoCode})`} value={`−₹${promoDiscount.toLocaleString('en-IN')}`} green />
+              )}
               <PriceLine label="Shipping" value={displayShipping} green={shipping === 0} />
               <View style={s.divider} />
               <PriceLine label="Total" value={`₹${grandTotal.toLocaleString('en-IN')}`} bold />

@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const nextConfig: NextConfig = {
-  // Serve the admin under /admin so the proxy can route to it correctly
-  basePath: "/admin",
+  // basePath only needed when running behind the proxy in production
+  basePath: isDev ? "" : "/admin",
 
   async headers() {
     return [

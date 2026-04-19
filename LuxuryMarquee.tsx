@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform, Dimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabaseClient } from './lib/supabaseClient';
 
 const { width: SW } = Dimensions.get('window');
 const isMobile = SW < 768;
 
-const ITEMS = [
+const DEFAULT_ITEMS = [
   'Paraben-Free',
   'Rose Hydrosol Infusion',
   'Ayurvedic Wisdom × Modern Science',
@@ -23,20 +24,87 @@ const ITEMS = [
   'Cruelty-Free',
   'Gold Infusion Skincare',
   'No Irritation Formula',
-  'Ayurvedic Herbal Complex',
+  'ISO & GMP Certified',
   'Suitable for Sensitive Skin',
   'Botanical Active Technology',
 ];
 
-// Triplicate so the loop always has content
-const ALL = [...ITEMS, ...ITEMS, ...ITEMS];
-
 const ITEM_WIDTH = isMobile ? 220 : 320;
-const TOTAL_SCROLL = ITEMS.length * ITEM_WIDTH; // scroll one full set then reset
 
 export default function LuxuryMarquee() {
+  const [items, setItems] = useState<string[]>(DEFAULT_ITEMS);
+  const [enabled, setEnabled] = useState(true);
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<any>(null);
+
+  // Fetch announcements and marquee_enabled from DB
+  const fetchAnnouncements = async () => {
+    const { data, error } = await supabaseClient
+      .from('announcements')
+      .select('text, active, sort_order')
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+    if (error) {
+      console.warn('[LuxuryMarquee] fetchAnnouncements error:', error.message);
+    }
+    if (data && data.length > 0) {
+      setItems(data.map((d) => d.text));
+    } else {
+      setItems(DEFAULT_ITEMS);
+    }
+  };
+
+  const fetchMarqueeEnabled = async () => {
+    const { data, error } = await supabaseClient
+      .from('site_config')
+      .select('value')
+      .eq('key', 'marquee_enabled')
+      .single();
+    if (error) {
+      console.warn('[LuxuryMarquee] fetchMarqueeEnabled error:', error.message);
+      return; // keep default enabled=true
+    }
+    if (data) {
+      // value is stored as JSONB — could be boolean true/false or string "true"/"false"
+      const val = data.value;
+      setEnabled(val !== false && val !== 'false' && val !== null);
+    }
+  };
+
+  // Initial load + real-time subscriptions
+  useEffect(() => {
+    fetchAnnouncements();
+    fetchMarqueeEnabled();
+
+    // Subscribe to announcement changes (add/edit/delete/toggle)
+    const channel = supabaseClient
+      .channel('marquee-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'announcements' },
+        () => {
+          fetchAnnouncements();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'site_config' },
+        (payload: any) => {
+          if (payload.new?.key === 'marquee_enabled') {
+            const val = payload.new?.value;
+            setEnabled(val !== false && val !== 'false');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
+  }, []);
+
+  const ALL = [...items, ...items, ...items];
+  const TOTAL_SCROLL = items.length * ITEM_WIDTH;
 
   const startAnimation = () => {
     translateX.setValue(0);
@@ -52,9 +120,13 @@ export default function LuxuryMarquee() {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      animRef.current?.stop();
+      return;
+    }
     startAnimation();
-    return () => { animRef.current?.stop(); };
-  }, []);
+    return () => animRef.current?.stop();
+  }, [enabled, items]);
 
   const handleMouseEnter = () => {
     if (Platform.OS === 'web') animRef.current?.stop();
@@ -63,6 +135,8 @@ export default function LuxuryMarquee() {
     if (Platform.OS === 'web') startAnimation();
   };
 
+  if (!enabled) return null;
+
   return (
     <View
       style={s.container}
@@ -70,15 +144,18 @@ export default function LuxuryMarquee() {
         ? { onMouseEnter: handleMouseEnter, onMouseLeave: handleMouseLeave }
         : {})}
     >
-      {/* edge fades */}
+      {/* Glassmorphic backdrop */}
+      <View style={s.glassBg} />
+
+      {/* Edge fades */}
       <LinearGradient
-        colors={['#0B0B0B', 'transparent']}
+        colors={['rgba(11,11,11,0.95)', 'transparent']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         style={s.fadeLeft}
         pointerEvents="none"
       />
       <LinearGradient
-        colors={['transparent', '#0B0B0B']}
+        colors={['transparent', 'rgba(11,11,11,0.95)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         style={s.fadeRight}
         pointerEvents="none"
@@ -105,14 +182,25 @@ const SERIF = Platform.select({
 
 const s = StyleSheet.create({
   container: {
-    backgroundColor: '#0B0B0B',
-    paddingVertical: isMobile ? 28 : 40,
+    paddingVertical: isMobile ? 18 : 22,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(212,175,55,0.12)',
+    borderColor: 'rgba(212,175,55,0.15)',
     position: 'relative',
     width: '100%',
+    overflow: 'hidden',
     ...Platform.select({ web: { overflow: 'hidden' } as any }),
+  },
+  glassBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(11,11,11,0.55)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: 'rgba(11,11,11,0.55)',
+      } as any,
+    }),
   },
   overflow: {
     overflow: 'hidden',
@@ -130,9 +218,9 @@ const s = StyleSheet.create({
   },
   text: {
     fontFamily: SERIF,
-    fontSize: isMobile ? 13 : 17,
+    fontSize: isMobile ? 12 : 15,
     fontWeight: '400',
-    letterSpacing: isMobile ? 1.5 : 2.5,
+    letterSpacing: isMobile ? 1.5 : 2,
     textTransform: 'uppercase',
     color: '#D4AF37',
     flexShrink: 1,
@@ -141,29 +229,26 @@ const s = StyleSheet.create({
         backgroundImage: 'linear-gradient(90deg, #D4AF37, #F5D06F, #D4AF37)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
       } as any,
     }),
   },
   dot: {
     color: '#D4AF37',
-    fontSize: 10,
-    opacity: 0.35,
+    fontSize: 9,
+    opacity: 0.4,
     marginHorizontal: isMobile ? 12 : 20,
   },
   fadeLeft: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: isMobile ? 50 : 160,
+    left: 0, top: 0, bottom: 0,
+    width: isMobile ? 50 : 140,
     zIndex: 10,
   },
   fadeRight: {
     position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: isMobile ? 50 : 160,
+    right: 0, top: 0, bottom: 0,
+    width: isMobile ? 50 : 140,
     zIndex: 10,
   },
 });

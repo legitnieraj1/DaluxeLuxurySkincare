@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 export async function GET() {
   const start = Date.now();
@@ -19,7 +19,6 @@ export async function GET() {
 
     const formattedProducts = (products || []).map((product) => {
       let stockMessage = 'In stock';
-
       if (product.stock_quantity <= 0) {
         stockMessage = 'Out of stock';
       } else if (product.stock_quantity <= 5) {
@@ -27,16 +26,12 @@ export async function GET() {
       } else if (product.stock_quantity <= 10) {
         stockMessage = `Low stock — ${product.stock_quantity} remaining`;
       }
-
-      return {
-        ...product,
-        stock_message: stockMessage,
-      };
+      return { ...product, stock_message: stockMessage };
     });
 
     return NextResponse.json({ success: true, products: formattedProducts });
   } catch (error: any) {
-    console.error('[/api/products] unhandled error:', error?.message || error);
+    console.error('[/api/products] error:', error?.message || error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal Server Error' },
       { status: 500 }

@@ -1,15 +1,18 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles, Tag, Megaphone, LogOut } from 'lucide-react';
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { createBrowserClient } from '@supabase/ssr';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { href: '/admin/products', icon: Package, label: 'Products' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
+  { href: '/admin/promo-codes', icon: Tag, label: 'Promo Codes' },
+  { href: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
   { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
@@ -56,8 +59,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Footer */}
         <div className="px-4 pb-6">
           <div className="gold-divider mb-4" />
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 flex items-center justify-between">
             <p className="text-[10px] tracking-widest uppercase" style={{ color: '#3F3F46' }}>v1.0.0 · Daluxe Admin</p>
+            <form action="/api/auth/signout" method="post">
+              <button type="submit" title="Sign out">
+                <LogOut size={13} color="#3F3F46" />
+              </button>
+            </form>
           </div>
         </div>
       </aside>
