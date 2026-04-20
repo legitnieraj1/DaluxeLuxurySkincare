@@ -53,7 +53,10 @@ export default function CheckoutPage({ items, onBack, onSuccess, promoCode, prom
   const getShippingAmount = () => (shipping === 'CALCULATING' ? 0 : shipping);
   const displayShipping = shipping === 'CALCULATING' ? '...' : (shipping === 0 ? 'FREE' : `₹${shipping}`);
   const grandTotal = total + getShippingAmount();
-  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
+  const API_URL =
+    (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
+    (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_BASE_URL) ||
+    '';
 
   async function checkShipping(pincode: string) {
     if (!pincode || pincode.length < 6) return;

@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
-  // basePath only needed when running behind the proxy in production
-  basePath: isDev ? "" : "/admin",
+  // No basePath needed — pages live at app/admin/* so routes are already /admin/*
+  // A basePath of "/admin" would make them /admin/admin/* which is wrong
+  basePath: "",
 
   async headers() {
     return [

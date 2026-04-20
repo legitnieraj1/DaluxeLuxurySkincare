@@ -67,13 +67,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
+  // user may be null for guests — individual actions decide if auth is required
   const user = await getUser(request);
 
-  if (!user) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-
   if (action === 'validate') {
+    // No auth required — guests need stock validation too
     try {
       const { cart_items } = await request.json();
       if (!cart_items || !Array.isArray(cart_items) || cart_items.length === 0) {
@@ -97,12 +95,13 @@ export async function POST(request: Request) {
   }
 
   if (action === 'cod') {
+    // COD allows guests; user may be null
     try {
       const { orderPayload, cartItems } = await request.json();
       const orderNumber = `DLX-COD-${Date.now().toString(36).toUpperCase()}`;
 
       const { data: order, error: orderError } = await supabaseAdmin.from('orders').insert({
-        user_id: user.id,
+        user_id: user?.id ?? null,
         order_number: orderNumber,
         total_amount: orderPayload.total_amount,
         payment_method: 'cod',
@@ -123,10 +122,12 @@ export async function POST(request: Request) {
       await supabaseAdmin.from('order_items').insert(orderItems);
       
       for (const item of cartItems) {
-        await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        await supabaseAdmin.rpc('decrement_stock', { product_id: item.product_id, qty: item.quantity });
       }
 
-      await supabaseAdmin.from('cart_items').delete().eq('user_id', user.id);
+      if (user?.id) {
+        await supabaseAdmin.from('cart_items').delete().eq('user_id', user.id);
+      }
 
       return NextResponse.json({ success: true, order: { order_number: order.order_number } });
     } catch (e: any) {

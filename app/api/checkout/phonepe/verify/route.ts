@@ -99,7 +99,7 @@ export async function POST(request: Request) {
           await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', transactionId);
 
           for (const item of cartItems) {
-            await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+            await supabaseAdmin.rpc('decrement_stock', { product_id: item.product_id, qty: item.quantity });
           }
 
           // Clear user's cart
