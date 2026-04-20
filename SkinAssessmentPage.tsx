@@ -1,84 +1,60 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, TextInput, Platform, Dimensions, ActivityIndicator,
+  Image, TextInput, Platform, Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withRepeat,
-  withSequence, withDelay, Easing, interpolate, Extrapolation,
-  FadeInDown, FadeInUp, FadeIn, SlideInRight, SlideOutLeft,
+  withSequence, withDelay, Easing, FadeInDown, FadeInUp, FadeIn,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ArrowRight, ArrowLeft, Check, Droplets, Sun, Moon, Upload,
-  Camera, Mail, Download, X, Star, Sparkles, ChevronRight, ScanFace
+  ArrowRight, ArrowLeft, Check, Sun, Moon, Mail, Download, X,
+  ChevronRight, ScanFace, Droplet, Wind, Scale, Flower2, Sparkles,
+  Zap, CircleDot, Eye, Waves, Flame, Clock, Glasses, Leaf, Globe,
+  Lock, LucideIcon,
 } from 'lucide-react-native';
 import { Footer } from './Footer';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const isMob = SW < 768;
 
-// ═══════════════════════════════════════
-// DALUXE PALETTE
-// ═══════════════════════════════════════
-const GOLD       = '#D4AF37';
-const GOLD_BRIGHT= '#F0CE5E';
+// ── Palette ─────────────────────────────────────────────────────
+const GOLD       = '#C9A84C';
+const GOLD_LIGHT = '#E7C873';
 const GOLD_DEEP  = '#8A6914';
-const GOLD_GLOW  = 'rgba(212,175,55,0.15)';
-const GOLD_BDR   = 'rgba(212,175,55,0.30)';
-const BG         = '#FDFBF7';
-const BG_ALT     = '#F4EFEA';
-const CARD       = 'rgba(255,255,255,0.85)';
-const DARK       = '#1A1A1A';
-const DIM        = 'rgba(26,26,26,0.6)';
-const MUTED      = 'rgba(26,26,26,0.35)';
-const SERIF      = Platform.select({ web: '"Noto Serif", Georgia, serif', default: undefined });
+const GOLD_GLOW  = 'rgba(201,168,76,0.12)';
+const GOLD_BDR   = 'rgba(201,168,76,0.22)';
+const BG         = '#F5F0EB';
+const CARD       = '#FFFFFF';
+const DARK       = '#1A1208';
+const DIM        = 'rgba(26,18,8,0.55)';
+const MUTED      = 'rgba(26,18,8,0.35)';
+const SERIF      = Platform.select({ web: '"Cormorant Garamond", "Noto Serif", Georgia, serif', default: undefined });
 const WEB        = (o: any) => Platform.select({ web: o as any }) as any;
 
-// ═══════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════
-const MOCK_RESULTS = {
-  skinType: 'Combination',
-  confidence: 87,
-  concerns: [
-    { label: 'Dullness', pct: 72, color: '#C9A227' },
-    { label: 'Pigmentation', pct: 58, color: '#B8962E' },
-    { label: 'Acne', pct: 40, color: '#8A5A19' },
-    { label: 'Dark Spots', pct: 35, color: '#A07828' },
-  ],
-  morningRoutine: ['Gold Glow Face Wash', 'Ultra Sensitive Serum', 'Hydrating Moisturiser', 'SPF 50 Sunscreen'],
-  nightRoutine:   ['Gold Glow Face Wash', 'Repair Night Cream', 'Rosehip Oil'],
-  products: [
-    { id: 1, name: 'GOLD GLOW\nFACE WASH', price: '₹299', img: require('./assets/facewashproductcard.png') },
-    { id: 2, name: 'ULTRA SENSITIVE\nFACE SERUM',  price: '₹449', img: require('./assets/faceserumproductcard.png') },
-    { id: 3, name: 'REPAIR NIGHT\nCREAM',          price: '₹399', img: require('./assets/night cream product cARD.png') },
-  ],
-};
-
-// ═══════════════════════════════════════
-// REUSABLE ATOMS
-// ═══════════════════════════════════════
-const GoldBtn = ({ label, onPress, icon, disabled, size = 'md' }: any) => (
+// ── Reusable: Gold Next Button ───────────────────────────────────
+const GoldBtn = ({ label, onPress, icon, disabled, size = 'md' }: {
+  label: string; onPress: () => void; icon?: LucideIcon; disabled?: boolean; size?: 'md' | 'lg';
+}) => (
   <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85}
-    style={{ opacity: disabled ? 0.45 : 1, borderRadius: 40, overflow: 'hidden',
-      shadowColor: GOLD, shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 }}>
-    <LinearGradient colors={['#FFF1B9', '#D4AF37', '#8A5A19']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+    style={{ opacity: disabled ? 0.4 : 1, borderRadius: 40, overflow: 'hidden',
+      shadowColor: GOLD, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 }}>
+    <LinearGradient colors={['#EDD37A', '#C9A84C', '#8A6914']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-        paddingVertical: size === 'lg' ? 18 : 13, paddingHorizontal: size === 'lg' ? 40 : 28 }}>
-      <Text style={{ color: '#1A1A1A', fontWeight: '700', fontSize: size === 'lg' ? 15 : 13, letterSpacing: 1.5, textTransform: 'uppercase' }}>{label}</Text>
-      {icon && React.createElement(icon, { color: '#1A1A1A', size: 16 })}
+        paddingVertical: size === 'lg' ? 17 : 13, paddingHorizontal: size === 'lg' ? 36 : 24 }}>
+      <Text style={{ color: '#1A1208', fontWeight: '700', fontSize: 12, letterSpacing: 2, textTransform: 'uppercase' }}>{label}</Text>
+      {icon && React.createElement(icon, { color: '#1A1208', size: 15 })}
     </LinearGradient>
   </TouchableOpacity>
 );
 
-const GhostBtn = ({ label, onPress, icon }: any) => (
+const GhostBtn = ({ label, onPress, icon }: { label: string; onPress: () => void; icon?: LucideIcon }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.75}
-    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 13, paddingHorizontal: 24,
-      borderRadius: 40, borderWidth: 1, borderColor: GOLD_BDR, backgroundColor: 'rgba(212,175,55,0.05)' }}>
-    {icon && React.createElement(icon, { color: GOLD, size: 16 })}
-    <Text style={{ color: GOLD, fontWeight: '600', fontSize: 13, letterSpacing: 1 }}>{label}</Text>
+    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 13, paddingHorizontal: 22,
+      borderRadius: 40, borderWidth: 1, borderColor: GOLD_BDR, backgroundColor: 'transparent' }}>
+    {icon && React.createElement(icon, { color: GOLD, size: 15 })}
+    <Text style={{ color: DARK, fontWeight: '500', fontSize: 12, letterSpacing: 0.5 }}>{label}</Text>
   </TouchableOpacity>
 );
 
@@ -90,211 +66,233 @@ const GoldDivider = ({ width: w = 60 }: { width?: number }) => (
   </View>
 );
 
-// ═══════════════════════════════════════
-// PROGRESS BAR
-// ═══════════════════════════════════════
+// ── Progress Bar ─────────────────────────────────────────────────
 const ProgressBar = ({ step, total }: { step: number; total: number }) => {
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = withTiming(step / total, { duration: 500, easing: Easing.out(Easing.ease) });
   }, [step]);
   const barStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` as any }));
-
   return (
-    <View style={{ paddingHorizontal: isMob ? 20 : 40, paddingVertical: 14, backgroundColor: BG,
-      borderBottomWidth: 1, borderBottomColor: 'rgba(212,175,55,0.15)' }}>
+    <View style={{ paddingHorizontal: isMob ? 20 : 40, paddingVertical: 14, backgroundColor: BG }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-        <Text style={{ color: MUTED, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Step {step} of {total}</Text>
-        <Text style={{ color: GOLD, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>{Math.round(step / total * 100)}%</Text>
+        <Text style={{ color: MUTED, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>
+          Step {step} of {total}
+        </Text>
+        <Text style={{ color: GOLD, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>
+          {Math.round((step / total) * 100)}%
+        </Text>
       </View>
-      <View style={{ height: 4, backgroundColor: 'rgba(212,175,55,0.15)', borderRadius: 4, overflow: 'hidden' }}>
-        <Animated.View style={[{ height: '100%', borderRadius: 4 }, barStyle]}>
-          <LinearGradient colors={['#FFF1B9', GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+      <View style={{ height: 3, backgroundColor: 'rgba(201,168,76,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+        <Animated.View style={[{ height: '100%', borderRadius: 3 }, barStyle]}>
+          <LinearGradient colors={['#EDD37A', GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
         </Animated.View>
       </View>
     </View>
   );
 };
 
-// ═══════════════════════════════════════
-// STEP 1 — SKIN TYPE
-// ═══════════════════════════════════════
+// ── Option Card (matches reference) ─────────────────────────────
+const OptionCard = ({ icon: Icon, label, desc, active, onPress }: {
+  icon: LucideIcon; label: string; desc: string; active: boolean; onPress: () => void;
+}) => (
+  <TouchableOpacity onPress={onPress} activeOpacity={0.82}
+    style={[{
+      flexDirection: 'row', alignItems: 'center', gap: 16,
+      paddingVertical: 18, paddingHorizontal: 20,
+      borderRadius: 16, borderWidth: 1,
+      backgroundColor: CARD,
+      borderColor: active ? GOLD : 'rgba(201,168,76,0.15)',
+      ...WEB({
+        boxShadow: active
+          ? '0 4px 20px rgba(201,168,76,0.18)'
+          : '0 2px 10px rgba(0,0,0,0.04)',
+        transition: 'all 0.2s cubic-bezier(0.25,0.46,0.45,0.94)',
+      }),
+    }]}>
+    {/* Icon circle */}
+    <View style={{
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: active ? GOLD_GLOW : 'rgba(201,168,76,0.07)',
+      borderWidth: 1, borderColor: active ? GOLD_BDR : 'rgba(201,168,76,0.12)',
+      justifyContent: 'center', alignItems: 'center',
+    }}>
+      <Icon color={GOLD} size={20} strokeWidth={1.5} />
+    </View>
+    {/* Text */}
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: DARK, fontSize: 13, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 3 }}>
+        {label}
+      </Text>
+      <Text style={{ color: DIM, fontSize: 12, lineHeight: 17 }}>{desc}</Text>
+    </View>
+    {/* Arrow */}
+    <ArrowRight color={active ? GOLD : MUTED} size={16} strokeWidth={1.8} />
+  </TouchableOpacity>
+);
+
+// ── STEP 1 — Skin Type ───────────────────────────────────────────
 const SKIN_TYPES = [
-  { id: 'oily',        label: 'Oily',         desc: 'Shiny T-zone, prone to breakouts',    icon: '💧' },
-  { id: 'dry',         label: 'Dry',          desc: 'Tight, flaky, or rough texture',       icon: '🏜️' },
-  { id: 'combination', label: 'Combination',  desc: 'Oily T-zone, dry cheeks',              icon: '⚖️' },
-  { id: 'sensitive',   label: 'Sensitive',    desc: 'Easily irritated or red',              icon: '🌸' },
-  { id: 'unsure',      label: 'Not Sure',     desc: 'Let our AI figure it out',             icon: '✨' },
+  { id: 'oily',        label: 'Oily',        desc: 'Shiny T-zone, prone to breakouts',  icon: Droplet },
+  { id: 'dry',         label: 'Dry',         desc: 'Tight, flaky, or rough texture',    icon: Wind },
+  { id: 'combination', label: 'Combination', desc: 'Oily T-zone, dry cheeks',           icon: Scale },
+  { id: 'sensitive',   label: 'Sensitive',   desc: 'Easily irritated or red',           icon: Flower2 },
+  { id: 'unsure',      label: 'Not Sure',    desc: 'Let our AI figure it out',          icon: Sparkles },
 ];
 
 const Step1 = ({ value, onSelect }: any) => (
   <View>
-    <Text style={s.stepTitle}>What's your skin type?</Text>
-    <Text style={s.stepSub}>Select the option that best describes your skin on an average day</Text>
-    <View style={{ gap: 12, marginTop: 8 }}>
+    <Text style={s.stepTitle}>What's your{'\n'}skin type?</Text>
+    <Text style={s.stepSub}>Select the option that best describes your skin on an average day.</Text>
+    <View style={{ gap: 10, marginTop: 20 }}>
       {SKIN_TYPES.map(t => (
-        <TouchableOpacity key={t.id} onPress={() => onSelect(t.id)} activeOpacity={0.8}
-          style={[s.optionCard, value === t.id && s.optionCardActive]}>
-          <Text style={{ fontSize: 28 }}>{t.icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[s.optionLabel, value === t.id && { color: GOLD }]}>{t.label}</Text>
-            <Text style={s.optionDesc}>{t.desc}</Text>
-          </View>
-          {value === t.id && (
-            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: GOLD, justifyContent: 'center', alignItems: 'center' }}>
-              <Check color="#1A1A1A" size={13} />
-            </View>
-          )}
-        </TouchableOpacity>
+        <OptionCard key={t.id} icon={t.icon} label={t.label} desc={t.desc}
+          active={value === t.id} onPress={() => onSelect(t.id)} />
       ))}
     </View>
   </View>
 );
 
-// ═══════════════════════════════════════
-// STEP 2 — CONCERNS
-// ═══════════════════════════════════════
+// ── STEP 2 — Concerns ────────────────────────────────────────────
 const CONCERNS_LIST = [
-  { id: 'acne',       label: 'Acne',        icon: '🔴' },
-  { id: 'darkspots',  label: 'Dark Spots',  icon: '🟤' },
-  { id: 'pigment',    label: 'Pigmentation', icon: '🟡' },
-  { id: 'dullness',   label: 'Dullness',    icon: '⬜' },
-  { id: 'pores',      label: 'Large Pores', icon: '🔵' },
-  { id: 'wrinkles',   label: 'Wrinkles',    icon: '〰️' },
-  { id: 'redness',    label: 'Redness',     icon: '🌸' },
+  { id: 'acne',       label: 'Acne',         desc: 'Breakouts and blemishes',         icon: Zap },
+  { id: 'darkspots',  label: 'Dark Spots',   desc: 'Uneven patches and marks',        icon: CircleDot },
+  { id: 'pigment',    label: 'Pigmentation', desc: 'Uneven skin tone',                icon: Eye },
+  { id: 'dullness',   label: 'Dullness',     desc: 'Lack of radiance and glow',       icon: Sparkles },
+  { id: 'pores',      label: 'Large Pores',  desc: 'Visible or enlarged pores',       icon: Waves },
+  { id: 'wrinkles',   label: 'Fine Lines',   desc: 'Early aging and expression lines', icon: Wind },
+  { id: 'redness',    label: 'Redness',      desc: 'Flushing or irritation',          icon: Flame },
 ];
 
 const Step2 = ({ value, onToggle }: any) => (
   <View>
-    <Text style={s.stepTitle}>What concerns you most?</Text>
-    <Text style={s.stepSub}>Select all that apply — our AI will prioritize these</Text>
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-      {CONCERNS_LIST.map(c => {
-        const active = value.includes(c.id);
-        return (
-          <TouchableOpacity key={c.id} onPress={() => onToggle(c.id)} activeOpacity={0.8}
-            style={[s.chip, active && s.chipActive]}>
-            <Text style={{ fontSize: 16 }}>{c.icon}</Text>
-            <Text style={[s.chipLabel, active && { color: '#1A1A1A' }]}>{c.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  </View>
-);
-
-// ═══════════════════════════════════════
-// STEP 3 — LIFESTYLE
-// ═══════════════════════════════════════
-const LifestyleChip = ({ label, active, onPress }: any) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8}
-    style={{ paddingVertical: 10, paddingHorizontal: 18, borderRadius: 24, borderWidth: 1,
-      borderColor: active ? GOLD : 'rgba(212,175,55,0.25)',
-      backgroundColor: active ? GOLD_GLOW : 'transparent' }}>
-    <Text style={{ color: active ? GOLD : DIM, fontSize: 13, fontWeight: active ? '700' : '400' }}>{label}</Text>
-  </TouchableOpacity>
-);
-
-const LifeSection = ({ title, options, selected, onSelect }: any) => (
-  <View style={{ marginBottom: 28 }}>
-    <Text style={{ color: DARK, fontSize: 14, fontWeight: '600', marginBottom: 12, letterSpacing: 0.5 }}>{title}</Text>
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {options.map((o: string) => (
-        <LifestyleChip key={o} label={o} active={selected === o} onPress={() => onSelect(o)} />
+    <Text style={s.stepTitle}>What concerns{'\n'}you most?</Text>
+    <Text style={s.stepSub}>Select all that apply — our AI will prioritize these.</Text>
+    <View style={{ gap: 10, marginTop: 20 }}>
+      {CONCERNS_LIST.map(c => (
+        <OptionCard key={c.id} icon={c.icon} label={c.label} desc={c.desc}
+          active={value.includes(c.id)} onPress={() => onToggle(c.id)} />
       ))}
     </View>
   </View>
 );
 
+// ── STEP 3 — Lifestyle ───────────────────────────────────────────
+const LIFESTYLE_SECTIONS = [
+  { key: 'sleep', label: 'Hours of sleep per night', icon: Moon, options: ['< 5 hrs', '5–6 hrs', '7–8 hrs', '8+ hrs'] },
+  { key: 'water', label: 'Daily water intake',        icon: Droplet, options: ['< 1L', '1–2L', '2–3L', '3L+'] },
+  { key: 'sun',   label: 'Sun exposure',              icon: Sun,    options: ['Minimal', 'Moderate', 'High', 'Extreme'] },
+  { key: 'env',   label: 'Environment',               icon: Globe,  options: ['City', 'Suburban', 'Rural', 'Coastal'] },
+];
+
 const Step3 = ({ value, onChange }: any) => (
   <View>
-    <Text style={s.stepTitle}>Your Lifestyle</Text>
-    <Text style={s.stepSub}>These factors significantly shape your skin's health</Text>
-    <View style={{ marginTop: 16 }}>
-      <LifeSection title="💤  Hours of sleep per night"
-        options={['< 5 hrs', '5–6 hrs', '7–8 hrs', '8+ hrs']}
-        selected={value.sleep} onSelect={(v: string) => onChange({ ...value, sleep: v })} />
-      <LifeSection title="💧  Daily water intake"
-        options={['< 1L', '1–2L', '2–3L', '3L+']}
-        selected={value.water} onSelect={(v: string) => onChange({ ...value, water: v })} />
-      <LifeSection title="☀️  Sun exposure"
-        options={['Minimal', 'Moderate', 'High', 'Extreme']}
-        selected={value.sun} onSelect={(v: string) => onChange({ ...value, sun: v })} />
-      <LifeSection title="🏙️  Environment"
-        options={['City/Urban', 'Suburban', 'Rural', 'Coastal']}
-        selected={value.env} onSelect={(v: string) => onChange({ ...value, env: v })} />
+    <Text style={s.stepTitle}>Your{'\n'}Lifestyle</Text>
+    <Text style={s.stepSub}>These factors significantly shape your skin's health.</Text>
+    <View style={{ marginTop: 20, gap: 28 }}>
+      {LIFESTYLE_SECTIONS.map(sec => (
+        <View key={sec.key}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <sec.icon color={GOLD} size={14} strokeWidth={1.8} />
+            <Text style={{ color: DARK, fontSize: 12, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>
+              {sec.label}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {sec.options.map(opt => {
+              const active = value[sec.key] === opt;
+              return (
+                <TouchableOpacity key={opt} onPress={() => onChange({ ...value, [sec.key]: opt })} activeOpacity={0.8}
+                  style={{
+                    paddingVertical: 10, paddingHorizontal: 20, borderRadius: 24,
+                    borderWidth: 1,
+                    borderColor: active ? GOLD : 'rgba(201,168,76,0.25)',
+                    backgroundColor: active ? CARD : 'transparent',
+                    ...WEB({ boxShadow: active ? '0 2px 12px rgba(201,168,76,0.15)' : 'none', transition: 'all 0.18s ease' }),
+                  }}>
+                  <Text style={{ color: active ? DARK : DIM, fontSize: 13, fontWeight: active ? '600' : '400' }}>
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ))}
     </View>
   </View>
 );
 
-// ═══════════════════════════════════════
-// STEP 4 — PHOTO UPLOAD
-// ═══════════════════════════════════════
+// ── STEP 4 — Photo Upload ────────────────────────────────────────
 const Step4 = ({ onSkip }: any) => (
   <View>
-    <Text style={s.stepTitle}>Skin Photo Analysis</Text>
-    <Text style={s.stepSub}>Optional — Upload a selfie for AI visual skin detection</Text>
-    <View style={[s.uploadBox, { marginTop: 20 }]}>
-      <LinearGradient colors={[GOLD_GLOW, 'transparent']} style={StyleSheet.absoluteFillObject} />
-      <ScanFace color={GOLD} size={44} />
-      <Text style={{ color: DARK, fontSize: 16, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>Drag & drop your photo</Text>
-      <Text style={{ color: DIM, fontSize: 13, marginTop: 6, textAlign: 'center', lineHeight: 20 }}>Or tap to upload — JPG, PNG (max 5MB){'\n'}No photo is stored or shared</Text>
-      <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-        <GoldBtn label="Upload Photo" icon={Upload} />
-        <GhostBtn label="Use Camera" icon={Camera} />
+    <Text style={s.stepTitle}>Skin Photo{'\n'}Analysis</Text>
+    <Text style={s.stepSub}>Optional — Upload a selfie for AI visual skin detection.</Text>
+    <View style={[s.uploadBox, { marginTop: 24 }]}>
+      <View style={{
+        width: 72, height: 72, borderRadius: 36,
+        backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+      }}>
+        <ScanFace color={GOLD} size={34} strokeWidth={1.2} />
+      </View>
+      <Text style={{ color: DARK, fontSize: 16, fontWeight: '600', marginBottom: 6, textAlign: 'center' }}>
+        Upload a clear selfie
+      </Text>
+      <Text style={{ color: DIM, fontSize: 13, textAlign: 'center', lineHeight: 20, maxWidth: 280 }}>
+        No photo is stored or shared. Used only for AI skin analysis.
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+        <GoldBtn label="Choose Photo" onPress={() => {}} icon={ArrowRight} />
       </View>
     </View>
     <TouchableOpacity onPress={onSkip} style={{ marginTop: 18, alignItems: 'center' }}>
-      <Text style={{ color: MUTED, fontSize: 13, textDecorationLine: 'underline' }}>Skip this step — I'll go without photo</Text>
+      <Text style={{ color: MUTED, fontSize: 12, letterSpacing: 0.3 }}>Skip — continue without photo</Text>
     </TouchableOpacity>
   </View>
 );
 
-// ═══════════════════════════════════════
-// STEP 5 — BASIC INFO
-// ═══════════════════════════════════════
+// ── STEP 5 — Basic Info ──────────────────────────────────────────
 const Step5 = ({ value, onChange }: any) => (
   <View>
-    <Text style={s.stepTitle}>Almost there! ✨</Text>
-    <Text style={s.stepSub}>We'll personalize your report and send it straight to you</Text>
-    <View style={{ gap: 16, marginTop: 20 }}>
+    <Text style={s.stepTitle}>Almost{'\n'}there.</Text>
+    <Text style={s.stepSub}>We'll personalize your report and send it straight to you.</Text>
+    <View style={{ gap: 16, marginTop: 24 }}>
       <View>
         <Text style={s.inputLabel}>Your Name</Text>
-        <TextInput
-          value={value.name} onChangeText={(v) => onChange({ ...value, name: v })}
-          placeholder="e.g. Priya Sharma"
-          placeholderTextColor={MUTED}
-          style={s.input}
-        />
+        <TextInput value={value.name} onChangeText={(v) => onChange({ ...value, name: v })}
+          placeholder="e.g. Priya Sharma" placeholderTextColor={MUTED} style={s.input} />
       </View>
       <View>
         <Text style={s.inputLabel}>Email Address</Text>
-        <TextInput
-          value={value.email} onChangeText={(v) => onChange({ ...value, email: v })}
-          placeholder="priya@email.com"
-          placeholderTextColor={MUTED}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={s.input}
-        />
+        <TextInput value={value.email} onChangeText={(v) => onChange({ ...value, email: v })}
+          placeholder="priya@email.com" placeholderTextColor={MUTED}
+          keyboardType="email-address" autoCapitalize="none" style={s.input} />
       </View>
-      <View style={{ padding: 16, borderRadius: 14, backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR, gap: 6 }}>
-        <Text style={{ color: GOLD, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>🔒  Privacy Assured</Text>
-        <Text style={{ color: DIM, fontSize: 12, lineHeight: 18 }}>Your data stays private. We only use it to generate your skin report — never sold or shared.</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+        padding: 16, borderRadius: 14, backgroundColor: 'rgba(201,168,76,0.06)',
+        borderWidth: 1, borderColor: GOLD_BDR }}>
+        <Lock color={GOLD} size={14} strokeWidth={1.8} style={{ marginTop: 1 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: DARK, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>
+            Privacy Assured
+          </Text>
+          <Text style={{ color: DIM, fontSize: 12, lineHeight: 18 }}>
+            Your data stays private. We only use it to generate your skin report — never sold or shared.
+          </Text>
+        </View>
       </View>
     </View>
   </View>
 );
 
-// ═══════════════════════════════════════
-// ANALYSIS LOADING SCREEN
-// ═══════════════════════════════════════
+// ── Analysis Loading ─────────────────────────────────────────────
 const LOAD_MSGS = [
-  'Analyzing your skin…',
+  'Analyzing your skin profile…',
   'Detecting skin concerns…',
-  'Mapping your skin profile…',
+  'Mapping your skin type…',
   'Generating personalized routine…',
-  'Finding the best DaLuxe products for you!',
+  'Finding the best DaLuxe products…',
 ];
 
 const AnalysisScreen = ({ onDone }: { onDone: () => void }) => {
@@ -308,14 +306,7 @@ const AnalysisScreen = ({ onDone }: { onDone: () => void }) => {
       withTiming(1, { duration: 900 }),
       withTiming(0.4, { duration: 900 }),
     ), -1, true);
-
-    const interval = setInterval(() => {
-      setMsgIdx(i => {
-        if (i >= LOAD_MSGS.length - 1) return i;
-        return i + 1;
-      });
-    }, 760);
-
+    const interval = setInterval(() => setMsgIdx(i => (i >= LOAD_MSGS.length - 1 ? i : i + 1)), 760);
     const timer = setTimeout(onDone, 3900);
     return () => { clearInterval(interval); clearTimeout(timer); };
   }, []);
@@ -326,25 +317,24 @@ const AnalysisScreen = ({ onDone }: { onDone: () => void }) => {
   return (
     <View style={{ flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
       <Animated.View style={[{ marginBottom: 36 }, glowStyle]}>
-        <LinearGradient colors={[GOLD_GLOW, 'rgba(212,175,55,0.05)']}
-          style={{ width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: GOLD_BDR }}>
-          <ScanFace color={GOLD} size={52} strokeWidth={1} />
-        </LinearGradient>
+        <View style={{ width: 100, height: 100, borderRadius: 50,
+          backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR,
+          justifyContent: 'center', alignItems: 'center',
+          ...WEB({ boxShadow: '0 0 60px rgba(201,168,76,0.25)' }) }}>
+          <ScanFace color={GOLD} size={48} strokeWidth={1} />
+        </View>
       </Animated.View>
-
-      <Text style={{ color: DARK, fontSize: isMob ? 22 : 28, fontWeight: '300', fontFamily: SERIF, textAlign: 'center', marginBottom: 8 }}>
+      <Text style={{ color: DARK, fontSize: isMob ? 22 : 28, fontWeight: '300', fontFamily: SERIF, textAlign: 'center', marginBottom: 6 }}>
         DaLuxe AI Analysis
       </Text>
       <GoldDivider width={60} />
-
-      <Text key={msgIdx} style={{ color: DIM, fontSize: 14, marginTop: 8, marginBottom: 32, textAlign: 'center', letterSpacing: 0.3 }}>
+      <Text style={{ color: DIM, fontSize: 13, marginTop: 8, marginBottom: 32, textAlign: 'center', letterSpacing: 0.3 }}>
         {LOAD_MSGS[msgIdx]}
       </Text>
-
-      <View style={{ width: '100%', maxWidth: 320, height: 4, borderRadius: 4,
-        backgroundColor: 'rgba(212,175,55,0.15)', overflow: 'hidden', marginBottom: 10 }}>
-        <Animated.View style={[{ height: '100%', borderRadius: 4 }, barStyle]}>
-          <LinearGradient colors={['#FFF1B9', GOLD, GOLD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+      <View style={{ width: '100%', maxWidth: 320, height: 3, borderRadius: 3,
+        backgroundColor: 'rgba(201,168,76,0.15)', overflow: 'hidden', marginBottom: 10 }}>
+        <Animated.View style={[{ height: '100%', borderRadius: 3 }, barStyle]}>
+          <LinearGradient colors={['#EDD37A', GOLD, GOLD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
         </Animated.View>
       </View>
       <Text style={{ color: MUTED, fontSize: 11, letterSpacing: 1 }}>Processing your skin data…</Text>
@@ -352,9 +342,25 @@ const AnalysisScreen = ({ onDone }: { onDone: () => void }) => {
   );
 };
 
-// ═══════════════════════════════════════
-// RESULTS PAGE
-// ═══════════════════════════════════════
+// ── Results ──────────────────────────────────────────────────────
+const MOCK_RESULTS = {
+  skinType: 'Combination',
+  confidence: 87,
+  concerns: [
+    { label: 'Dullness', pct: 72, color: GOLD },
+    { label: 'Pigmentation', pct: 58, color: '#B8962E' },
+    { label: 'Acne', pct: 40, color: '#8A5A19' },
+    { label: 'Dark Spots', pct: 35, color: '#A07828' },
+  ],
+  morningRoutine: ['Gold Glow Face Wash', 'Ultra Sensitive Serum', 'Hydrating Moisturiser', 'SPF 50 Sunscreen'],
+  nightRoutine: ['Gold Glow Face Wash', 'Repair Night Cream', 'Rosehip Oil'],
+  products: [
+    { id: 1, name: 'GOLD GLOW\nFACE WASH',      price: '₹299', img: require('./assets/facewashproductcard.png') },
+    { id: 2, name: 'ULTRA SENSITIVE\nFACE SERUM', price: '₹449', img: require('./assets/faceserumproductcard.png') },
+    { id: 3, name: 'REPAIR NIGHT\nCREAM',         price: '₹399', img: require('./assets/night cream product cARD.png') },
+  ],
+};
+
 const ConcernBar = ({ label, pct, color }: any) => {
   const bar = useSharedValue(0);
   useEffect(() => { bar.value = withDelay(200, withTiming(pct / 100, { duration: 900, easing: Easing.out(Easing.ease) })); }, []);
@@ -363,108 +369,106 @@ const ConcernBar = ({ label, pct, color }: any) => {
     <View style={{ marginBottom: 14 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
         <Text style={{ color: DARK, fontSize: 13, fontWeight: '600' }}>{label}</Text>
-        <Text style={{ color: color, fontSize: 13, fontWeight: '700' }}>{pct}%</Text>
+        <Text style={{ color, fontSize: 13, fontWeight: '700' }}>{pct}%</Text>
       </View>
-      <View style={{ height: 6, backgroundColor: 'rgba(212,175,55,0.1)', borderRadius: 6, overflow: 'hidden' }}>
-        <Animated.View style={[{ height: '100%', borderRadius: 6, backgroundColor: color }, barStyle]} />
+      <View style={{ height: 5, backgroundColor: 'rgba(201,168,76,0.12)', borderRadius: 5, overflow: 'hidden' }}>
+        <Animated.View style={[{ height: '100%', borderRadius: 5, backgroundColor: color }, barStyle]} />
       </View>
     </View>
   );
 };
 
-const RoutineItem = ({ step, label }: any) => (
+const RoutineItem = ({ step: stepNum, label }: any) => (
   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-    <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: GOLD, fontSize: 11, fontWeight: '700' }}>{step}</Text>
+    <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: GOLD_GLOW,
+      borderWidth: 1, borderColor: GOLD_BDR, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: GOLD, fontSize: 10, fontWeight: '700' }}>{stepNum}</Text>
     </View>
     <Text style={{ color: DARK, fontSize: 13, flex: 1 }}>{label}</Text>
-    <ChevronRight color={MUTED} size={14} />
+    <ChevronRight color={MUTED} size={13} />
   </View>
 );
 
 const ResultsPage = ({ name, onEmailReport, onNavigate }: any) => {
   const r = MOCK_RESULTS;
-
   return (
     <ScrollView style={{ flex: 1, backgroundColor: BG }} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <LinearGradient colors={['#2A1F13', '#110C07']}
+      <LinearGradient colors={['#2A1F10', '#110C07']}
         style={{ paddingTop: isMob ? 56 : 72, paddingBottom: 36, paddingHorizontal: isMob ? 24 : 40, alignItems: 'center' }}>
         <Animated.View entering={FadeInDown.duration(700)} style={{ alignItems: 'center' }}>
-          <Text style={{ color: GOLD_BRIGHT, fontSize: 11, fontWeight: '700', letterSpacing: 5, textTransform: 'uppercase', marginBottom: 10 }}>Your Skin Report</Text>
+          <Text style={{ color: GOLD_LIGHT, fontSize: 10, fontWeight: '700', letterSpacing: 5, textTransform: 'uppercase', marginBottom: 10 }}>
+            Your Skin Report
+          </Text>
           <Text style={{ color: '#FFF', fontSize: isMob ? 26 : 36, fontWeight: '300', fontFamily: SERIF, textAlign: 'center' }}>
             {name ? `Hello, ${name}` : 'Your DaLuxe Report'}
           </Text>
           <GoldDivider width={80} />
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginTop: 4 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', marginTop: 4, letterSpacing: 0.5 }}>
             Powered by DaLuxe AI Skin Intelligence
           </Text>
         </Animated.View>
       </LinearGradient>
 
       <View style={{ padding: isMob ? 20 : 40, gap: 20 }}>
-        {/* Skin Type Card */}
         <Animated.View entering={FadeInUp.delay(100).duration(600)} style={s.resultCard}>
-          <Text style={s.resultCardEye}>SKIN SUMMARY</Text>
+          <Text style={s.resultCardEye}>Skin Summary</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
             <View>
-              <Text style={{ color: MUTED, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>Your Skin Type</Text>
-              <Text style={{ color: DARK, fontSize: 24, fontWeight: '700', fontFamily: SERIF, marginTop: 4 }}>{r.skinType}</Text>
+              <Text style={{ color: MUTED, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Your Skin Type</Text>
+              <Text style={{ color: DARK, fontSize: 24, fontWeight: '700', fontFamily: SERIF }}>{r.skinType}</Text>
             </View>
-            <View style={{ alignItems: 'center', padding: 16, backgroundColor: GOLD_GLOW, borderRadius: 16, borderWidth: 1, borderColor: GOLD_BDR }}>
-              <Text style={{ color: GOLD, fontSize: 24, fontWeight: '700' }}>{r.confidence}%</Text>
-              <Text style={{ color: MUTED, fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>CONFIDENCE</Text>
+            <View style={{ padding: 16, backgroundColor: GOLD_GLOW, borderRadius: 16, borderWidth: 1, borderColor: GOLD_BDR, alignItems: 'center' }}>
+              <Text style={{ color: GOLD, fontSize: 22, fontWeight: '700' }}>{r.confidence}%</Text>
+              <Text style={{ color: MUTED, fontSize: 9, fontWeight: '600', letterSpacing: 1.5, marginTop: 2 }}>CONFIDENCE</Text>
             </View>
           </View>
-          <View style={{ marginTop: 18, padding: 14, backgroundColor: 'rgba(212,175,55,0.06)', borderRadius: 12, borderWidth: 1, borderColor: GOLD_BDR }}>
+          <View style={{ marginTop: 16, padding: 14, backgroundColor: 'rgba(201,168,76,0.06)', borderRadius: 12, borderWidth: 1, borderColor: GOLD_BDR }}>
             <Text style={{ color: DIM, fontSize: 13, lineHeight: 20 }}>
-              Your skin shows a mix of oily and dry zones — typically an oily T-zone with balanced cheeks. Requires lightweight hydration and oil-control without stripping.
+              Your skin shows a mix of oily and dry zones with an oily T-zone and balanced cheeks. Requires lightweight hydration and oil-control without stripping.
             </Text>
           </View>
         </Animated.View>
 
-        {/* Concerns */}
         <Animated.View entering={FadeInUp.delay(200).duration(600)} style={s.resultCard}>
-          <Text style={s.resultCardEye}>DETECTED CONCERNS</Text>
+          <Text style={s.resultCardEye}>Detected Concerns</Text>
           <View style={{ marginTop: 16 }}>
             {r.concerns.map(c => <ConcernBar key={c.label} {...c} />)}
           </View>
         </Animated.View>
 
-        {/* Routine */}
         <Animated.View entering={FadeInUp.delay(300).duration(600)} style={s.resultCard}>
-          <Text style={s.resultCardEye}>RECOMMENDED ROUTINE</Text>
+          <Text style={s.resultCardEye}>Recommended Routine</Text>
           <View style={{ flexDirection: isMob ? 'column' : 'row', gap: 20, marginTop: 16 }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <Sun color={GOLD} size={16} />
-                <Text style={{ color: DARK, fontWeight: '700', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>Morning</Text>
+                <Sun color={GOLD} size={14} strokeWidth={1.8} />
+                <Text style={{ color: DARK, fontWeight: '700', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' }}>Morning</Text>
               </View>
               {r.morningRoutine.map((item, i) => <RoutineItem key={i} step={i + 1} label={item} />)}
             </View>
             <View style={{ width: isMob ? '100%' : 1, height: isMob ? 1 : undefined, backgroundColor: GOLD_BDR }} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <Moon color={GOLD} size={16} />
-                <Text style={{ color: DARK, fontWeight: '700', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>Night</Text>
+                <Moon color={GOLD} size={14} strokeWidth={1.8} />
+                <Text style={{ color: DARK, fontWeight: '700', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase' }}>Night</Text>
               </View>
               {r.nightRoutine.map((item, i) => <RoutineItem key={i} step={i + 1} label={item} />)}
             </View>
           </View>
         </Animated.View>
 
-        {/* Recommended Products */}
         <Animated.View entering={FadeInUp.delay(400).duration(600)} style={s.resultCard}>
-          <Text style={s.resultCardEye}>DALUXE PICKS FOR YOU</Text>
-          <Text style={{ color: DIM, fontSize: 13, marginTop: 4, marginBottom: 16 }}>Products formulated for your exact skin profile</Text>
+          <Text style={s.resultCardEye}>DaLuxe Picks For You</Text>
+          <Text style={{ color: DIM, fontSize: 12, marginTop: 4, marginBottom: 16 }}>Products formulated for your exact skin profile</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
             {r.products.map(p => (
-              <View key={p.id} style={{ width: 150, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: GOLD_BDR,
-                backgroundColor: BG, shadowColor: GOLD, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 4 }}>
+              <View key={p.id} style={{ width: 150, borderRadius: 16, overflow: 'hidden',
+                borderWidth: 1, borderColor: GOLD_BDR, backgroundColor: CARD,
+                ...WEB({ boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }) }}>
                 <Image source={p.img} style={{ width: 150, height: 150 }} resizeMode="contain" />
                 <View style={{ padding: 12 }}>
-                  <Text style={{ color: GOLD, fontSize: 9, fontWeight: '700', letterSpacing: 2 }}>DALUXE</Text>
-                  <Text style={{ color: DARK, fontSize: 12, fontWeight: '700', marginTop: 2, lineHeight: 16 }}>{p.name}</Text>
+                  <Text style={{ color: GOLD, fontSize: 8, fontWeight: '700', letterSpacing: 2.5, textTransform: 'uppercase' }}>DALUXE</Text>
+                  <Text style={{ color: DARK, fontSize: 11, fontWeight: '700', marginTop: 3, lineHeight: 16 }}>{p.name}</Text>
                   <Text style={{ color: GOLD, fontSize: 14, fontWeight: '700', marginTop: 6 }}>{p.price}</Text>
                 </View>
               </View>
@@ -472,10 +476,9 @@ const ResultsPage = ({ name, onEmailReport, onNavigate }: any) => {
           </ScrollView>
         </Animated.View>
 
-        {/* CTA Row */}
         <Animated.View entering={FadeInUp.delay(500).duration(600)} style={{ flexDirection: isMob ? 'column' : 'row', gap: 12 }}>
-          <GoldBtn label="Download Report" icon={Download} size="lg" onPress={() => {}} />
-          <GhostBtn label="Send to Email" icon={Mail} onPress={onEmailReport} />
+          <GoldBtn label="Download Report" onPress={() => {}} icon={Download} size="lg" />
+          <GhostBtn label="Send to Email" onPress={onEmailReport} icon={Mail} />
         </Animated.View>
       </View>
       <Footer onNavigate={onNavigate} />
@@ -484,46 +487,7 @@ const ResultsPage = ({ name, onEmailReport, onNavigate }: any) => {
   );
 };
 
-// ═══════════════════════════════════════
-// EMAIL MODAL
-// ═══════════════════════════════════════
-const EmailModal = ({ email, onClose }: any) => {
-  const [val, setVal] = useState(email || '');
-  const [sent, setSent] = useState(false);
-
-  return (
-    <View style={StyleSheet.absoluteFillObject}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={onClose} />
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: BG, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        padding: 28, paddingBottom: 40, borderTopWidth: 1, borderTopColor: GOLD_BDR }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ color: DARK, fontSize: 18, fontWeight: '700', fontFamily: SERIF }}>Email your Report</Text>
-          <TouchableOpacity onPress={onClose}><X color={DIM} size={20} /></TouchableOpacity>
-        </View>
-        {sent ? (
-          <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <Check color={GOLD} size={28} />
-            </View>
-            <Text style={{ color: DARK, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>Here you go!</Text>
-            <Text style={{ color: DIM, fontSize: 13, marginTop: 6, textAlign: 'center' }}>Your DaLuxe skin report is on its way ✨</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={s.inputLabel}>Email Address</Text>
-            <TextInput value={val} onChangeText={setVal} placeholder="your@email.com"
-              placeholderTextColor={MUTED} keyboardType="email-address" autoCapitalize="none" style={[s.input, { marginBottom: 18 }]} />
-            <GoldBtn label="Send Report" icon={Mail} size="lg" onPress={() => setSent(true)} disabled={!val} />
-          </>
-        )}
-      </View>
-    </View>
-  );
-};
-
-// ═══════════════════════════════════════
-// HERO SECTION
-// ═══════════════════════════════════════
+// ── Hero ─────────────────────────────────────────────────────────
 const HeroSection = ({ onStart }: { onStart: () => void }) => {
   const float = useSharedValue(0);
   useEffect(() => {
@@ -535,76 +499,84 @@ const HeroSection = ({ onStart }: { onStart: () => void }) => {
   const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: float.value }] }));
 
   return (
-    <View style={{ flex: 1, minHeight: SH }}>
-      <LinearGradient colors={['#FDFBF7', '#F4EFEA', '#FDFBF7']} style={StyleSheet.absoluteFillObject} />
-      {/* Decorative glow circles */}
-      <View style={{ position: 'absolute', top: SH * 0.15, left: -60, width: 240, height: 240, borderRadius: 120, backgroundColor: 'rgba(212,175,55,0.08)' }} />
-      <View style={{ position: 'absolute', bottom: SH * 0.2, right: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(212,175,55,0.06)' }} />
-
+    <View style={{ flex: 1, minHeight: SH, backgroundColor: BG }}>
+      {/* Mobile background image */}
+      {isMob && (
+        <Image
+          source={require('./assets/backgroundskinassesment-mobile.png')}
+          style={StyleSheet.absoluteFillObject as any}
+          resizeMode="cover"
+        />
+      )}
+      {/* Soft light overlay so text stays legible */}
+      {isMob && (
+        <View style={[StyleSheet.absoluteFillObject as any, { backgroundColor: 'rgba(245,240,235,0.45)' }]} />
+      )}
+      {/* Desktop background image */}
+      {!isMob && (
+        <Image
+          source={require('./assets/bgdesktopskinassesment.png')}
+          style={StyleSheet.absoluteFillObject as any}
+          resizeMode="cover"
+        />
+      )}
+      {!isMob && (
+        <View style={[StyleSheet.absoluteFillObject as any, { backgroundColor: 'rgba(245,240,235,0.40)' }]} />
+      )}
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: isMob ? 28 : 60 }}>
         <Animated.View entering={FadeInDown.duration(800)} style={{ alignItems: 'center' }}>
-          <Text style={{ color: GOLD, fontSize: 10, fontWeight: '700', letterSpacing: 6, textTransform: 'uppercase', marginBottom: 16 }}>
+          <Text style={{ color: GOLD, fontSize: 10, fontWeight: '700', letterSpacing: 5, textTransform: 'uppercase', marginBottom: 16 }}>
             DaLuxe AI
           </Text>
         </Animated.View>
-
         <Animated.View style={floatStyle}>
-          <LinearGradient colors={[GOLD_GLOW, 'rgba(212,175,55,0.03)']}
-            style={{ width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center',
-              borderWidth: 1, borderColor: GOLD_BDR, marginBottom: 28,
-              ...WEB({ boxShadow: `0 0 60px rgba(212,175,55,0.2)` }) }}>
-            <ScanFace color={GOLD} size={48} strokeWidth={1} />
-          </LinearGradient>
+          <View style={{ width: 96, height: 96, borderRadius: 48,
+            backgroundColor: GOLD_GLOW, borderWidth: 1, borderColor: GOLD_BDR,
+            justifyContent: 'center', alignItems: 'center', marginBottom: 28,
+            ...WEB({ boxShadow: '0 0 60px rgba(201,168,76,0.2)' }) }}>
+            <ScanFace color={GOLD} size={46} strokeWidth={1} />
+          </View>
         </Animated.View>
-
         <Animated.View entering={FadeInDown.delay(200).duration(800)} style={{ alignItems: 'center' }}>
-          <Text style={{ color: DARK, fontSize: isMob ? 36 : 56, fontWeight: '300', fontFamily: SERIF,
-            textAlign: 'center', lineHeight: isMob ? 44 : 68, letterSpacing: isMob ? 1 : 2, marginBottom: 20 }}>
+          <Text style={{ color: DARK, fontSize: isMob ? 36 : 52, fontWeight: '300', fontFamily: SERIF,
+            textAlign: 'center', lineHeight: isMob ? 44 : 64, letterSpacing: 1, marginBottom: 20 }}>
             AI Skin{'\n'}Assessment
           </Text>
         </Animated.View>
-
         <Animated.View entering={FadeInDown.delay(400).duration(800)} style={{ alignItems: 'center' }}>
           <GoldDivider width={80} />
-          <Text style={{ color: DIM, fontSize: isMob ? 15 : 18, textAlign: 'center', lineHeight: isMob ? 24 : 30,
-            fontWeight: '300', maxWidth: 440, marginBottom: 36, marginTop: 4 }}>
-            Discover your skin type and personalized{'\n'}DaLuxe routine in seconds
+          <Text style={{ color: DIM, fontSize: isMob ? 14 : 17, textAlign: 'center', lineHeight: isMob ? 22 : 28,
+            fontWeight: '300', maxWidth: 400, marginBottom: 36, marginTop: 4 }}>
+            Discover your skin type and personalized{'\n'}DaLuxe routine in 5 minutes
           </Text>
         </Animated.View>
-
         <Animated.View entering={FadeInUp.delay(600).duration(700)} style={{ alignItems: 'center', gap: 14 }}>
           <GoldBtn label="Start Free Assessment" icon={ArrowRight} size="lg" onPress={onStart} />
-          <View style={{ flexDirection: 'row', gap: 20, marginTop: 16 }}>
-            {['✓ 2 min', '✓ Free', '✓ Personalized'].map(t => (
-              <Text key={t} style={{ color: MUTED, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 }}>{t}</Text>
+          <View style={{ flexDirection: 'row', gap: 24, marginTop: 12 }}>
+            {['2 minutes', 'Free', 'Personalized'].map(t => (
+              <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Check color={GOLD} size={11} strokeWidth={2.5} />
+                <Text style={{ color: MUTED, fontSize: 12, fontWeight: '500' }}>{t}</Text>
+              </View>
             ))}
           </View>
         </Animated.View>
-      </View>
-
-      {/* Scroll hint */}
-      <View style={{ paddingBottom: 40, alignItems: 'center' }}>
-        <Text style={{ color: MUTED, fontSize: 11, letterSpacing: 2 }}>SCROLL TO CONTINUE</Text>
       </View>
     </View>
   );
 };
 
-// ═══════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════
+// ── Main ─────────────────────────────────────────────────────────
 type Phase = 'hero' | 'form' | 'loading' | 'results';
 
 export default function SkinAssessmentPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const [phase, setPhase] = useState<Phase>('hero');
   const [step, setStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
-
   const [skinType, setSkinType] = useState('');
   const [concerns, setConcerns] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState({ sleep: '', water: '', sun: '', env: '' });
   const [info, setInfo] = useState({ name: '', email: '' });
-
   const TOTAL_STEPS = 5;
 
   const toggleConcern = (id: string) =>
@@ -620,25 +592,22 @@ export default function SkinAssessmentPage({ onNavigate }: { onNavigate?: (page:
   };
 
   const handleNext = () => {
-    if (step < TOTAL_STEPS) { setStep(s => s + 1); }
-    else { setPhase('loading'); }
+    if (step < TOTAL_STEPS) setStep(s => s + 1);
+    else setPhase('loading');
   };
 
   if (phase === 'loading') return <AnalysisScreen onDone={() => setPhase('results')} />;
   if (phase === 'results') return (
     <View style={{ flex: 1 }}>
       <ResultsPage name={info.name} onEmailReport={() => setShowModal(true)} onNavigate={onNavigate} />
-      {showModal && <EmailModal email={info.email} onClose={() => setShowModal(false)} />}
     </View>
   );
-
   if (phase === 'hero') return (
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <HeroSection onStart={() => setPhase('form')} />
     </ScrollView>
   );
 
-  // Form phase
   const renderStep = () => {
     switch (step) {
       case 1: return <Step1 value={skinType} onSelect={setSkinType} />;
@@ -651,24 +620,41 @@ export default function SkinAssessmentPage({ onNavigate }: { onNavigate?: (page:
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
+      {/* Mobile background image on form steps */}
+      {isMob && (
+        <Image
+          source={require('./assets/backgroundskinassesment-mobile.png')}
+          style={[StyleSheet.absoluteFillObject as any, { opacity: 0.35 }]}
+          resizeMode="cover"
+        />
+      )}
+      {/* Desktop background image on form steps */}
+      {!isMob && (
+        <Image
+          source={require('./assets/bgdesktopskinassesment.png')}
+          style={[StyleSheet.absoluteFillObject as any, { opacity: 0.30 }]}
+          resizeMode="cover"
+        />
+      )}
       <ProgressBar step={step} total={TOTAL_STEPS} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: isMob ? 20 : 48, paddingBottom: 120, maxWidth: 680, alignSelf: 'center', width: '100%' }}>
-        <Animated.View key={step} entering={FadeIn.duration(350)}>
+        contentContainerStyle={{ padding: isMob ? 24 : 48, paddingBottom: 120, maxWidth: 680, alignSelf: 'center', width: '100%' }}>
+        <Animated.View key={step} entering={FadeIn.duration(320)}>
           {renderStep()}
         </Animated.View>
       </ScrollView>
 
-      {/* Sticky Bottom Nav */}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0,
+      {/* Sticky footer — matches reference exactly */}
+      <View style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
         backgroundColor: BG, paddingHorizontal: isMob ? 20 : 40, paddingVertical: 16,
-        borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.15)',
-        flexDirection: 'row', gap: 12, justifyContent: 'space-between' }}>
-        {step > 1 ? (
-          <GhostBtn label="Back" icon={ArrowLeft} onPress={() => setStep(s => s - 1)} />
-        ) : (
-          <View />
-        )}
+        borderTopWidth: 1, borderTopColor: 'rgba(201,168,76,0.12)',
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        {step > 1
+          ? <GhostBtn label="Back" onPress={() => setStep(s => s - 1)} icon={ArrowLeft} />
+          : <View />
+        }
         <GoldBtn
           label={step === TOTAL_STEPS ? 'Analyse My Skin' : 'Next'}
           icon={step === TOTAL_STEPS ? ScanFace : ArrowRight}
@@ -681,59 +667,39 @@ export default function SkinAssessmentPage({ onNavigate }: { onNavigate?: (page:
   );
 }
 
-// ═══════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════
+// ── Styles ───────────────────────────────────────────────────────
 const s = StyleSheet.create({
   stepTitle: {
-    color: DARK, fontSize: isMob ? 24 : 32, fontWeight: '300',
-    fontFamily: SERIF, letterSpacing: 0.5, marginBottom: 8,
+    color: DARK, fontSize: isMob ? 28 : 36, fontWeight: '300',
+    fontFamily: SERIF, lineHeight: isMob ? 36 : 46, marginBottom: 10,
   },
   stepSub: {
-    color: DIM, fontSize: 14, lineHeight: 22, marginBottom: 4,
+    color: DIM, fontSize: 13, lineHeight: 21, marginBottom: 4,
   },
-  optionCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 18, borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.2)',
-    backgroundColor: CARD,
-    ...WEB({ backdropFilter: 'blur(10px)', transition: 'all 0.2s ease', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }),
-  },
-  optionCardActive: {
-    borderColor: GOLD, backgroundColor: GOLD_GLOW,
-    ...WEB({ boxShadow: `0 4px 24px rgba(212,175,55,0.15)` }),
-  },
-  optionLabel: { color: DARK, fontSize: 15, fontWeight: '600', marginBottom: 2 },
-  optionDesc: { color: DIM, fontSize: 12, lineHeight: 18 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24,
-    borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-  },
-  chipActive: {
-    backgroundColor: GOLD, borderColor: GOLD,
-    ...WEB({ boxShadow: `0 4px 14px rgba(212,175,55,0.3)` }),
-  },
-  chipLabel: { color: DIM, fontSize: 13, fontWeight: '500' },
   uploadBox: {
-    borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', borderColor: GOLD_BDR,
-    padding: isMob ? 32 : 52, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(212,175,55,0.03)', overflow: 'hidden',
-    ...WEB({ backdropFilter: 'blur(10px)' }),
+    borderRadius: 20, borderWidth: 1.5,
+    borderStyle: 'dashed' as const,
+    borderColor: GOLD_BDR,
+    padding: isMob ? 32 : 52,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(201,168,76,0.03)',
   },
-  inputLabel: { color: DARK, fontSize: 13, fontWeight: '600', marginBottom: 8, letterSpacing: 0.3 },
+  inputLabel: {
+    color: DARK, fontSize: 11, fontWeight: '600', marginBottom: 8,
+    letterSpacing: 1, textTransform: 'uppercase' as const,
+  },
   input: {
-    borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.28)', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14,
-    color: DARK, fontSize: 15, backgroundColor: CARD,
+    color: DARK, fontSize: 14, backgroundColor: CARD,
     ...WEB({ outline: 'none', fontFamily: 'inherit' }),
   },
   resultCard: {
     backgroundColor: CARD, borderRadius: 20, padding: isMob ? 20 : 28,
     borderWidth: 1, borderColor: GOLD_BDR,
-    ...WEB({ backdropFilter: 'blur(20px)', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }),
+    ...WEB({ backdropFilter: 'blur(20px)', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }),
   },
   resultCardEye: {
-    color: GOLD, fontSize: 10, fontWeight: '700', letterSpacing: 4, textTransform: 'uppercase',
+    color: GOLD, fontSize: 10, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' as const,
   },
 });

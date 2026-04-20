@@ -142,10 +142,11 @@ export const useAdminStore = create<AdminStore>()(
         set({ isLoading: true });
         const { data, error } = await supabaseAdmin
           .from('orders')
-          .select('*, profiles(full_name, email, phone)')
+          .select('*, profiles(full_name, email, phone), order_items(*)')
           .order('created_at', { ascending: false });
           
         if (!error && data) {
+          const currentProducts = get().products;
           const mapped: Order[] = data.map(o => ({
             id: o.id,
             orderNumber: o.order_number,
@@ -155,7 +156,15 @@ export const useAdminStore = create<AdminStore>()(
             address: o.shipping_address?.address || '',
             city: o.shipping_address?.city || '',
             pincode: o.shipping_address?.pincode || '',
-            items: [], // Would need a separate join or fetch
+            items: (o.order_items || []).map((item: any) => {
+              const matchedProduct = currentProducts.find(p => p.id === item.product_id);
+              return {
+                productId: item.product_id,
+                productName: matchedProduct ? matchedProduct.name : item.product_id,
+                quantity: item.quantity,
+                price: item.price,
+              };
+            }),
             total: Number(o.total_amount),
             status: o.status as any,
             paymentId: o.payment_id || '',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
-import { ShiprocketService } from '@/lib/shiprocket';
+import { createShiprocketOrder } from '@/lib/shiprocket-helper';
 
 const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;
 const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET!;
@@ -69,7 +69,7 @@ async function handleRequest(req: NextRequest) {
       if (!user) return NextResponse.json({ success: false, error: 'Unauthorized. Please log in.' }, { status: 401 });
 
       const body = await req.json();
-      const { amount, cart_items, shipping_address } = body;
+      const { amount, cart_items, shipping_address, email } = body;
       if (!amount || amount <= 0) return NextResponse.json({ success: false, error: 'Invalid payment amount' }, { status: 400 });
 
       const merchantOrderId = `DALUXE-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -82,6 +82,7 @@ async function handleRequest(req: NextRequest) {
           cart_items: JSON.stringify(cart_items),
           shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
           amount,
+          email: email || user.email,
           status: 'initiated',
           created_at: new Date().toISOString(),
         });
@@ -92,7 +93,7 @@ async function handleRequest(req: NextRequest) {
       }
 
       const accessToken = await getAccessToken();
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8082').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
 
       const paymentPayload = {
         merchantOrderId,
@@ -140,7 +141,7 @@ async function handleRequest(req: NextRequest) {
       const statusData = await statusRes.json();
       const state = statusData.state || statusData.orderState || statusData.data?.state || statusData.data?.orderState;
 
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8082').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
 
       if (state === 'COMPLETED') {
         // Check if order already exists
@@ -167,6 +168,7 @@ async function handleRequest(req: NextRequest) {
           payment_method: 'phonepe',
           status: 'confirmed',
           shipping_address: shippingAddr,
+          email: pending.email,
           transaction_id: orderId,
         }).select().single();
 
@@ -176,10 +178,12 @@ async function handleRequest(req: NextRequest) {
         const orderItems = cartItems.map((item: any) => ({
           order_id: order.id,
           product_id: item.product_id,
+          name: item.name || `Product ${item.product_id}`,
           quantity: item.quantity,
           price: item.price,
         }));
-        await supabaseAdmin.from('order_items').insert(orderItems);
+        const { error: itemsErr } = await supabaseAdmin.from('order_items').insert(orderItems);
+        if (itemsErr) console.error('[Order Items Error]:', itemsErr);
 
         // Stock and Cart Cleanup
         for (const item of cartItems) {
@@ -188,41 +192,36 @@ async function handleRequest(req: NextRequest) {
         await supabaseAdmin.from('cart_items').delete().eq('user_id', pending.user_id);
         await supabaseAdmin.from('pending_orders').delete().eq('transaction_id', orderId);
 
-        // Shiprocket Sync
+        // ── Shiprocket: create order + auto-assign AWB ────────────────────
         try {
-          await ShiprocketService.createOrder({
-            order_id: order.id.toString(),
-            order_number: orderNumber,
-            order_date: new Date().toISOString().split('T')[0],
-            billing_customer_name: shippingAddr.name || '',
-            billing_last_name: '',
-            billing_address: shippingAddr.address_line1 || '',
-            billing_city: shippingAddr.city || '',
-            billing_pincode: shippingAddr.pincode || '',
-            billing_state: shippingAddr.state || '',
-            billing_country: 'India',
-            billing_email: '', // Could fetch from profile if needed
-            billing_phone: shippingAddr.phone || '',
-            shipping_is_billing: 1,
-            payment_method: 'Prepaid',
-            sub_total: pending.amount,
-            length: 10, width: 10, height: 10, weight: 0.5,
-            order_items: cartItems.map((item: any) => ({
-              name: item.name || `Product ${item.product_id}`,
-              sku: item.product_id,
-              units: item.quantity,
-              selling_price: item.price,
-              discount: 0, tax: 0, hsn: 0
-            })),
-          }).then(async (srResult: any) => {
-            if (srResult.order_id) {
-              await supabaseAdmin.from('orders').update({
-                shipment_id: srResult.shipment_id?.toString() || null,
-              }).eq('id', order.id);
-            }
+          const srResult = await createShiprocketOrder({
+            orderId:       order.id,
+            orderNumber,
+            email:         pending.email || '',
+            phone:         shippingAddr.phone || '',
+            shippingAddress: {
+              name:          shippingAddr.name || '',
+              address_line1: shippingAddr.address_line1 || '',
+              city:          shippingAddr.city || '',
+              state:         shippingAddr.state || '',
+              pincode:       shippingAddr.pincode || '',
+              phone:         shippingAddr.phone || '',
+            },
+            cartItems,
+            totalAmount:   pending.amount,
+            paymentMethod: 'Prepaid',
           });
+
+          if (srResult) {
+            await supabaseAdmin.from('orders').update({
+              shipment_id:         srResult.shipment_id || null,
+              shiprocket_order_id: srResult.shiprocket_order_id || null,
+              awb_code:            srResult.awb_code || null,
+            }).eq('id', order.id);
+          }
         } catch (srErr) {
-          console.error('[Shiprocket callback err]:', srErr);
+          console.error('[Shiprocket PhonePe Error]:', srErr);
+          // Non-fatal — payment & order already confirmed
         }
 
         return NextResponse.redirect(`${appUrl}/profile?status=success&orderId=${orderId}`);
@@ -231,7 +230,7 @@ async function handleRequest(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/profile?status=failed&error=Payment+State:+${state}`);
     } catch (e: any) {
       console.error('[PhonePe Callback Error]:', e);
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8082').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
       return NextResponse.redirect(`${appUrl}/profile?status=error&error=${encodeURIComponent(e.message)}`);
     }
   }

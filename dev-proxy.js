@@ -7,7 +7,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const PROXY_PORT = 8081;
 const EXPO_PORT  = 8082;
-const ADMIN_PORT = 3001;
+const ADMIN_PORT = 3002;
 
 const app = express();
 
@@ -23,9 +23,6 @@ app.use(
     },
     changeOrigin: true,
     ws: true,
-    pathRewrite: {
-      '^/api': '/admin/api', // Maps storefront /api/xyz to backend /admin/api/xyz
-    },
     logger: console,
   })
 );

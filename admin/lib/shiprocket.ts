@@ -47,8 +47,7 @@ export class ShiprocketService {
             return ''; // Return empty to allow graceful degradation
         }
 
-        console.log('[Shiprocket] Attempting to generate token with email:', email);
-        console.log('[Shiprocket] Using Base URL:', BASE_URL);
+        console.log('[Shiprocket] Attempting to generate token with email:', email, '| password length:', password.length, '| starts with:', password.slice(0, 3));
 
         try {
             const response = await fetch(`${BASE_URL}/auth/login`, {

@@ -73,8 +73,11 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_id             TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS transaction_id         TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_id           TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS awb_code              TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_order_id   TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS expected_delivery      DATE;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_url           TEXT;
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS updated_at             TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS email                TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS updated_at           TIMESTAMPTZ DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id    ON public.orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status     ON public.orders(status);
@@ -97,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.pending_orders (
   cart_items       TEXT NOT NULL,
   shipping_address TEXT,
   amount           NUMERIC(10,2) NOT NULL DEFAULT 0,
+  email            TEXT,
   status           TEXT DEFAULT 'initiated' NOT NULL,
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );

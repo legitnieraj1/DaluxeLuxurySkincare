@@ -49,7 +49,9 @@ export default function DashboardPage() {
   }, [fetchProducts, fetchOrders]);
 
   const stats = useMemo(() => {
-    const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + o.total, 0);
+    // Calculate revenue from all non-cancelled orders (pending, confirmed, processing, shipped, delivered)
+    const validOrders = orders.filter(o => o.status !== 'cancelled');
+    const totalRevenue = validOrders.reduce((s, o) => s + o.total, 0);
     const activeOrders = orders.filter(o => ['pending', 'confirmed', 'processing'].includes(o.status)).length;
     const lowStock = products.filter(p => p.stockStatus === 'low' || p.stockStatus === 'outofstock').length;
     return { totalRevenue, activeOrders, total: orders.length, lowStock };
@@ -69,7 +71,7 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Revenue" value={`₹${stats.totalRevenue.toLocaleString()}`} sub="from delivered orders" icon={TrendingUp} accent="#D4AF37" />
+        <StatCard label="Total Revenue" value={`₹${stats.totalRevenue.toLocaleString()}`} sub="from active & completed orders" icon={TrendingUp} accent="#D4AF37" />
         <StatCard label="Total Orders" value={String(stats.total)} sub="all time" icon={ShoppingBag} accent="#60A5FA" />
         <StatCard label="Active Orders" value={String(stats.activeOrders)} sub="pending / processing" icon={Clock} accent="#A78BFA" />
         <StatCard label="Low / Out of Stock" value={String(stats.lowStock)} sub="products need attention" icon={AlertTriangle} accent="#F87171" urgent={stats.lowStock > 0} />

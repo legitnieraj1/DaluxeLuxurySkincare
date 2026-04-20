@@ -18,6 +18,7 @@ import Animated, {
 import { User, ShoppingCart, ChevronLeft, ChevronRight, Sparkles, Menu, X, Star, ArrowRight, Home, LayoutGrid, MessageCircle, ScanFace } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import CollectionPage, { ProductType, CartItem, CartDrawer, COLLECTION_PRODUCTS } from './CollectionPage';
+import ComboDetailPage, { ComboId } from './ComboDetailPage';
 import OurStoryPage from './OurStoryPage';
 import SkinAssessmentPage from './SkinAssessmentPage';
 import HomeSections from './HomeSections';
@@ -669,9 +670,18 @@ export default function App() {
   const ourStoryScrollY = useSharedValue(0);
   const contactScrollY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedComboId, setSelectedComboId] = React.useState<ComboId | null>(null);
+
   const getInitialPage = () => {
     if (typeof window === 'undefined') return 'product';
     const path = window.location.pathname.toLowerCase();
+    // /collections/:slug — individual product or combo
+    const slugMatch = path.match(/^\/collections\/(.+)$/);
+    if (slugMatch) {
+      const slug = slugMatch[1];
+      if (slug === 'skin-combo' || slug === 'hair-combo') return 'combo-detail';
+      return 'collection';
+    }
     if (path === '/collection' || path === '/collections' || path === '/products') return 'collection';
     if (path === '/our-story') return 'our-story';
     if (path === '/contact') return 'contact';
@@ -686,7 +696,7 @@ export default function App() {
     return 'product';
   };
 
-  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>(getInitialPage);
+  const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy' | 'combo-detail'>(getInitialPage);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
@@ -913,78 +923,81 @@ export default function App() {
 
 
 
-  React.useEffect(() => {
-    if (Platform.OS === 'web') {
-      const path = window.location.pathname.toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      if (path === '/collection' || path === '/collections' || path === '/products') {
-        const concern = searchParams.get('concern');
-        if (concern) setSelectedConcern(concern);
-        setCurrentPage('collection');
-      } else if (path === '/our-story') {
-        setCurrentPage('our-story');
-      } else if (path === '/contact') {
-        setCurrentPage('contact');
-      } else if (path === '/login') {
-        setCurrentPage('login');
-      } else if (path === '/profile') {
-        setCurrentPage('profile');
-      } else if (path === '/skin-assessment') {
-        setCurrentPage('skin-assessment');
-      } else if (path === '/terms-and-conditions') {
-        setCurrentPage('terms');
-      } else if (path === '/privacy-policy') {
-        setCurrentPage('privacy-policy');
-      } else if (path === '/refund-policy') {
-        setCurrentPage('refund-policy');
-      } else if (path === '/return-policy') {
-        setCurrentPage('return-policy');
-      } else if (path === '/shipping-policy') {
-        setCurrentPage('shipping-policy');
-      } else if (path === '/home' || path === '/') {
-        setCurrentPage('product');
+  // Helper: resolve a path string to a page + side-effects
+  const resolvePathToPage = React.useCallback((path: string, params?: URLSearchParams) => {
+    const slugMatch = path.match(/^\/collections\/(.+)$/);
+    if (slugMatch) {
+      const slug = slugMatch[1];
+      if (slug === 'skin-combo' || slug === 'hair-combo') {
+        setSelectedComboId(slug as ComboId);
+        setCurrentPage('combo-detail');
+        return;
       }
-
-      window.onpopstate = () => {
-        const currentPath = window.location.pathname.toLowerCase();
-        const params = new URLSearchParams(window.location.search);
-        if (currentPath === '/collection' || currentPath === '/collections' || currentPath === '/products') {
-          const concern = params.get('concern');
-          setSelectedConcern(concern || null);
-          setCurrentPage('collection');
-        } else if (currentPath === '/our-story') {
-          setCurrentPage('our-story');
-        } else if (currentPath === '/contact') {
-          setCurrentPage('contact');
-        } else if (currentPath === '/login') {
-          setCurrentPage('login');
-        } else if (currentPath === '/profile') {
-          setCurrentPage('profile');
-        } else if (currentPath === '/skin-assessment') {
-          setCurrentPage('skin-assessment');
-        } else if (currentPath === '/terms-and-conditions') {
-          setCurrentPage('terms');
-        } else if (currentPath === '/privacy-policy') {
-          setCurrentPage('privacy-policy');
-        } else if (currentPath === '/refund-policy') {
-          setCurrentPage('refund-policy');
-        } else if (currentPath === '/return-policy') {
-          setCurrentPage('return-policy');
-        } else if (currentPath === '/shipping-policy') {
-          setCurrentPage('shipping-policy');
-        } else {
-          setCurrentPage('product');
-        }
-      };
+      // Regular product slug — open collection with that product highlighted
+      const product = COLLECTION_PRODUCTS.find(p => p.id === slug);
+      if (product) {
+        setSelectedProductId(product.id);
+        setCurrentPage('collection');
+        return;
+      }
+    }
+    if (path === '/collection' || path === '/collections' || path === '/products') {
+      const concern = params?.get('concern');
+      if (concern) setSelectedConcern(concern);
+      setCurrentPage('collection');
+    } else if (path === '/our-story') {
+      setCurrentPage('our-story');
+    } else if (path === '/contact') {
+      setCurrentPage('contact');
+    } else if (path === '/login') {
+      setCurrentPage('login');
+    } else if (path === '/profile') {
+      setCurrentPage('profile');
+    } else if (path === '/skin-assessment') {
+      setCurrentPage('skin-assessment');
+    } else if (path === '/terms-and-conditions') {
+      setCurrentPage('terms');
+    } else if (path === '/privacy-policy') {
+      setCurrentPage('privacy-policy');
+    } else if (path === '/refund-policy') {
+      setCurrentPage('refund-policy');
+    } else if (path === '/return-policy') {
+      setCurrentPage('return-policy');
+    } else if (path === '/shipping-policy') {
+      setCurrentPage('shipping-policy');
+    } else {
+      setCurrentPage('product');
     }
   }, []);
 
   React.useEffect(() => {
     if (Platform.OS === 'web') {
-      const pathMap: Record<string, string> = { product: '/home', collection: '/collections', 'our-story': '/our-story', contact: '/contact', login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile', terms: '/terms-and-conditions', 'privacy-policy': '/privacy-policy', 'refund-policy': '/refund-policy', 'return-policy': '/return-policy', 'shipping-policy': '/shipping-policy' };
+      const path = window.location.pathname.toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search);
+      resolvePathToPage(path, searchParams);
+
+      window.onpopstate = () => {
+        const currentPath = window.location.pathname.toLowerCase();
+        const params = new URLSearchParams(window.location.search);
+        resolvePathToPage(currentPath, params);
+      };
+    }
+  }, [resolvePathToPage]);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      // For combo-detail and product detail pages, URL is already set when navigating
+      // Only use pathMap for non-slug pages
+      if (currentPage === 'combo-detail' || currentPage === 'collection') return;
+      const pathMap: Record<string, string> = {
+        product: '/home', 'our-story': '/our-story', contact: '/contact',
+        login: '/login', 'skin-assessment': '/skin-assessment', profile: '/profile',
+        terms: '/terms-and-conditions', 'privacy-policy': '/privacy-policy',
+        'refund-policy': '/refund-policy', 'return-policy': '/return-policy',
+        'shipping-policy': '/shipping-policy',
+      };
       const path = pathMap[currentPage] || '/home';
       if (window.location.pathname !== path) {
-        // Preserve search params and hash (vitally important for OAuth callbacks)
         const newUrl = path + window.location.search + window.location.hash;
         window.history.pushState({}, '', newUrl);
       }
@@ -1341,15 +1354,36 @@ export default function App() {
             ) : (
                <ScrollView ref={mainScrollRef} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
                  <View style={{ height, width, overflow: 'hidden' }}>{heroContent}</View>
-                  <HomeSections onAddToCart={addToCart} onProductClick={(p: any) => {
+                  <HomeSections
+                    onAddToCart={(item: any) => {
+                      // Combos — add a synthetic product-like object to cart
+                      if (item.category === 'combo' || item.id?.includes('combo')) {
+                        addToCart(item as any);
+                      } else {
+                        addToCart(item);
+                      }
+                    }}
+                    onProductClick={(p: any) => {
                       setSelectedProductId(p.id);
+                      if (Platform.OS === 'web') {
+                        window.history.pushState({}, '', `/collections/${p.id}`);
+                      }
                       setCurrentPage('collection');
-                  }} onStartScan={() => setCurrentPage('skin-assessment')}
-                  onConcernClick={(concernId: string) => {
-                     setSelectedConcern(concernId);
-                     setCurrentPage('collection');
-                  }}
-                  onNavigate={(p: string) => setCurrentPage(p as any)} />
+                    }}
+                    onComboClick={(comboId: ComboId) => {
+                      setSelectedComboId(comboId);
+                      if (Platform.OS === 'web') {
+                        window.history.pushState({}, '', `/collections/${comboId}`);
+                      }
+                      setCurrentPage('combo-detail');
+                    }}
+                    onStartScan={() => setCurrentPage('skin-assessment')}
+                    onConcernClick={(concernId: string) => {
+                      setSelectedConcern(concernId);
+                      setCurrentPage('collection');
+                    }}
+                    onNavigate={(p: string) => setCurrentPage(p as any)}
+                  />
                </ScrollView>
             );
           })()}
@@ -1373,7 +1407,27 @@ export default function App() {
           initialConcern={selectedConcern}
           onClearConcern={() => setSelectedConcern(null)}
           onNavigate={(p: string) => setCurrentPage(p as any)}
+          onProductSlugChange={(slug: string) => {
+            if (Platform.OS === 'web') {
+              const url = slug ? `/collections/${slug}` : '/collections';
+              window.history.replaceState({}, '', url);
+            }
+          }}
         />
+      )}
+
+      {/* ===== COMBO DETAIL PAGE ===== */}
+      {currentPage === 'combo-detail' && selectedComboId && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
+          <ComboDetailPage
+            comboId={selectedComboId}
+            onBack={() => {
+              setCurrentPage('collection');
+              if (Platform.OS === 'web') window.history.pushState({}, '', '/collections');
+            }}
+            onAddToCart={(item: any) => addToCart(item as any)}
+          />
+        </View>
       )}
 
       {/* ===== OUR STORY PAGE ===== */}
@@ -1478,58 +1532,148 @@ export default function App() {
         </View>
       )}
 
-      {/* ===== MOBILE BOTTOM NAVBAR — hidden on checkout / skin-assessment / login / profile / legal ===== */}
+      {/* ===== LIQUID GLASS BOTTOM NAVBAR ===== */}
       {isMobile && !['checkout', 'skin-assessment', 'login', 'profile', 'terms', 'privacy-policy', 'refund-policy', 'return-policy', 'shipping-policy'].includes(currentPage) && (
         <Animated.View style={[{
-          position: 'absolute', bottom: 20, left: 16, right: 16, zIndex: 800,
-          borderRadius: 40,
-          shadowColor: '#C9A227', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 15,
-          overflow: 'hidden'
+          position: 'absolute', bottom: 24, left: 20, right: 20, zIndex: 800,
+          borderRadius: 50,
+          ...Platform.select({ web: {
+            filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.18)) drop-shadow(0 2px 8px rgba(0,0,0,0.10))',
+          } as any }),
         }, bottomNavAnimatedStyle]}>
-          <LinearGradient
-            colors={['rgba(24, 20, 16, 0.45)', 'rgba(5, 5, 5, 0.55)']}
-            start={{x: 0,y: 0}} end={{x: 1,y: 1}}
-            style={{
-              flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-              paddingVertical: 10, paddingHorizontal: 10,
-              borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: 40,
-              ...(Platform.OS === 'web' ? { 
-                backdropFilter: 'saturate(200%) blur(40px)', 
-                WebkitBackdropFilter: 'saturate(200%) blur(40px)',
-                boxShadow: 'inset 0px 1px 1px rgba(255,255,255,0.15)'
-              } as any : {})
-            }}>
-            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('product')}>
-              <Home color={currentPage === 'product' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
-            </TouchableOpacity>
-            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('collection')}>
-              <LayoutGrid color={currentPage === 'collection' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={{
-              position: 'relative', top: -15,
-              width: 56, height: 56, borderRadius: 28,
-              shadowColor: '#E9C349', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
-            }} onPress={() => setCurrentPage('skin-assessment')}>
-              <LinearGradient colors={['#FFF1B9', '#D4AF37', '#8A5A19']} start={{x: 0.2,y: 0}} end={{x: 0.8,y: 1}} style={{ flex: 1, borderRadius: 30, justifyContent: 'center', alignItems: 'center' }}>
-                 <ScanFace color="#110C07" size={26} strokeWidth={1.5} />
-              </LinearGradient>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={{ padding: 10, alignItems: 'center' }} onPress={() => setCurrentPage('contact')}>
-              <MessageCircle color={currentPage === 'contact' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={{ padding: 10, alignItems: 'center', opacity: authLoading ? 0.6 : 1 }} 
-              onPress={() => {
-                if (authLoading) return;
-                setCurrentPage(userEmail ? 'profile' : 'login');
-              }}
-              disabled={authLoading}
-            >
-              <User color={currentPage === 'login' || currentPage === 'profile' ? '#E9C349' : 'rgba(233, 195, 73, 0.6)'} size={22} />
-            </TouchableOpacity>
-          </LinearGradient>
+          {/* Outer glow ring */}
+          <View style={{
+            borderRadius: 50,
+            padding: 1.5,
+            ...Platform.select({ web: {
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.35) 100%)',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.6)',
+            } as any }),
+          }}>
+            {/* Glass pill body */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              paddingVertical: 14,
+              paddingHorizontal: 8,
+              borderRadius: 48,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.30)',
+              backgroundColor: 'rgba(200,230,225,0.22)',
+              overflow: 'hidden',
+              ...Platform.select({ web: {
+                backdropFilter: 'blur(28px) saturate(180%) brightness(1.08)',
+                WebkitBackdropFilter: 'blur(28px) saturate(180%) brightness(1.08)',
+                background: 'linear-gradient(145deg, rgba(210,240,235,0.28) 0%, rgba(180,220,215,0.18) 40%, rgba(200,235,230,0.24) 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 rgba(255,255,255,0.12), 0 8px 40px rgba(0,0,0,0.12)',
+              } as any }),
+            }}>
+
+              {/* HOME */}
+              <TouchableOpacity
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}
+                onPress={() => setCurrentPage('product')}
+                activeOpacity={0.7}
+              >
+                <View style={{
+                  padding: 10, borderRadius: 20,
+                  backgroundColor: currentPage === 'product' ? 'rgba(233,195,73,0.18)' : 'transparent',
+                }}>
+                  <Home
+                    color={currentPage === 'product' ? '#E7C873' : 'rgba(215,175,60,0.55)'}
+                    size={22} strokeWidth={1.8}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Separator */}
+              <View style={{ width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+
+              {/* COLLECTIONS */}
+              <TouchableOpacity
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}
+                onPress={() => setCurrentPage('collection')}
+                activeOpacity={0.7}
+              >
+                <View style={{
+                  padding: 10, borderRadius: 20,
+                  backgroundColor: currentPage === 'collection' ? 'rgba(233,195,73,0.18)' : 'transparent',
+                }}>
+                  <LayoutGrid
+                    color={currentPage === 'collection' ? '#E7C873' : 'rgba(215,175,60,0.55)'}
+                    size={22} strokeWidth={1.8}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Separator */}
+              <View style={{ width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+
+              {/* CENTER — SCAN FACE (elevated gold pill) */}
+              <TouchableOpacity
+                style={{ flex: 1, alignItems: 'center' }}
+                onPress={() => setCurrentPage('skin-assessment')}
+                activeOpacity={0.82}
+              >
+                <View style={{
+                  width: 54, height: 54, borderRadius: 27,
+                  justifyContent: 'center', alignItems: 'center',
+                  marginVertical: -6,
+                  ...Platform.select({ web: {
+                    background: 'linear-gradient(145deg, #FFF5CC 0%, #E7C357 35%, #C9A227 70%, #8A6210 100%)',
+                    boxShadow: '0 0 18px 4px rgba(233,195,73,0.55), 0 4px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.5)',
+                  } as any }),
+                  backgroundColor: '#D4AF37',
+                }}>
+                  <ScanFace color="#1A0F00" size={26} strokeWidth={1.6} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Separator */}
+              <View style={{ width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+
+              {/* CONTACT */}
+              <TouchableOpacity
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}
+                onPress={() => setCurrentPage('contact')}
+                activeOpacity={0.7}
+              >
+                <View style={{
+                  padding: 10, borderRadius: 20,
+                  backgroundColor: currentPage === 'contact' ? 'rgba(233,195,73,0.18)' : 'transparent',
+                }}>
+                  <MessageCircle
+                    color={currentPage === 'contact' ? '#E7C873' : 'rgba(215,175,60,0.55)'}
+                    size={22} strokeWidth={1.8}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Separator */}
+              <View style={{ width: 1, height: 22, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+
+              {/* PROFILE */}
+              <TouchableOpacity
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 4, opacity: authLoading ? 0.5 : 1 }}
+                onPress={() => { if (!authLoading) setCurrentPage(userEmail ? 'profile' : 'login'); }}
+                activeOpacity={0.7}
+                disabled={authLoading}
+              >
+                <View style={{
+                  padding: 10, borderRadius: 20,
+                  backgroundColor: (currentPage === 'login' || currentPage === 'profile') ? 'rgba(233,195,73,0.18)' : 'transparent',
+                }}>
+                  <User
+                    color={(currentPage === 'login' || currentPage === 'profile') ? '#E7C873' : 'rgba(215,175,60,0.55)'}
+                    size={22} strokeWidth={1.8}
+                  />
+                </View>
+              </TouchableOpacity>
+
+            </View>
+          </View>
         </Animated.View>
       )}
 

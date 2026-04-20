@@ -239,18 +239,140 @@ const ReviewsSection = () => {
 
 
 // --------------------------------------------------------------------------
+// COMBO OFFERS SECTION
+// --------------------------------------------------------------------------
+const COMBOS = COLLECTION_PRODUCTS.filter(p => p.category === 'combo');
+
+const ComboCard = ({ combo, onAddToCart, onComboClick }: {
+  combo: typeof COMBOS[0];
+  onAddToCart?: (combo: any) => void;
+  onComboClick?: (id: string) => void;
+}) => {
+  const isMobile = useIsMobile();
+  return (
+    <TouchableOpacity
+      onPress={() => onComboClick && onComboClick(combo.id)}
+      activeOpacity={0.92}
+      style={[comboStyles.card, isMobile && { width: width - 48 }]}>
+      {/* Image area */}
+      <View style={[comboStyles.imageWrap, { backgroundColor: combo.themeBg }]}>
+        <Image source={combo.image} style={comboStyles.image} resizeMode="contain" />
+        {/* FREE badge */}
+        <View style={[comboStyles.freeBadge, { backgroundColor: combo.themeColor }]}>
+          <Text style={comboStyles.freeBadgeText}>+ {(combo as any).freeBadge || 'FREE GIFT inside'}</Text>
+        </View>
+        {/* Tag */}
+        <View style={comboStyles.tagPill}>
+          <Text style={comboStyles.tagPillText}>{(combo as any).tag || combo.shortName}</Text>
+        </View>
+      </View>
+
+      {/* Info */}
+      <View style={comboStyles.info}>
+        <Text style={[comboStyles.comboSubtitle, { color: combo.themeColor }]}>D A LUXE</Text>
+        <Text style={comboStyles.comboName}>{combo.name}</Text>
+        <Text style={comboStyles.comboTagline}>{combo.tagline}</Text>
+
+        {/* Included items */}
+        <View style={comboStyles.includesList}>
+          {(combo as any).includes?.map((item: any, i: number) => (
+            <View key={i} style={comboStyles.includesItem}>
+              <View style={[comboStyles.includeDot, { backgroundColor: combo.themeColor }]} />
+              <Text style={comboStyles.includesText}>{typeof item === 'string' ? item : item.name}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Benefits pills */}
+        <View style={comboStyles.benefitsRow}>
+          {combo.benefits.map((b, i) => (
+            <View key={i} style={[comboStyles.benefitPill, { borderColor: combo.themeColor + '50' }]}>
+              <Text style={[comboStyles.benefitText, { color: combo.themeColor }]}>{b}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Price + CTA */}
+        <View style={comboStyles.footer}>
+          <Text style={comboStyles.price}>{(combo as any).priceDisplay || `₹${combo.price}`}</Text>
+          <TouchableOpacity
+            onPress={() => onAddToCart && onAddToCart(combo)}
+            activeOpacity={0.85}
+            style={{ borderRadius: 28, overflow: 'hidden' }}>
+            <LinearGradient
+              colors={combo.id === 'skin-combo'
+                ? ['#EDD37A', '#C9A84C', '#8A6914']
+                : ['#A8C898', '#7B9E6B', '#4A6B3A']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={comboStyles.ctaBtn}>
+              <Text style={comboStyles.ctaText}>ADD COMBO TO CART</Text>
+              <ArrowRight color="#1A1A1A" size={14} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const ComboOffersSection = ({ onAddToCart, onComboClick }: {
+  onAddToCart?: (combo: any) => void;
+  onComboClick?: (id: string) => void;
+}) => {
+  const isMobile = useIsMobile();
+  return (
+    <View style={comboStyles.section}>
+      {/* Header */}
+      <View style={comboStyles.header}>
+        <View style={comboStyles.headerLine} />
+        <View style={comboStyles.headerCenter}>
+          <Text style={comboStyles.eyebrow}>EXCLUSIVE OFFER</Text>
+          <Text style={comboStyles.sectionTitle}>Our Combo Offers</Text>
+          <Text style={comboStyles.sectionSub}>
+            Complete routines at one price — with a surprise freebie inside every combo.
+          </Text>
+        </View>
+        <View style={comboStyles.headerLine} />
+      </View>
+
+      {/* Cards */}
+      <ScrollView
+        horizontal={isMobile}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[
+          isMobile ? comboStyles.scrollRowMob : comboStyles.desktopGrid,
+        ]}
+        scrollEnabled={isMobile}
+        style={{ width: '100%' }}
+      >
+        {COMBOS.map(c => <ComboCard key={c.id} combo={c} onAddToCart={onAddToCart} onComboClick={onComboClick} />)}
+      </ScrollView>
+
+      {/* Guarantee strip */}
+      <View style={comboStyles.guaranteeStrip}>
+        {['Dermal-Grade Formula', 'Chemical-Free', 'Sensitive Skin Safe', 'Limited-Time Offer'].map((t, i) => (
+          <React.Fragment key={t}>
+            <Text style={comboStyles.guaranteeText}>{t}</Text>
+            {i < 3 && <Text style={comboStyles.guaranteeDot}>·</Text>}
+          </React.Fragment>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+// --------------------------------------------------------------------------
 // MAIN COMPONENT
 // --------------------------------------------------------------------------
-export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick, onNavigate }: any) {
-  // Use existing COLLECTION_PRODUCTS for categories
-  const faceSerums = COLLECTION_PRODUCTS.filter(p => p.category === 'serum' || p.category === 'facewash');
-  const moisturizers = COLLECTION_PRODUCTS.filter(p => p.category !== 'facewash');
-  const combos = COLLECTION_PRODUCTS;
+export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick, onNavigate, onComboClick }: any) {
+  const singleProducts = COLLECTION_PRODUCTS.filter(p => p.category !== 'combo');
+  const moisturizers = singleProducts.filter(p => p.category !== 'facewash');
 
   return (
     <View style={[{ width: '100%', backgroundColor: '#F8F6F0' }, Platform.OS === 'web' ? { overflowX: 'hidden' } as any : { overflow: 'hidden' }]}>
       <ShopByConcern onConcernClick={onConcernClick} />
-      <ProductCarouselSection title="Our Most Loved Products" products={COLLECTION_PRODUCTS} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
+      <ProductCarouselSection title="Our Most Loved Products" products={singleProducts} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
+      <ComboOffersSection onAddToCart={onAddToCart} onComboClick={onComboClick} />
       <SkinAssessment onStartScan={onStartScan} />
       <LuxuryMarquee />
       <CampaignBanners onNavigate={onNavigate} />
@@ -260,6 +382,7 @@ export default function HomeSections({ onAddToCart, onProductClick, onStartScan,
     </View>
   );
 }
+
 
 // --------------------------------------------------------------------------
 // STYLES
@@ -349,3 +472,110 @@ const reviewStyles = StyleSheet.create({
   quote: { fontSize: 15, fontStyle: 'italic', color: '#444', lineHeight: 24, marginBottom: 20 },
   author: { fontSize: 13, fontWeight: '700', color: '#1A1A1A', flexDirection: 'row', alignItems: 'center' },
 });
+
+const comboStyles = StyleSheet.create({
+  section: {
+    paddingVertical: 72, width: '100%', alignItems: 'center',
+    backgroundColor: '#FDFBF7',
+  },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 20,
+    marginBottom: 48, paddingHorizontal: 24, width: '100%', maxWidth: 1100,
+  },
+  headerLine: {
+    flex: 1, height: 1, backgroundColor: 'rgba(201,168,76,0.25)',
+  },
+  headerCenter: { alignItems: 'center', gap: 6 },
+  eyebrow: {
+    color: '#C9A84C', fontSize: 10, fontWeight: '800',
+    letterSpacing: 4, textTransform: 'uppercase',
+  },
+  sectionTitle: {
+    fontSize: 30, fontWeight: '300', color: '#1A1208', textAlign: 'center',
+    ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }),
+  },
+  sectionSub: {
+    fontSize: 13, color: 'rgba(26,18,8,0.5)', textAlign: 'center', maxWidth: 340,
+  },
+  scrollRowMob: { paddingHorizontal: 24, gap: 20 },
+  desktopGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
+    gap: 32, paddingHorizontal: 40,
+  },
+  // Card
+  card: {
+    width: 460, borderRadius: 28, overflow: 'hidden',
+    backgroundColor: '#FFF',
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.18)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 40px rgba(0,0,0,0.07)',
+        transition: 'transform 0.25s ease',
+      } as any,
+    }),
+  },
+  imageWrap: {
+    height: 280, width: '100%',
+    justifyContent: 'center', alignItems: 'center',
+    position: 'relative',
+  },
+  image: { width: '90%', height: '90%' },
+  freeBadge: {
+    position: 'absolute', bottom: 14, left: 14,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20,
+  },
+  freeBadgeText: {
+    color: '#FFF', fontSize: 10, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase',
+  },
+  tagPill: {
+    position: 'absolute', top: 14, left: 14,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)',
+  },
+  tagPillText: {
+    fontSize: 9, fontWeight: '800', letterSpacing: 2, color: '#8A6914',
+  },
+  info: { padding: 24, gap: 10 },
+  comboSubtitle: {
+    fontSize: 9, fontWeight: '800', letterSpacing: 3, textTransform: 'uppercase',
+  },
+  comboName: {
+    fontSize: 20, fontWeight: '600', color: '#1A1208', letterSpacing: 0.3,
+    ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }),
+  },
+  comboTagline: { fontSize: 12, color: 'rgba(26,18,8,0.5)', marginBottom: 4 },
+  includesList: { gap: 6, marginTop: 2 },
+  includesItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  includeDot: { width: 5, height: 5, borderRadius: 3 },
+  includesText: { fontSize: 12, color: 'rgba(26,18,8,0.65)', flex: 1 },
+  benefitsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  benefitPill: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  benefitText: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
+  footer: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: 8, paddingTop: 16,
+    borderTopWidth: 1, borderColor: 'rgba(201,168,76,0.18)',
+  },
+  price: {
+    fontSize: 18, fontWeight: '700', color: '#1A1208',
+  },
+  ctaBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 12, paddingHorizontal: 20, borderRadius: 28,
+  },
+  ctaText: { color: '#1A1208', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  // Guarantee strip
+  guaranteeStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexWrap: 'wrap', justifyContent: 'center',
+    marginTop: 40, paddingHorizontal: 24,
+  },
+  guaranteeText: { fontSize: 11, color: 'rgba(26,18,8,0.45)', fontWeight: '500', letterSpacing: 0.5 },
+  guaranteeDot: { fontSize: 14, color: 'rgba(201,168,76,0.5)' },
+});
+

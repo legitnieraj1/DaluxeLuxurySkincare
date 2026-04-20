@@ -321,7 +321,13 @@ const OrderDetail = ({ order, onBack, onTrack }: any) => {
         <Text style={sec.cardTitle}>Items in this Order</Text>
         {(order.products || []).map((p: any, i: number) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16, paddingBottom: 16, borderBottomWidth: i < order.products.length - 1 ? 1 : 0, borderColor: BORDER_LT }}>
-            {p.image && <Image source={p.image} style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: BG2 }} resizeMode="contain" />}
+            {(p.image || p.imageUrl) ? (
+              <Image source={p.image ? p.image : { uri: p.imageUrl }} style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: BG2 }} resizeMode="contain" />
+            ) : (
+              <View style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: BG2, justifyContent: 'center', alignItems: 'center' }}>
+                <Package color={GOLD} size={20} strokeWidth={1} />
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={{ color: TEXT, fontWeight: '600', fontSize: 14 }}>{p.name}</Text>
               <Text style={{ color: TEXT_MUTED, fontSize: 12, marginTop: 2 }}>Qty: {p.qty}</Text>
@@ -396,13 +402,16 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
         if (data.success && data.orders) {
           // Transform API data to match UI expectations
           const transformed = data.orders.map((order: any) => {
-            const products = (order.order_items || []).map((item: any) => ({
-              name: item.products?.name || 'Product',
-              qty: item.quantity,
-              price: item.price,
-              image: null, // API images are URLs, handled by Image component
-              imageUrl: item.products?.images?.[0] || null,
-            }));
+            const products = (order.items || order.order_items || []).map((item: any) => {
+              const localProd = require('./CollectionPage').COLLECTION_PRODUCTS.find((p: any) => p.id === item.product_id || p.id === Number(item.product_id));
+              return {
+                name: item.name || item.products?.name || 'Product',
+                qty: item.quantity || item.qty,
+                price: item.price,
+                image: localProd ? localProd.image : null, 
+                imageUrl: item.image_url || item.products?.image_url || item.products?.images?.[0] || null,
+              };
+            });
             const addr = order.shipping_address || {};
             const addressStr = typeof addr === 'string' ? addr :
               [addr.address_line1, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
@@ -447,8 +456,8 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
             <TouchableOpacity key={order.id} onPress={() => setSelected(order)} activeOpacity={0.85}>
               <Card>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                  {order.products?.[0]?.image ? (
-                    <Image source={order.products[0].image} style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: BG2 }} resizeMode="contain" />
+                  {(order.products?.[0]?.image || order.products?.[0]?.imageUrl) ? (
+                    <Image source={order.products[0].image ? order.products[0].image : { uri: order.products[0].imageUrl }} style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: BG2 }} resizeMode="contain" />
                   ) : (
                     <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: BG2, justifyContent: 'center', alignItems: 'center' }}>
                       <Package color={GOLD} size={22} strokeWidth={1} />

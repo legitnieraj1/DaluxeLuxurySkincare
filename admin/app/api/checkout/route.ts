@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { ShiprocketService } from '@/lib/shiprocket';
+import { createShiprocketOrder, getShippingRate } from '@/lib/shiprocket-helper';
 
 async function getUser(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -121,6 +122,7 @@ async function handleRequest(req: NextRequest) {
         payment_method: 'cod', 
         status: 'confirmed', 
         shipping_address: orderPayload.shipping_address,
+        email: orderPayload.email,
       }).select().single();
 
       if (orderError) {
@@ -130,12 +132,16 @@ async function handleRequest(req: NextRequest) {
 
       const orderItems = cartItems.map((item: any) => ({
         order_id: order.id, 
-        product_id: item.product_id, 
+        product_id: item.product_id,
+        name: item.name || `Product ${item.product_id}`,
         quantity: item.quantity, 
         price: item.price,
       }));
 
-      await supabaseAdmin.from('order_items').insert(orderItems);
+      const { error: itemsErr } = await supabaseAdmin.from('order_items').insert(orderItems);
+      if (itemsErr) {
+        console.error('[Order Items Creation Error]:', itemsErr);
+      }
       
       for (const item of cartItems) {
         await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
@@ -143,42 +149,37 @@ async function handleRequest(req: NextRequest) {
 
       await supabaseAdmin.from('cart_items').delete().eq('user_id', user.id);
 
-      // Trigger Shiprocket
+      // ── Shiprocket: create order + auto-assign AWB ──────────────────────────
       try {
         const addr = orderPayload.shipping_address || {};
-        await ShiprocketService.createOrder({
-          order_id: order.id.toString(),
-          order_number: orderNumber,
-          order_date: new Date().toISOString().split('T')[0],
-          billing_customer_name: addr.name || '',
-          billing_last_name: '',
-          billing_address: addr.address_line1 || '',
-          billing_city: addr.city || '',
-          billing_pincode: addr.pincode || '',
-          billing_state: addr.state || '',
-          billing_country: 'India',
-          billing_email: user.email || '',
-          billing_phone: addr.phone || '',
-          shipping_is_billing: 1,
-          payment_method: 'COD',
-          sub_total: orderPayload.total_amount,
-          length: 10, width: 10, height: 10, weight: 0.5,
-          order_items: cartItems.map((item: any) => ({
-            name: item.name || `Product ${item.product_id}`,
-            sku: item.product_id,
-            units: item.quantity,
-            selling_price: item.price,
-            discount: 0, tax: 0, hsn: 0
-          })),
-        }).then(async (srResult: any) => {
-          if (srResult.order_id) {
-            await supabaseAdmin.from('orders').update({
-              shipment_id: srResult.shipment_id?.toString() || null,
-            }).eq('id', order.id);
-          }
+        const srResult = await createShiprocketOrder({
+          orderId: order.id,
+          orderNumber,
+          email: orderPayload.email || user.email || '',
+          phone: addr.phone || '',
+          shippingAddress: {
+            name: addr.name || '',
+            address_line1: addr.address_line1 || '',
+            city: addr.city || '',
+            state: addr.state || '',
+            pincode: addr.pincode || '',
+            phone: addr.phone || '',
+          },
+          cartItems,
+          totalAmount: orderPayload.total_amount,
+          paymentMethod: 'COD',
         });
+
+        if (srResult) {
+          await supabaseAdmin.from('orders').update({
+            shipment_id:         srResult.shipment_id || null,
+            shiprocket_order_id: srResult.shiprocket_order_id || null,
+            awb_code:            srResult.awb_code || null,
+          }).eq('id', order.id);
+        }
       } catch (srErr) {
-        console.error('[Shiprocket Sync Error]:', srErr);
+        console.error('[Shiprocket COD Error]:', srErr);
+        // Non-fatal — order already created
       }
 
       return NextResponse.json({ success: true, order: { order_number: order.order_number } });

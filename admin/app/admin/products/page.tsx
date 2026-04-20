@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAdminStore, Product, getStockStatus } from '@/lib/store';
+import { supabaseAdmin } from '@/lib/supabase/client';
 import { Plus, Pencil, Trash2, X, Upload, Search, ChevronDown, Star, ToggleLeft, ToggleRight } from 'lucide-react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 
 const CATEGORIES = ['Face Serum', 'Facewash', 'Moisturizer', 'Sunscreen', 'Eye Cream', 'Hair Serum', 'Toner', 'Body Oil', 'Lip Balm', 'Mask'];

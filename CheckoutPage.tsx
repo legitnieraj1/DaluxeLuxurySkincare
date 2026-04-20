@@ -178,7 +178,8 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
           body: JSON.stringify({ 
             amount: grandTotal,
             cart_items: cartPayload,
-            shipping_address: orderPayload.shipping_address
+            shipping_address: orderPayload.shipping_address,
+            email: orderPayload.email
           })
         });
         const data = await res.json();

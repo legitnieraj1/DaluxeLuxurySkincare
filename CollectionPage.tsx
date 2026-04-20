@@ -11,6 +11,7 @@ import {
   Pressable,
   useWindowDimensions,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -99,7 +100,7 @@ export const COLLECTION_PRODUCTS = [
     category: 'cleanse',
     tagline: 'Gentle Luxury Cleanse with Gold Glow & Herbal Care',
     price: 249,
-    priceDisplay: '\u20B9249.00',
+    priceDisplay: '₹249.00',
     size: '100 ML',
     sizeDetail: '100 ml (3.38 fl oz)',
     rating: 4.8,
@@ -157,9 +158,9 @@ export const COLLECTION_PRODUCTS = [
     displayName: 'Smooth & Shine Hair Serum',
     subtitle: 'Ultra Sensitive Smooth',
     category: 'hair',
-    tagline: 'Weightless Smoothness \u00B7 Natural Shine \u00B7 Zero Silicone Feel',
+    tagline: 'Weightless Smoothness · Natural Shine · Zero Silicone Feel',
     price: 349,
-    priceDisplay: '\u20B9349.00',
+    priceDisplay: '₹349.00',
     size: '30 ML',
     sizeDetail: '30 ml (1.0 fl oz)',
     rating: 4.8,
@@ -214,9 +215,9 @@ export const COLLECTION_PRODUCTS = [
     displayName: 'Glow & Correct Face Serum',
     subtitle: 'Ultra Sensitive Glow & Correct',
     category: 'serum',
-    tagline: 'Gentle Brightening \u00B7 No Irritation \u00B7 Daily Glow Boost',
+    tagline: 'Gentle Brightening · No Irritation · Daily Glow Boost',
     price: 449,
-    priceDisplay: '\u20B9449.00',
+    priceDisplay: '₹449.00',
     size: '30 ML',
     sizeDetail: '30 ml (1.0 fl oz)',
     rating: 4.8,
@@ -246,12 +247,12 @@ export const COLLECTION_PRODUCTS = [
     featuredIngredients: [
       { name: 'Alpha Arbutin', desc: 'A gentle yet effective brightening agent that reduces dark spots and evens skin tone without irritation.' },
       { name: 'Vitamin C', desc: 'A powerful antioxidant that boosts collagen, brightens complexion and protects against environmental stress.' },
-      { name: 'Bakuchiol', desc: 'Nature\u2019s retinol alternative. Smooths fine lines and improves texture without any sensitivity.' },
+      { name: 'Bakuchiol', desc: 'Nature’s retinol alternative. Smooths fine lines and improves texture without any sensitivity.' },
     ],
     allIngredients: ['Aloe Vera', 'Rose Hydrosol', 'Licorice Extract', 'Alpha Arbutin', 'Gotu Kola', 'Vitamin C', 'Panthenol', 'Sodium Hyaluronate', 'Chamomile', 'Bakuchiol'],
     texture: 'Lightweight, Gel-serum, Non-sticky',
     fragrance: 'Mild natural fragrance',
-    howToUse: 'Apply 2\u20133 drops on clean face and gently pat until absorbed.',
+    howToUse: 'Apply 2–3 drops on clean face and gently pat until absorbed.',
     whenToUse: 'AM & PM / Daily',
     suitableFor: ['Sensitive Skin', 'Very Sensitive Skin', 'Normal Skin'],
     claims: ['No Tingling', 'No Irritation', 'Alcohol Free', 'Gentle Brightening Formula'],
@@ -271,9 +272,9 @@ export const COLLECTION_PRODUCTS = [
     displayName: 'Repair Night Cream',
     subtitle: 'Ultra Sensitive Repair',
     category: 'night',
-    tagline: 'Low Irritation \u00B7 Acne Safe \u00B7 Overnight Skin Repair',
+    tagline: 'Low Irritation · Acne Safe · Overnight Skin Repair',
     price: 399,
-    priceDisplay: '\u20B9399.00',
+    priceDisplay: '₹399.00',
     size: '30 G',
     sizeDetail: '30g / 1.0 fl oz',
     rating: 4.8,
@@ -295,14 +296,14 @@ export const COLLECTION_PRODUCTS = [
     concerns: ['Dryness', 'Sensitivity', 'Dull Skin', 'Mild Acne'],
     description: 'A gentle night cream formulated with hydrosols, botanical extracts and vitamins to calm, hydrate and repair skin overnight, leaving it soft, smooth and radiant.',
     storyTitle: 'Overnight Botanical Restoration',
-    storyText: 'While you sleep, a potent blend of Rose Hydrosol, Squalane and Niacinamide works to calm irritation, deeply hydrate and repair your skin\u2019s natural barrier. Wake up to visibly softer, renewed skin.',
+    storyText: 'While you sleep, a potent blend of Rose Hydrosol, Squalane and Niacinamide works to calm irritation, deeply hydrate and repair your skin’s natural barrier. Wake up to visibly softer, renewed skin.',
     stats: [
       { value: '96%', label: 'DEEPER HYDRATION' },
       { value: '94%', label: 'SOFTER SKIN' },
       { value: '98%', label: 'CALMER COMPLEXION' },
     ],
     featuredIngredients: [
-      { name: 'Squalane', desc: 'A luxurious plant-derived oil identical to skin\u2019s own moisture. Deeply nourishes without clogging pores.' },
+      { name: 'Squalane', desc: 'A luxurious plant-derived oil identical to skin’s own moisture. Deeply nourishes without clogging pores.' },
       { name: 'Niacinamide', desc: 'Vitamin B3 that strengthens the skin barrier, reduces redness and improves overall skin texture and tone.' },
       { name: 'Rose Hydrosol', desc: 'The essence of Bulgarian roses. Calms inflammation, balances pH and envelops skin in gentle hydration.' },
     ],
@@ -319,7 +320,7 @@ export const COLLECTION_PRODUCTS = [
     reviews: [
       { text: 'Gentle and soothing for sensitive skin. I wake up feeling truly refreshed and renewed.', author: 'Nisha D.', rating: 5 },
       { text: 'Deep hydration with soft glow. My skin has never been this calm overnight.', author: 'Pooja V.', rating: 5 },
-      { text: 'Lightweight and non-greasy formula that actually works. My acne hasn\u2019t flared up since!', author: 'Shruti L.', rating: 5 },
+      { text: 'Lightweight and non-greasy formula that actually works. My acne hasn’t flared up since!', author: 'Shruti L.', rating: 5 },
     ],
   },
   {
@@ -439,8 +440,156 @@ export const COLLECTION_PRODUCTS = [
       { text: 'Soothes my itchy scalp perfectly, highly recommend!', author: 'Priyanka D.', rating: 4.5 },
       { text: 'Leaves hair soft and manageable all day long.', author: 'Meera T.', rating: 5 },
     ],
-  }
+  },
+  {
+    id: 'skin-combo',
+    name: 'VIRGIN 5.0 SKINCARE COMBO',
+    shortName: 'SKIN COMBO',
+    displayName: 'Virgin 5.0 Skincare Combo',
+    subtitle: 'Complete Skin Repair & Glow Solution',
+    category: 'combo',
+    tagline: 'Cleanse, Repair & Glow with Gold Glow Ritual',
+    price: 897,
+    priceDisplay: '₹897.00',
+    mrp: '₹1,147',
+    size: 'COMBO PACK',
+    sizeDetail: 'Facewash + Face Serum + Night Cream + FREE Facewash',
+    rating: 4.8,
+    image: require('./assets/skincombo.jpeg'),
+    themeColor: '#C9A84C',
+    themeBg: '#FDFBF0',
+    themeGradient: ['#FDFBF0', '#FAF3E0'] as [string, string],
+    highlights: [
+      { icon: 'gift', label: 'FREE 50ml Facewash included' },
+      { icon: 'leaf', label: 'Dermal-grade botanical formula' },
+      { icon: 'sparkles', label: 'Complete 3-step repair routine' },
+    ],
+    benefits: [
+      'Deeply cleans dirt, oil & impurities',
+      'Helps reduce acne, pimples & marks',
+      'Boosts natural glow & brightness',
+      'Overnight skin repair & barrier support',
+    ],
+    concerns: ['Acne Marks', 'Dullness', 'Uneven Texture', 'Sensitivity'],
+    description: 'A complete 3-step skincare transformation routine. Features our Gold Glow Facewash, Repair Serum, and Night Cream to cleanse, nourish and restore your skin naturally.',
+    storyTitle: 'The Complete Skin Ritual',
+    storyText: 'Expertly curated for sensitive skin, this combo integrates our core dermal-grade products to deliver a holistic repair experience. From the first cleanse to overnight restoration, your skin stays protected and radiant.',
+    stats: [
+      { value: '100%', label: 'SENSITIVE SAFE' },
+      { value: '98%', label: 'GLOW BOOST' },
+      { value: '95%', label: 'REPAIR RATE' },
+    ],
+    featuredIngredients: [
+      { name: '24K Gold & Saffron', desc: 'Luxurious brightening actives for an instant luminous glow.' },
+      { name: 'Niacinamide & Squalane', desc: 'Potent barrier repair duo that calms and hydrates deeply.' },
+      { name: 'Rose Hydrosol', desc: 'Calming botanical base that balances pH and soothes redness.' },
+    ],
+    allIngredients: ['Rose Hydrosol', '24K Gold Leaf', 'Saffron', 'Squalane', 'Niacinamide', 'Aloe Vera', 'Vitamin C', 'Hyaluronic Acid'],
+    texture: 'Complete 3-step texture set (Gel, Serum, Cream)',
+    fragrance: 'Mild botanical wellness aroma',
+    howToUse: 'Step 1: Cleanse with Facewash. Step 2: Apply Face Serum. Step 3: Apply Night Cream.',
+    whenToUse: 'Daily (AM & PM)',
+    suitableFor: ['All Skin Types', 'Sensitive Skin'],
+    claims: ['Chemical Free', 'Dermal Grade', 'Acne Safe', 'Eco-Conscious Packaging'],
+    shelfLife: '24 Months',
+    // Combo-specific detail fields (used by ComboDetailPage)
+    tag: 'SKINCARE COMBO',
+    freeBadge: 'FREE 50ml Facewash with every order',
+    includes: [
+      { name: 'Ultra Sensitive Gold Glow Facewash', size: '100 ml' },
+      { name: 'Ultra Sensitive Face Serum', size: '30 ml' },
+      { name: 'Ultra Sensitive Repair Night Cream', size: '30 g' },
+      { name: 'Bonus Facewash', size: '50 ml FREE' },
+    ],
+    ingredients: ['Aloe Vera', 'Vitamin C', 'Hyaluronic Acid', 'Niacinamide', 'Herbal Extracts', 'Gold Glow Infusion'],
+    routine: [
+      { time: 'Morning', steps: ['Use Facewash — Cleanse your face', 'Apply Face Serum — For glow & hydration'] },
+      { time: 'Night', steps: ['Wash face with Facewash', 'Apply Face Serum', 'Apply Night Cream — Overnight repair'] },
+    ],
+    tags: ['Sensitive Skin Safe', 'Dermal-Grade', 'Chemical-Free', 'Daily Use'],
+    reviews: [
+      { text: 'The best combo for my sensitive skin. The glow is real!', author: 'Anjali R.', rating: 5 },
+      { text: 'Great value for money and the products actually work together perfectly.', author: 'Vikram S.', rating: 5 },
+    ],
+  },
+  {
+    id: 'hair-combo',
+    name: 'VIRGIN 5.0 HAIR CARE COMBO',
+    shortName: 'HAIR COMBO',
+    displayName: 'Virgin 5.0 Hair Care Combo',
+    subtitle: 'Complete Hair Repair & Growth Solution',
+    category: 'combo',
+    tagline: 'Reduce Fall, Boost Growth & Add Shine',
+    price: 897,
+    priceDisplay: '₹897.00',
+    mrp: '₹1,147',
+    size: 'COMBO PACK',
+    sizeDetail: 'Hair Oil + Shampoo + Hair Serum + FREE Shampoo',
+    rating: 4.7,
+    image: require('./assets/haircombo.jpeg'),
+    themeColor: '#7B9E6B',
+    themeBg: '#F5FAF0',
+    themeGradient: ['#F5FAF0', '#EFF6E8'] as [string, string],
+    highlights: [
+      { icon: 'gift', label: 'FREE 50ml Shampoo included' },
+      { icon: 'leaf', label: 'Pure botanical growth elixir' },
+      { icon: 'sparkles', label: 'Visible thickness & volume boost' },
+    ],
+    benefits: [
+      'Significantly reduces hair fall',
+      'Promotes visible hair growth',
+      'Controls frizz & adds mirror-shine',
+      'Nourishes itchy & dry scalp',
+    ],
+    concerns: ['Hair Fall', 'Thinning', 'Dryness', 'Itchy Scalp'],
+    description: 'A botanical hair transformation system. Combines our growth elixir oil, calm & clean shampoo, and smooth & shine serum for a complete root-to-tip care routine.',
+    storyTitle: 'The Growth Philosophy',
+    storyText: 'By treating the scalp and hair as a single ecosystem, our hair combo addresses the root causes of fall while enhancing the lifespan of each strand. No silicones, just botanical strength.',
+    stats: [
+      { value: '97%', label: 'LESS FALL' },
+      { value: '94%', label: 'MORE SHINE' },
+      { value: '92%', label: 'GROWTH BOOST' },
+    ],
+    featuredIngredients: [
+      { name: 'Bhringraj Oil', desc: 'The king of herbs for hair growth and scalp nourishment.' },
+      { name: 'Argan & Jojoba', desc: 'Lightweight oils that seal moisture and add weightless shine.' },
+      { name: 'Reetha & Shikakai', desc: 'Natural cleansers that respect the scalp barrier.' },
+    ],
+    allIngredients: ['Argan Oil', 'Bhringraj', 'Shikakai', 'Reetha', 'Coconut MCT', 'Jojoba', 'Hibiscus', 'Amla'],
+    texture: 'Complete hair system (Oil, Liquid Cleanser, Serum)',
+    fragrance: 'Refreshing herbal forest aroma',
+    howToUse: '1. Massage Oil into scalp. 2. Wash with Shampoo. 3. Apply Serum to lengths.',
+    whenToUse: '2-3 times/week (Oil & Shampoo), Daily (Serum)',
+    suitableFor: ['All Hair Types', 'Sensitive Scalp'],
+    claims: ['Silicone Free', 'Sulphate Free', 'Botanical actives', 'Cruelty Free'],
+    shelfLife: '24 Months',
+    // Combo-specific detail fields (used by ComboDetailPage)
+    tag: 'HAIR CARE COMBO',
+    freeBadge: 'FREE 50ml Shampoo with every order',
+    includes: [
+      { name: 'Hair Growth Elixir Oil', size: '100 ml' },
+      { name: 'Ultra Sensitive Calm & Clean Shampoo', size: '100 ml' },
+      { name: 'Smooth & Shine Hair Serum', size: '30 ml' },
+      { name: 'Bonus Shampoo', size: '50 ml FREE' },
+    ],
+    ingredients: ['Coconut Oil', 'Black Sesame Oil', 'Argan Oil', 'Bhringraj Extract', 'Amla Extract', 'Aloe Vera', 'Hibiscus Extract'],
+    routine: [
+      { time: 'Step 1 — Oil', steps: ['Apply oil on scalp, massage 5–10 mins', 'Leave overnight for best results'] },
+      { time: 'Step 2 — Shampoo', steps: ['Wash hair with a small amount', 'Gently cleanse scalp and rinse'] },
+      { time: 'Step 3 — Serum', steps: ['Apply a few drops on dry or damp hair', 'Style as desired'] },
+    ],
+    tags: ['Sensitive Scalp Safe', 'Botanical Formula', 'Chemical-Free', 'All Hair Types'],
+    reviews: [
+      { text: 'My hair fall stopped after just 2 weeks of using this combo.', author: 'Priya K.', rating: 5 },
+      { text: 'Finally a hair system that doesnt irritate my scalp.', author: 'Rohit M.', rating: 4.5 },
+    ],
+  },
 ];
+
+export const COMBOS_DATA = {
+  'skin-combo': COLLECTION_PRODUCTS.find(p => p.id === 'skin-combo'),
+  'hair-combo': COLLECTION_PRODUCTS.find(p => p.id === 'hair-combo'),
+} as const;
 
 export type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any; video?: any };
 export type CartItem = { product: ProductType; quantity: number };
@@ -451,6 +600,7 @@ const CATEGORIES = [
   { id: 'serum', label: 'SERUMS' },
   { id: 'hair', label: 'HAIR CARE' },
   { id: 'night', label: 'NIGHT CARE' },
+  { id: 'combo', label: 'COMBOS' },
 ];
 
 // ════════════════════════════════════════════════
@@ -981,6 +1131,203 @@ const DiscoverSlider = ({ products, onSelectProduct }: { products: ProductType[]
   );
 };
 
+// ════════════════════════════════════════════════
+// DELIVERY DATE CHECKER
+// ════════════════════════════════════════════════
+const DeliveryChecker = () => {
+  const [pincode, setPincode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | { serviceable: boolean; rate: number; etd?: string }>(null);
+  const [error, setError] = useState('');
+
+  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
+
+  const check = async () => {
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      setError('Please enter a valid 6-digit pincode');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+    try {
+      const res = await fetch(`${API_URL}/api/checkout?action=shipping&pincode=${pincode.trim()}&weight=0.5&payment=prepaid`);
+      const data = await res.json();
+      if (data.success) {
+        setResult({ serviceable: data.serviceable, rate: data.rate, etd: data.estimatedDays });
+      } else {
+        setError('Could not check serviceability. Try again.');
+      }
+    } catch (e) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={dc.wrapper}>
+      {/* Label */}
+      <Text style={dc.label}>Check Delivery</Text>
+
+      <View style={dc.row}>
+        <View style={dc.inputWrap}>
+          <TextInput
+            style={dc.input}
+            placeholder="Enter 6-digit pincode"
+            placeholderTextColor="rgba(26,26,26,0.35)"
+            value={pincode}
+            onChangeText={v => { setPincode(v.replace(/\D/g, '').slice(0, 6)); setResult(null); setError(''); }}
+            keyboardType="numeric"
+            maxLength={6}
+            returnKeyType="done"
+            onSubmitEditing={check}
+          />
+        </View>
+        <TouchableOpacity style={dc.checkBtn} onPress={check} activeOpacity={0.8} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#1A1A1A" size="small" />
+            : <Text style={dc.checkBtnText}>CHECK</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      {error ? (
+        <Text style={dc.errorText}>{error}</Text>
+      ) : result ? (
+        result.serviceable ? (
+          <View style={dc.resultRow}>
+            <Text style={dc.deliveryIcon}>🚚</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={dc.deliveryLine}>
+                <Text style={dc.deliveryGold}>Expected delivery: {result.etd || '3–5 business days'}</Text>
+              </Text>
+              <Text style={dc.deliveryMuted}>
+                {result.rate === 0 ? 'Free shipping' : `Shipping: ₹${result.rate}`} · to {pincode}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={dc.errorText}>Sorry, delivery not available to pincode {pincode}.</Text>
+        )
+      ) : null}
+    </View>
+  );
+};
+
+const dc = StyleSheet.create({
+  wrapper: {
+    marginTop: 20,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.35)',
+      } as any,
+    }),
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(26,26,26,0.5)',
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    alignItems: 'center' as const,
+  },
+  inputWrap: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,162,39,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.60)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(8px)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+      } as any,
+    }),
+  },
+  input: {
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    color: '#1A1A1A',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 2,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  checkBtn: {
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minWidth: 88,
+    overflow: 'hidden',
+    // Fallback non-gradient bg
+    backgroundColor: GOLD,
+    ...Platform.select({
+      web: {
+        background: 'linear-gradient(135deg, #F0CC5E 0%, #C9A227 50%, #A07820 100%)',
+        boxShadow: '0 4px 18px rgba(201,162,39,0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+      } as any,
+    }),
+  },
+  checkBtnText: {
+    color: '#1A1A1A',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+  },
+  resultRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderColor: 'rgba(201,162,39,0.2)',
+  },
+  deliveryIcon: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  deliveryLine: {
+    fontSize: 13,
+    color: '#1A1A1A',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  deliveryGold: {
+    color: '#A07820',
+    fontWeight: '800',
+  },
+  deliveryMuted: {
+    fontSize: 11,
+    color: 'rgba(26,26,26,0.45)',
+    marginTop: 2,
+    letterSpacing: 0.3,
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '500',
+  },
+});
+
 const ProductLandingPage = ({
   product,
   onBack,
@@ -1053,6 +1400,9 @@ const ProductLandingPage = ({
                 <Text style={d.trustBadgeText}>Guaranteed authenticity</Text>
               </View>
             </View>
+
+            {/* ── Delivery Date Checker ── */}
+            <DeliveryChecker />
           </Animated.View>
         </View>
       </View>
@@ -1524,9 +1874,10 @@ interface CollectionPageProps {
   initialConcern?: string | null;
   onClearConcern?: () => void;
   onNavigate?: (page: string) => void;
+  onProductSlugChange?: (slug: string) => void;
 }
 
-export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart, initialProductId, onCheckout, initialConcern, onClearConcern, onNavigate }: CollectionPageProps) {
+export default function CollectionPage({ onNavigateToProduct, scrollY, onViewChange, addToCart, initialProductId, onCheckout, initialConcern, onClearConcern, onNavigate, onProductSlugChange }: CollectionPageProps) {
   const [view, setView] = useState<'grid' | 'detail'>('grid');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeConcern, setActiveConcern] = useState<string | null>(initialConcern || null);
@@ -1544,52 +1895,65 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
           .select('*');
 
         if (!error && dbProducts) {
-          // DATABASE-FIRST MERGE:
-          // We map over database products so new items added in admin actually show up.
-          const merged = dbProducts
-            .filter((dbP: any) => dbP.is_active !== false)
-            .map((dbP: any) => {
-              // Try to find matching static content for high-quality fallbacks
-              const staticP = COLLECTION_PRODUCTS.find(cp => 
-                cp.id === dbP.id || 
-                dbP.name.toUpperCase().includes(cp.shortName?.toUpperCase()) || 
-                cp.id === dbP.slug
-              );
+          // MERGE STRATEGY: COLLECTION_PRODUCTS as base, overriding with DB values.
+          // This naturally deduplicates multiple DB rows that map to the same static product,
+          // and ensures items like Combos stay in the list even if missing from the DB.
+          let nextProducts = [...COLLECTION_PRODUCTS];
 
-              // Use DB values as primary, Static values as rich supplemental data
-              return {
-                id: dbP.id,
-                name: dbP.name,
-                displayName: dbP.name,
-                subtitle: dbP.tagline || staticP?.subtitle || '',
-                category: dbP.category || staticP?.category || 'cleanse',
-                tagline: dbP.tagline || staticP?.tagline || '',
-                price: Number(dbP.price),
-                priceDisplay: `₹${dbP.price}.00`,
-                stock_quantity: dbP.stock_quantity,
-                image: dbP.images?.[0]?.url ? { uri: dbP.images[0].url } : staticP?.image,
-                images: dbP.images || staticP?.images || [],
-                description: dbP.description || staticP?.description || '',
-                themeColor: staticP?.themeColor || '#C9A227',
-                themeBg: staticP?.themeBg || '#FDFBF7',
-                themeGradient: staticP?.themeGradient || ['#FDFBF7', '#FAF9F6'],
-                highlights: staticP?.highlights || [],
-                benefits: dbP.benefits || staticP?.benefits || [],
-                ingredients: dbP.ingredients || staticP?.ingredients || [],
-                skinConcern: dbP.skin_concern || staticP?.concerns?.[0] || '',
-                howToUse: dbP.how_to_use || staticP?.howToUse || '',
-                suitableFor: dbP.suitable_for ? [dbP.suitable_for] : staticP?.suitableFor || [],
-                texture: dbP.texture || staticP?.texture || '',
-                fragrance: dbP.fragrance || staticP?.fragrance || '',
-                // Preserve additional fields for the detail view
-                ...(staticP || {}),
-                // Ensure ID and Name are not overwritten by static fallback if they differ
-                id: dbP.id,
-                name: dbP.name,
-              };
-            });
+          const activeDbProducts = dbProducts.filter((dbP: any) => dbP.is_active !== false);
 
-          setLiveProducts(merged);
+          activeDbProducts.forEach((dbP: any) => {
+            const staticIdx = nextProducts.findIndex(cp => 
+              cp.id === dbP.id || 
+              dbP.name.toUpperCase().includes(cp.shortName?.toUpperCase() || '') || 
+              cp.id === dbP.slug
+            );
+
+            const staticP = staticIdx >= 0 ? nextProducts[staticIdx] : null;
+
+            const mergedProduct = {
+              id: staticP ? staticP.id : dbP.id,
+              name: dbP.name || staticP?.name,
+              displayName: dbP.name || staticP?.displayName,
+              subtitle: dbP.tagline || staticP?.subtitle || '',
+              category: dbP.category || staticP?.category || 'cleanse',
+              tagline: dbP.tagline || staticP?.tagline || '',
+              price: Number(dbP.price) || staticP?.price || 0,
+              priceDisplay: `₹${dbP.price || staticP?.price}.00`,
+              stock_quantity: dbP.stock_quantity,
+              image: dbP.images?.[0]?.url ? { uri: dbP.images[0].url } : staticP?.image,
+              images: dbP.images || staticP?.images || [],
+              description: dbP.description || staticP?.description || '',
+              themeColor: staticP?.themeColor || '#C9A227',
+              themeBg: staticP?.themeBg || '#FDFBF7',
+              themeGradient: staticP?.themeGradient || ['#FDFBF7', '#FAF9F6'],
+              highlights: staticP?.highlights || [],
+              benefits: dbP.benefits?.length ? dbP.benefits : staticP?.benefits || [],
+              ingredients: dbP.ingredients?.length ? dbP.ingredients : staticP?.ingredients || [],
+              skinConcern: dbP.skin_concern || staticP?.concerns?.[0] || '',
+              howToUse: dbP.how_to_use || staticP?.howToUse || '',
+              suitableFor: dbP.suitable_for ? [dbP.suitable_for] : staticP?.suitableFor || [],
+              texture: dbP.texture || staticP?.texture || '',
+              fragrance: dbP.fragrance || staticP?.fragrance || '',
+              ...(staticP || {}),
+              // CRITICAL: keep static ID (slug) so routing/combos work perfectly!
+              id: staticP ? staticP.id : dbP.id,
+              name: dbP.name || staticP?.name,
+            };
+
+            if (staticIdx >= 0) {
+              nextProducts[staticIdx] = mergedProduct as any;
+            } else {
+              nextProducts.push(mergedProduct as any);
+            }
+          });
+
+          // Deduplicate by ID just to be absolutely safe
+          const uniqueMerged = nextProducts.filter((p, index, self) =>
+            index === self.findIndex((t) => t.id === p.id)
+          );
+
+          setLiveProducts(uniqueMerged);
         }
       } catch (err) {
         console.warn('Failed to load real-time inventory:', err);
@@ -1644,15 +2008,19 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
     setSelectedProduct(product);
     setView('detail');
     onViewChange?.('detail');
+    // Update URL to /collections/:slug
+    onProductSlugChange?.(product.id);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
-  }, [onViewChange]);
+  }, [onViewChange, onProductSlugChange]);
 
   const goBack = useCallback(() => {
     setView('grid');
     onViewChange?.('grid');
     setSelectedProduct(null);
+    // Reset URL back to /collections
+    onProductSlugChange?.('');
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
-  }, [onViewChange]);
+  }, [onViewChange, onProductSlugChange]);
 
   // Auto-open product if initialProductId provided (from homepage card click)
   useEffect(() => {

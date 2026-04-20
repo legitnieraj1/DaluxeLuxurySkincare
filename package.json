@@ -6,11 +6,11 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web --port 8082",
+    "web": "BROWSER=none EXPO_NO_BROWSER=1 expo start --web --port 8082",
     "build": "expo export -p web",
-    "admin": "cd admin && npx next dev --port 3001",
+    "admin": "cd admin && npx next dev --port 3002",
     "proxy": "node dev-proxy.js",
-    "dev": "lsof -ti:8081 | xargs kill -9 2>/dev/null || true; concurrently --names \"PROXY,EXPO,ADMIN\" --prefix-colors \"cyan,yellow,magenta\" \"node dev-proxy.js\" \"npm run web\" \"npm run admin\""
+    "dev": "lsof -ti:8081,8082,3002 | xargs kill -9 2>/dev/null || true; concurrently --names \"PROXY,EXPO,ADMIN\" --prefix-colors \"cyan,yellow,magenta\" \"node dev-proxy.js\" \"npm run web\" \"npm run admin\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",

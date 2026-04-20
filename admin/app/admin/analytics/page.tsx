@@ -35,9 +35,9 @@ export default function AnalyticsPage() {
   }, [fetchProducts, fetchOrders]);
 
   const { totalRevenue, avgOrderValue, conversionPlaceholder, topProducts, categoryData } = useMemo(() => {
-    const delivered = orders.filter(o => o.status === 'delivered');
-    const totalRevenue = delivered.reduce((s, o) => s + o.total, 0);
-    const avgOrderValue = delivered.length > 0 ? Math.round(totalRevenue / delivered.length) : 0;
+    const validOrders = orders.filter(o => o.status !== 'cancelled');
+    const totalRevenue = validOrders.reduce((s, o) => s + o.total, 0);
+    const avgOrderValue = validOrders.length > 0 ? Math.round(totalRevenue / validOrders.length) : 0;
 
     // Top products by units sold (from order items)
     const productSales: Record<string, { name: string; units: number; revenue: number }> = {};
@@ -72,12 +72,12 @@ export default function AnalyticsPage() {
         <div className="glass-card p-5">
           <p className="text-xs uppercase tracking-wider font-medium mb-3" style={{ color: '#52525B' }}>Total Revenue</p>
           <p className="text-3xl font-bold gold-text">₹{totalRevenue.toLocaleString()}</p>
-          <p className="text-xs mt-1" style={{ color: '#3F3F46' }}>from delivered orders</p>
+          <p className="text-xs mt-1" style={{ color: '#3F3F46' }}>from all active & completed orders</p>
         </div>
         <div className="glass-card p-5">
           <p className="text-xs uppercase tracking-wider font-medium mb-3" style={{ color: '#52525B' }}>Avg. Order Value</p>
           <p className="text-3xl font-bold" style={{ color: '#FAFAFA' }}>₹{avgOrderValue.toLocaleString()}</p>
-          <p className="text-xs mt-1" style={{ color: '#3F3F46' }}>per delivered order</p>
+          <p className="text-xs mt-1" style={{ color: '#3F3F46' }}>per active & completed order</p>
         </div>
         <div className="glass-card p-5">
           <p className="text-xs uppercase tracking-wider font-medium mb-3" style={{ color: '#52525B' }}>Conversion Rate</p>
