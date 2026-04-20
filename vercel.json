@@ -2,8 +2,8 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/$1"
+            "source": "/api/:path*",
+            "destination": "https://daluxeadminpanel.vercel.app/api/:path*"
         },
         {
             "source": "/(.*)",
