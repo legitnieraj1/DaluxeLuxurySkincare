@@ -1,71 +1,57 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-async function getUser(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !user) return null;
-  return user;
-}
-
 export async function POST(request: Request) {
   try {
-    const user = await getUser(request);
-    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-
     const { code, cart_total } = await request.json();
 
     if (!code || typeof cart_total !== 'number' || cart_total <= 0) {
-      return NextResponse.json({ success: false, error: 'Invalid promocode or cart total' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid promo code or cart total' }, { status: 400 });
     }
 
-    // 1. Fetch Promocode
-    const { data: promo, error: promoError } = await supabaseAdmin
-      .from('promocodes')
+    // Fetch from correct table with correct field names
+    const { data: promo, error } = await supabaseAdmin
+      .from('promo_codes')
       .select('*')
-      .eq('code', code.toUpperCase())
+      .eq('code', code.toUpperCase().trim())
+      .eq('active', true)
       .single();
 
-    if (promoError || !promo) {
-      return NextResponse.json({ success: false, error: 'Invalid promocode' }, { status: 404 });
+    if (error || !promo) {
+      return NextResponse.json({ success: false, error: 'Invalid promo code' }, { status: 404 });
     }
 
-    // 2. Validate Promocode
-    if (!promo.active) {
-      return NextResponse.json({ success: false, error: 'Promocode is inactive' }, { status: 400 });
-    }
-    
-    if (new Date(promo.expiry) < new Date()) {
-      return NextResponse.json({ success: false, error: 'Promocode has expired' }, { status: 400 });
+    // Check expiry (field is expires_at, not expiry)
+    if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+      return NextResponse.json({ success: false, error: 'Promo code has expired' }, { status: 400 });
     }
 
+    // Check usage limit
     if (promo.usage_limit !== null && promo.used_count >= promo.usage_limit) {
       return NextResponse.json({ success: false, error: 'Usage limit reached' }, { status: 400 });
     }
 
-    // 3. Calculate Discount
+    // Calculate discount (field is discount_value, not value)
     let discount = 0;
     if (promo.discount_type === 'percentage') {
-      discount = (cart_total * promo.value) / 100;
-    } else if (promo.discount_type === 'fixed') {
-      discount = promo.value;
+      discount = Math.round((cart_total * promo.discount_value) / 100);
+    } else {
+      discount = promo.discount_value;
     }
-
-    // Ensure discount doesn't exceed total
     discount = Math.min(discount, cart_total);
-    const new_total = cart_total - discount;
 
     return NextResponse.json({
       success: true,
-      message: 'Promocode applied successfully',
       code: promo.code,
+      influencer_name: promo.influencer_name,
+      discount_type: promo.discount_type,
+      discount_value: promo.discount_value,
       discount_amount: discount,
-      new_total: new_total
+      new_total: cart_total - discount,
     });
 
   } catch (error: any) {
+    console.error('[/api/promocode/apply]', error?.message);
     return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

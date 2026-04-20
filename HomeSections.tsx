@@ -1,10 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Star, ArrowRight, CheckCircle2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLLECTION_PRODUCTS, ProductType } from './CollectionPage';
 import LuxuryMarquee from './LuxuryMarquee';
 import { Footer } from './Footer';
+
+// Keywords map for matching local products to Supabase
+const PRODUCT_KEYWORDS: Record<string, string[]> = {
+  'facewash':    ['FACE WASH', 'FACEWASH', 'GOLD GLOW FACE'],
+  'hairserum':   ['HAIR SERUM', 'SMOOTH & SHINE', 'WEIGHTLESS PERFECTION HAIR'],
+  'faceserum':   ['FACE SERUM', 'GLOW & CORRECT', 'REVEAL YOUR GLOW'],
+  'nightcream':  ['NIGHT CREAM', 'RESTORATION CREAM', 'OVERNIGHT RESTORATION'],
+  'hairoil':     ['HAIR OIL', 'HAIR GROWTH', 'ELIXIR'],
+  'hairshampoo': ['SHAMPOO', 'CALM & CLEAN'],
+};
+
+// Fetch + merge live products from Supabase via API
+async function fetchLiveProducts(): Promise<typeof COLLECTION_PRODUCTS> {
+  try {
+    const API_URL =
+      (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
+      (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_BASE_URL) ||
+      '';
+    const res = await fetch(`${API_URL}/api/products`);
+    const data = await res.json();
+    if (!data.products || !Array.isArray(data.products)) return COLLECTION_PRODUCTS;
+    return COLLECTION_PRODUCTS.map(cp => {
+      const keywords = PRODUCT_KEYWORDS[cp.id] || [cp.shortName];
+      const matches = data.products.filter((p: any) => {
+        if (p.slug === cp.id) return true;
+        const upper = (p.name || '').toUpperCase();
+        return keywords.some((kw: string) => upper.includes(kw.toUpperCase()));
+      });
+      const dbP = matches.sort((a: any, b: any) => (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0))[0];
+      if (!dbP) return cp;
+      const isOutOfStock = (dbP.stock_quantity ?? 1) <= 0;
+      const discountedPrice = dbP.discount_pct
+        ? Math.round(dbP.price * (1 - dbP.discount_pct / 100))
+        : dbP.price;
+      return {
+        ...cp,
+        price: dbP.price || cp.price,
+        priceDisplay: `₹${discountedPrice}.00`,
+        stock_quantity: dbP.stock_quantity ?? null,
+        isOutOfStock,
+        original_price: dbP.original_price ?? null,
+        discount_pct: dbP.discount_pct ?? null,
+      } as any;
+    });
+  } catch {
+    return COLLECTION_PRODUCTS;
+  }
+}
 
 const { width } = Dimensions.get('window');
 
@@ -53,27 +101,58 @@ const ShopByConcern = ({ onConcernClick }: any) => {
 // --------------------------------------------------------------------------
 const ProductCard = ({ product, onPurchase, onClick }: any) => {
   const isMobile = useIsMobile();
+  const isOutOfStock = !!product.isOutOfStock;
   return (
-    <View style={cardStyles.container}>
+    <View style={[cardStyles.container, isOutOfStock && { opacity: 0.8 }]}>
       <TouchableOpacity activeOpacity={0.8} onPress={() => onClick && onClick(product)} style={[cardStyles.imageArea, isMobile && { height: 200 }]}>
-         <Image source={product.image} style={cardStyles.image} resizeMode="contain" />
-         {product.rating >= 4.5 && (
+         <Image source={product.image} style={[cardStyles.image, isOutOfStock && { opacity: 0.5 }]} resizeMode="contain" />
+         {product.rating >= 4.5 && !isOutOfStock && (
             <View style={cardStyles.ratingBadge}>
               <Star color="#FFD700" size={12} fill="#FFD700" />
               <Text style={cardStyles.ratingText}>{product.rating}</Text>
             </View>
          )}
+         {isOutOfStock && (
+           <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: '#EF4444', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+             <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 }}>OUT OF STOCK</Text>
+           </View>
+         )}
+         {!isOutOfStock && product.stock_quantity > 0 && product.stock_quantity <= 10 && (
+           <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: '#F59E0B', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+             <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 }}>ONLY {product.stock_quantity} LEFT</Text>
+           </View>
+         )}
+         {!isOutOfStock && product.discount_pct && (
+           <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: '#B8962E', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+             <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>{Math.round(product.discount_pct)}% OFF</Text>
+           </View>
+         )}
       </TouchableOpacity>
       <View style={cardStyles.info}>
          <Text style={cardStyles.subtitle}>{product.subtitle}</Text>
          <Text style={cardStyles.name} numberOfLines={1}>{product.shortName}</Text>
-         <Text style={cardStyles.price}>{product.priceDisplay}</Text>
-         
-         <TouchableOpacity style={{ marginTop: 16, width: '100%', borderRadius: 24, overflow: 'hidden', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 }} onPress={() => onPurchase(product)}>
-           <LinearGradient colors={['#FCEE21', '#FFD700', '#F39C12']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={{ paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' }}>
-             <Text style={cardStyles.buyBtnText}>ADD TO CART</Text>
-           </LinearGradient>
-         </TouchableOpacity>
+         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+           <Text style={[cardStyles.price, isOutOfStock && { color: '#9CA3AF' }]}>{product.priceDisplay}</Text>
+           {product.original_price && !isOutOfStock && (
+             <Text style={{ fontSize: 11, color: '#9CA3AF', textDecorationLine: 'line-through' }}>
+               ₹{Number(product.original_price).toLocaleString()}
+             </Text>
+           )}
+         </View>
+
+         {isOutOfStock ? (
+           <View style={{ marginTop: 16, width: '100%', borderRadius: 24, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D1D5DB' }}>
+             <Text style={{ color: '#9CA3AF', fontSize: 11, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' }}>Out of Stock</Text>
+           </View>
+         ) : (
+           <TouchableOpacity
+             style={{ marginTop: 16, width: '100%', borderRadius: 24, overflow: 'hidden', shadowColor: '#FFD700', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 }}
+             onPress={() => onPurchase(product)}>
+             <LinearGradient colors={['#FCEE21', '#FFD700', '#F39C12']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={{ paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center' }}>
+               <Text style={cardStyles.buyBtnText}>ADD TO CART</Text>
+             </LinearGradient>
+           </TouchableOpacity>
+         )}
       </View>
     </View>
   );
@@ -241,19 +320,25 @@ const ReviewsSection = () => {
 // MAIN COMPONENT
 // --------------------------------------------------------------------------
 export default function HomeSections({ onAddToCart, onProductClick, onStartScan, onConcernClick, onNavigate }: any) {
-  // Use existing COLLECTION_PRODUCTS for categories
-  const faceSerums = COLLECTION_PRODUCTS.filter(p => p.category === 'serum' || p.category === 'facewash');
-  const moisturizers = COLLECTION_PRODUCTS.filter(p => p.category !== 'facewash');
-  const combos = COLLECTION_PRODUCTS;
+  const [liveProducts, setLiveProducts] = useState<typeof COLLECTION_PRODUCTS>(COLLECTION_PRODUCTS);
+
+  useEffect(() => {
+    fetchLiveProducts().then(setLiveProducts);
+  }, []);
+
+  // Only show active (in-stock or low-stock) products in the "Most Loved" section
+  // Out-of-stock products still show, but with a badge and disabled button
+  const allProducts = liveProducts;
+  const moisturizers = liveProducts.filter((p: any) => p.category !== 'facewash' && p.category !== 'hair');
 
   return (
     <View style={[{ width: '100%', backgroundColor: '#F8F6F0' }, Platform.OS === 'web' ? { overflowX: 'hidden' } as any : { overflow: 'hidden' }]}>
       <ShopByConcern onConcernClick={onConcernClick} />
-      <ProductCarouselSection title="Our Most Loved Products" products={COLLECTION_PRODUCTS} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
+      <ProductCarouselSection title="Our Most Loved Products" products={allProducts} tabs={['Bestsellers', 'New Launches']} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <SkinAssessment onStartScan={onStartScan} />
       <LuxuryMarquee />
       <CampaignBanners onNavigate={onNavigate} />
-      <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers} onAddToCart={onAddToCart} onProductClick={onProductClick} />
+      <ProductCarouselSection title="Moisturizers & Creams" products={moisturizers.length > 0 ? moisturizers : allProducts} onAddToCart={onAddToCart} onProductClick={onProductClick} />
       <ReviewsSection />
       <Footer onNavigate={onNavigate} />
     </View>

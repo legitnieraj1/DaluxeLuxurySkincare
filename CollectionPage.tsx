@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Image,
   Platform,
   Dimensions,
@@ -852,11 +853,28 @@ const CollectionGrid = ({
             >
               {/* Product Image */}
               <View style={[g.cardImageArea, { backgroundColor: 'transparent' }, isMob && { height: 240 }]}>
-                <Image source={product.image} style={g.cardImage} resizeMode="contain" />
-                {product.rating >= 4.5 && (
+                <Image source={product.image} style={[g.cardImage, (product as any).isOutOfStock && { opacity: 0.5 }]} resizeMode="contain" />
+                {product.rating >= 4.5 && !(product as any).isOutOfStock && (
                   <View style={g.ratingBadge}>
                     <Star color={GOLD_HIGHLIGHT} size={14} fill={GOLD_HIGHLIGHT} />
                     <Text style={g.ratingBadgeText}>{product.rating}</Text>
+                  </View>
+                )}
+                {(product as any).isOutOfStock && (
+                  <View style={{ position: 'absolute', top: 10, left: 10, backgroundColor: '#EF4444', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>OUT OF STOCK</Text>
+                  </View>
+                )}
+                {!(product as any).isOutOfStock && (product as any).stock_quantity > 0 && (product as any).stock_quantity <= 10 && (
+                  <View style={{ position: 'absolute', top: 10, left: 10, backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>
+                      ONLY {(product as any).stock_quantity} LEFT
+                    </Text>
+                  </View>
+                )}
+                {(product as any).discount_pct && !(product as any).isOutOfStock && (
+                  <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: GOLD_DEEP, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{Math.round((product as any).discount_pct)}% OFF</Text>
                   </View>
                 )}
               </View>
@@ -866,11 +884,26 @@ const CollectionGrid = ({
                 <Text style={g.cardSubtitle}>{product.subtitle}</Text>
                 <Text style={g.cardName}>{product.shortName}</Text>
                 <Text style={g.cardDesc} numberOfLines={2}>{product.description}</Text>
-                <Text style={g.cardPrice}>{product.priceDisplay}</Text>
-                <GoldCartButton
-                  onPress={(x, y) => onAddToCart?.(product, x, y)}
-                  compact
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <Text style={[g.cardPrice, (product as any).isOutOfStock && { color: '#9CA3AF' }]}>
+                    {product.priceDisplay}
+                  </Text>
+                  {(product as any).original_price && !((product as any).isOutOfStock) && (
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', textDecorationLine: 'line-through' }}>
+                      ₹{Number((product as any).original_price).toLocaleString()}
+                    </Text>
+                  )}
+                </View>
+                {(product as any).isOutOfStock ? (
+                  <View style={{ marginTop: 14, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 28, borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center', alignSelf: 'center' }}>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase' }}>Out of Stock</Text>
+                  </View>
+                ) : (
+                  <GoldCartButton
+                    onPress={(x, y) => onAddToCart?.(product, x, y)}
+                    compact
+                  />
+                )}
               </View>
             </Pressable>
           </Animated.View>
@@ -1029,17 +1062,35 @@ const ProductLandingPage = ({
 
             <View style={d.heroPriceRow}>
               <Text style={d.heroSize}>{product.size}</Text>
-              <Text style={d.heroPrice}>{product.priceDisplay}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={[(product as any).isOutOfStock ? { color: '#9CA3AF' } : d.heroPrice]}>{product.priceDisplay}</Text>
+                {(product as any).original_price && !(product as any).isOutOfStock && (
+                  <Text style={{ fontSize: 14, color: '#9CA3AF', textDecorationLine: 'line-through' }}>
+                    ₹{Number((product as any).original_price).toLocaleString()}
+                  </Text>
+                )}
+              </View>
             </View>
 
-            <View style={{ alignSelf: isMob ? 'center' : 'flex-start' }}>
-              <GoldCartButton
-                onPress={(x, y) => onAddToCart(product, x, y)}
-                label="ADD TO CART"
-              />
-            </View>
+            {(product as any).isOutOfStock ? (
+              <View style={{ alignSelf: isMob ? 'center' : 'flex-start', marginTop: 14, paddingVertical: 14, paddingHorizontal: 40, borderRadius: 28, borderWidth: 1.5, borderColor: '#D1D5DB', alignItems: 'center' }}>
+                <Text style={{ color: '#9CA3AF', fontSize: 14, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' }}>Out of Stock</Text>
+              </View>
+            ) : (
+              <View style={{ alignSelf: isMob ? 'center' : 'flex-start' }}>
+                <GoldCartButton
+                  onPress={(x, y) => onAddToCart(product, x, y)}
+                  label="ADD TO CART"
+                />
+              </View>
+            )}
 
             <View style={d.trustBadges}>
+              {(product as any).stock_quantity > 0 && (product as any).stock_quantity <= 10 && (
+                <View style={[d.trustBadge, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' }]}>
+                  <Text style={[d.trustBadgeText, { color: '#D97706' }]}>⚡ Only {(product as any).stock_quantity} left — order soon</Text>
+                </View>
+              )}
               {product.rating >= 4.5 && (
                 <View style={d.trustBadge}>
                   <Star color={GOLD_HIGHLIGHT} size={15} fill={GOLD_HIGHLIGHT} />
@@ -1260,15 +1311,32 @@ const StickyBottomBar = ({ product, onAddToCart }: { product: ProductType; onAdd
 // ════════════════════════════════════════════════
 // CART DRAWER — Premium Redesign
 // ════════════════════════════════════════════════
+export type AppliedPromo = { code: string; discountAmount: number; label: string };
+
 export const CartDrawer = ({
   items, visible, onClose, onUpdateQuantity, onRemove, onCheckout,
 }: {
   items: CartItem[]; visible: boolean; onClose: () => void;
   onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void;
-  onCheckout?: () => void;
+  onCheckout?: (promo?: AppliedPromo) => void;
 }) => {
   const translateX = useSharedValue(800);
   const overlayOpacity = useSharedValue(0);
+
+  // ── Promo code state ──────────────────────────────────────
+  const [promoInput, setPromoInput] = React.useState('');
+  const [appliedPromo, setAppliedPromo] = React.useState<AppliedPromo | null>(null);
+  const [promoLoading, setPromoLoading] = React.useState(false);
+  const [promoError, setPromoError] = React.useState('');
+
+  // Reset promo when cart closes
+  React.useEffect(() => {
+    if (!visible) {
+      setPromoInput('');
+      setPromoError('');
+      // keep appliedPromo so it survives re-open
+    }
+  }, [visible]);
 
   // Fix scroll lock bug: lock body scroll on web when cart is open
   React.useEffect(() => {
@@ -1305,8 +1373,49 @@ export const CartDrawer = ({
 
   if (!visible && translateX.value >= 790) return null;
 
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const discount = appliedPromo?.discountAmount ?? 0;
+  const total = subtotal - discount;
+
+  async function applyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      // Dev: EXPO_PUBLIC_API_URL = http://localhost:8081 (proxy → Next.js on 3001)
+      // Prod: falls back to EXPO_PUBLIC_BASE_URL (Vercel)
+      const API_URL =
+        (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
+        (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_BASE_URL) ||
+        '';
+      const res = await fetch(`${API_URL}/api/promocode/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, cart_total: subtotal }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const label = data.discount_type === 'percentage'
+          ? `${data.discount_value}% off`
+          : `₹${data.discount_value} off`;
+        setAppliedPromo({ code: data.code, discountAmount: data.discount_amount, label });
+        setPromoInput('');
+      } else {
+        setPromoError(data.error || 'Invalid promo code');
+      }
+    } catch {
+      setPromoError('Could not verify promo code. Try again.');
+    }
+    setPromoLoading(false);
+  }
+
+  function removePromo() {
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError('');
+  }
 
   return (
     <View style={cart.overlay} pointerEvents={visible ? 'box-none' : 'none'}>
@@ -1371,12 +1480,65 @@ export const CartDrawer = ({
 
         {items.length > 0 && (
           <View style={cart.footer}>
+
+            {/* ── Promo Code Input ────────────────────────────── */}
+            {appliedPromo ? (
+              <View style={cart.promoApplied}>
+                <View style={{ flex: 1 }}>
+                  <Text style={cart.promoAppliedCode}>🏷 {appliedPromo.code}</Text>
+                  <Text style={cart.promoAppliedSave}>You save ₹{appliedPromo.discountAmount.toLocaleString('en-IN')} ({appliedPromo.label})</Text>
+                </View>
+                <TouchableOpacity onPress={removePromo} style={cart.promoRemoveBtn}>
+                  <X color="#EF4444" size={14} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={cart.promoRow}>
+                <View style={cart.promoInputWrap}>
+                  <TextInput
+                    style={cart.promoInput}
+                    placeholder="Enter coupon code"
+                    placeholderTextColor="#9CA3AF"
+                    value={promoInput}
+                    onChangeText={t => { setPromoInput(t.toUpperCase()); setPromoError(''); }}
+                    autoCapitalize="characters"
+                    onSubmitEditing={applyPromo}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[cart.promoApplyBtn, (!promoInput.trim() || promoLoading) && { opacity: 0.5 }]}
+                  onPress={applyPromo}
+                  disabled={!promoInput.trim() || promoLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text style={cart.promoApplyBtnText}>{promoLoading ? '…' : 'APPLY'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {!!promoError && (
+              <Text style={cart.promoError}>{promoError}</Text>
+            )}
+
+            {/* ── Order Summary ────────────────────────────────── */}
+            {appliedPromo && (
+              <View style={cart.summaryRow}>
+                <Text style={cart.summaryLabel}>Subtotal</Text>
+                <Text style={cart.summaryValue}>₹{subtotal.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+            {appliedPromo && (
+              <View style={cart.summaryRow}>
+                <Text style={[cart.summaryLabel, { color: '#10B981' }]}>Discount</Text>
+                <Text style={[cart.summaryValue, { color: '#10B981' }]}>−₹{discount.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+
             <View style={cart.totalRow}>
               <Text style={cart.totalLabel}>Order Total</Text>
               <Text style={cart.totalValue}>₹{total.toLocaleString('en-IN')}</Text>
             </View>
             <Text style={cart.taxNote}>Inclusive of all taxes · Free shipping on orders ₹999+</Text>
-            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85} onPress={() => { onClose(); onCheckout?.(); }}>
+            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85} onPress={() => { onClose(); onCheckout?.(appliedPromo ?? undefined); }}>
               <LinearGradient colors={['#C9A227', '#E9C349', '#C9A227']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cart.checkoutGradient}>
                 <Text style={cart.checkoutText}>PROCEED TO CHECKOUT</Text>
               </LinearGradient>
@@ -1468,25 +1630,59 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
   const [flyItems, setFlyItems] = useState<FlyItem[]>([]);
   const [liveProducts, setLiveProducts] = useState(COLLECTION_PRODUCTS);
 
+  // Keywords to match local product IDs to Supabase product names
+  const PRODUCT_KEYWORDS: Record<string, string[]> = {
+    'facewash':    ['FACE WASH', 'FACEWASH', 'GOLD GLOW FACE'],
+    'hairserum':   ['HAIR SERUM', 'SMOOTH & SHINE', 'WEIGHTLESS PERFECTION HAIR'],
+    'faceserum':   ['FACE SERUM', 'GLOW & CORRECT', 'REVEAL YOUR GLOW'],
+    'nightcream':  ['NIGHT CREAM', 'RESTORATION CREAM', 'OVERNIGHT RESTORATION'],
+    'hairoil':     ['HAIR OIL', 'HAIR GROWTH', 'ELIXIR'],
+    'hairshampoo': ['SHAMPOO', 'CALM & CLEAN'],
+  };
+
   useEffect(() => {
     const fetchInventory = async () => {
       try {
-        const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
+        const API_URL =
+          (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
+          (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_BASE_URL) ||
+          '';
         const res = await fetch(`${API_URL}/api/products`);
         const data = await res.json();
-        if (data.products) {
+        if (data.products && Array.isArray(data.products)) {
           const merged = COLLECTION_PRODUCTS.map(cp => {
-            const dbP = data.products.find((p: any) => p.id === cp.id || p.name.includes(cp.shortName));
+            const keywords = PRODUCT_KEYWORDS[cp.id] || [cp.shortName];
+            // Find best match: prefer highest stock_quantity to avoid picking duplicates
+            const matches = data.products.filter((p: any) => {
+              const upper = (p.name || '').toUpperCase();
+              // Exact slug match first
+              if (p.slug === cp.id) return true;
+              // Keyword match
+              return keywords.some(kw => upper.includes(kw.toUpperCase()));
+            });
+            // Pick the one with highest stock if multiple matches
+            const dbP = matches.sort((a: any, b: any) => (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0))[0];
             if (dbP) {
-              return { 
-                ...cp, 
-                price: dbP.price || cp.price, 
-                stock_message: dbP.stock_message, 
-                priceDisplay: dbP.price ? `₹${dbP.price}.00` : cp.priceDisplay 
+              const isOutOfStock = (dbP.stock_quantity ?? 1) <= 0;
+              const discountedPrice = dbP.discount_pct
+                ? Math.round(dbP.price * (1 - dbP.discount_pct / 100))
+                : dbP.price;
+              return {
+                ...cp,
+                price: dbP.price || cp.price,
+                priceDisplay: `₹${discountedPrice}.00`,
+                stock_quantity: dbP.stock_quantity ?? null,
+                stock_message: dbP.stock_message,
+                isOutOfStock,
+                original_price: dbP.original_price ?? null,
+                discount_pct: dbP.discount_pct ?? null,
+                offer_ends_at: dbP.offer_ends_at ?? null,
               };
             }
             return cp;
           });
+          // Only show active products (API already filters by active=true,
+          // so any local product not in DB still shows from local data)
           setLiveProducts(merged);
         }
       } catch (err) {
@@ -2374,7 +2570,7 @@ const cart = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   totalLabel: { color: '#888', fontSize: 13, fontWeight: '500', letterSpacing: 1, textTransform: 'uppercase' },
   totalValue: { color: '#1A1A1A', fontSize: 22, fontWeight: '800' },
-  taxNote: { color: '#AAA', fontSize: 11, marginBottom: 20, letterSpacing: 0.2 },
+  taxNote: { color: '#AAA', fontSize: 11, marginBottom: 16, letterSpacing: 0.2 },
   checkoutBtn: {
     borderRadius: 16, overflow: 'hidden',
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
@@ -2383,4 +2579,36 @@ const cart = StyleSheet.create({
     paddingVertical: 18, alignItems: 'center', borderRadius: 16,
   },
   checkoutText: { color: '#1A1A1A', fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+
+  // ── Promo Code ──────────────────────────────────────────
+  promoRow: {
+    flexDirection: 'row', gap: 8, marginBottom: 6,
+  },
+  promoInputWrap: {
+    flex: 1, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB',
+    overflow: 'hidden', backgroundColor: '#F9FAFB',
+  },
+  promoInput: {
+    height: 44, paddingHorizontal: 14, fontSize: 13, fontWeight: '600',
+    color: '#1A1A1A', letterSpacing: 1,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  promoApplyBtn: {
+    backgroundColor: '#1A1A1A', borderRadius: 12,
+    paddingHorizontal: 18, justifyContent: 'center', alignItems: 'center', height: 44,
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  promoApplyBtnText: { color: '#E9C349', fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+  promoApplied: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F0FDF4', borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: '#BBF7D0', marginBottom: 10,
+  },
+  promoAppliedCode: { fontSize: 13, fontWeight: '800', color: '#15803D', letterSpacing: 1 },
+  promoAppliedSave: { fontSize: 11, color: '#16A34A', marginTop: 2 },
+  promoRemoveBtn: { padding: 4 },
+  promoError: { color: '#EF4444', fontSize: 11, marginBottom: 8, marginTop: 2 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  summaryLabel: { fontSize: 13, color: '#888' },
+  summaryValue: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
 });

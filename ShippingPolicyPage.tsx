@@ -145,7 +145,7 @@ export default function ShippingPolicyPage({ onNavigate }: { onNavigate?: (page:
             Once your order is dispatched, you will receive a tracking ID and link via email. You can also check your order status anytime in your DaLuxe profile.
           </Text>
           <Text style={sh.trackingText}>
-            For any shipping-related queries, reach out to us at care@daluxe.in and our team will assist you within 24 hours.
+            For any shipping-related queries, reach out to us at mydaluxe@gmail.com and our team will assist you within 24 hours.
           </Text>
         </Animated.View>
 
