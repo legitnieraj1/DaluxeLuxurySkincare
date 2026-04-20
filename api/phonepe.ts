@@ -11,13 +11,13 @@ const supabaseAdmin = createClient(
 const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;
 const PHONEPE_CLIENT_SECRET = process.env.PHONEPE_CLIENT_SECRET!;
 const PHONEPE_CLIENT_VERSION = process.env.PHONEPE_CLIENT_VERSION || '1';
-const PHONEPE_ENV = process.env.PHONEPE_ENV || 'UAT';
+const PHONEPE_ENVIRONMENT = process.env.PHONEPE_ENVIRONMENT || 'SANDBOX';
 
-const PHONEPE_HOST = PHONEPE_ENV === 'PROD'
+const PHONEPE_HOST = PHONEPE_ENVIRONMENT === 'PROD'
   ? 'https://api.phonepe.com/apis/pg'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
 
-const PHONEPE_AUTH_HOST = PHONEPE_ENV === 'PROD'
+const PHONEPE_AUTH_HOST = PHONEPE_ENVIRONMENT === 'PROD'
   ? 'https://api.phonepe.com/apis/identity-manager'
   : 'https://api-preprod.phonepe.com/apis/pg-sandbox';
 

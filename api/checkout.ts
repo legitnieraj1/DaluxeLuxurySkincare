@@ -25,36 +25,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
     try {
       const user = await getUser(req);
-      if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      if (!user) return res.status(401).json({ success: false, error: 'Unauthorized. Please log in.' });
 
       const { cart_items } = req.body;
       if (!cart_items || !Array.isArray(cart_items) || cart_items.length === 0) {
         return res.status(400).json({ success: false, error: 'Cart is empty' });
       }
 
-      for (const item of cart_items) {
-        if (!item.product_id || typeof item.quantity !== 'number' || item.quantity < 1) {
-          return res.status(400).json({ success: false, error: 'Invalid cart item format' });
-        }
+      const { data: allProducts, error } = await supabaseAdmin
+        .from('products')
+        .select('id, name, stock_quantity')
+        .eq('active', true);
+
+      if (error) {
+        console.error('Database Error:', error);
+        return res.status(500).json({ success: false, error: 'Database error' });
       }
 
-      const { data: allProducts, error } = await supabaseAdmin.from('products').select('id, name, stock_quantity, price').eq('active', true);
-      if (error) return res.status(500).json({ success: false, error: 'Database error while checking stock' });
-
       for (const item of cart_items) {
-        let product = allProducts?.find((p: any) => p.id === item.product_id);
-        if (!product && item.name) {
-          const itemNameUpper = item.name.toUpperCase();
-          product = allProducts?.find((p: any) => p.name?.toUpperCase().includes(itemNameUpper) || itemNameUpper.includes(p.name?.toUpperCase()));
-        }
-        if (!product) continue; // Skip hardcoded products not in DB
-
-        if (product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity < item.quantity) {
+        const product = allProducts?.find((p: any) => p.id === item.product_id);
+        if (!product) continue;
+        if (product.stock_quantity !== null && product.stock_quantity < item.quantity) {
           return res.status(400).json({ success: false, error: `"${product.name}" is out of stock (only ${product.stock_quantity} available)` });
         }
       }
       return res.status(200).json({ success: true, message: 'Stock validated' });
     } catch (error: any) {
+      console.error('Validation Error:', error);
       return res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
     }
   }
@@ -73,22 +70,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const orderNumber = `DLX-COD-${Date.now().toString(36).toUpperCase()}`;
 
+      // Resolve promo code if provided
+      let promoCodeId: string | null = null;
+      let discountAmount: number = orderPayload.discount_amount || 0;
+      if (orderPayload.promo_code) {
+        const { data: promo } = await supabaseAdmin
+          .from('promo_codes')
+          .select('id, active, expires_at, usage_limit, used_count, commission_pct, influencer_name')
+          .eq('code', orderPayload.promo_code.toUpperCase())
+          .single();
+        if (promo && promo.active) promoCodeId = promo.id;
+      }
+
       const { data: order, error: orderError } = await supabaseAdmin.from('orders').insert({
-        user_id: user.id, order_number: orderNumber, total_amount: orderPayload.total_amount,
-        payment_gateway: 'cod', status: 'confirmed', shipment_status: 'pending',
+        user_id: user.id,
+        order_number: orderNumber,
+        total_amount: orderPayload.total_amount,
+        discount_amount: discountAmount,
+        promo_code_id: promoCodeId,
+        promo_code_used: orderPayload.promo_code?.toUpperCase() || null,
+        payment_method: 'cod',
+        status: 'confirmed',
         shipping_address: orderPayload.shipping_address,
       }).select().single();
 
       if (orderError) return res.status(500).json({ success: false, error: 'Failed to create order' });
 
       const orderItems = cartItems.map((item: any) => ({
-        order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price,
+        order_id: order.id, product_id: item.product_id, quantity: item.quantity,
+        unit_price: item.price, total_price: item.price * item.quantity,
       }));
 
       await supabaseAdmin.from('order_items').insert(orderItems);
-      
+
       for (const item of cartItems) {
-        await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        await supabaseAdmin.rpc('decrement_stock', { product_id: item.product_id, qty: item.quantity });
+      }
+
+      // Record commission if influencer promo code was used
+      if (promoCodeId && orderPayload.promo_code) {
+        const { data: promo } = await supabaseAdmin
+          .from('promo_codes')
+          .select('commission_pct, influencer_name')
+          .eq('id', promoCodeId)
+          .single();
+        if (promo?.influencer_name) {
+          const commissionAmt = parseFloat(((orderPayload.total_amount * promo.commission_pct) / 100).toFixed(2));
+          await Promise.all([
+            supabaseAdmin.from('commissions').insert({
+              promo_code_id: promoCodeId,
+              order_id: order.id,
+              influencer_name: promo.influencer_name,
+              order_amount: orderPayload.total_amount,
+              commission_pct: promo.commission_pct,
+              commission_amount: commissionAmt,
+            }),
+            // Increment total_commission atomically
+            supabaseAdmin.rpc('increment_commission', {
+              code_id: promoCodeId,
+              amount: commissionAmt,
+            }),
+          ]);
+        }
       }
 
       // Clear user's cart after successful order
