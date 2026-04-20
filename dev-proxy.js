@@ -1,9 +1,7 @@
 /**
  * dev-proxy.js — Unified dev proxy for Daluxe
- * localhost:8081        → Expo storefront (port 8082)
- * localhost:8081/admin  → Next.js admin   (port 3001)
  */
-
+console.log('--- Proxy Debug: Starting ---');
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
@@ -13,45 +11,33 @@ const ADMIN_PORT = 3001;
 
 const app = express();
 
-// ── Admin: forward /admin/* to Next.js (keep full path — basePath requires it)
+console.log('--- Proxy Debug: Creating Unified Proxy ---');
 app.use(
   createProxyMiddleware({
-    target: `http://localhost:${ADMIN_PORT}`,
+    router: (req) => {
+      // Forward Admin, API, and Next.js internal assets to the Admin backend
+      if (req.url.startsWith('/admin') || req.url.startsWith('/api') || req.url.startsWith('/_next')) {
+        return `http://localhost:${ADMIN_PORT}`;
+      }
+      return `http://localhost:${EXPO_PORT}`;
+    },
     changeOrigin: true,
     ws: true,
-    // pathFilter: only intercept /admin and anything under it
-    pathFilter: (path) => path.startsWith('/admin'),
-    on: {
-      error(err, req, res) {
-        if (res && !res.headersSent) {
-          res.status(502).set('Content-Type', 'text/html').send(`
-            <html><body style="font-family:sans-serif;background:#fdfbf7;padding:60px;max-width:500px;margin:auto">
-              <h2 style="color:#C9A227">⏳ Admin panel is starting…</h2>
-              <p style="color:#555">Next.js is booting up. Refresh in 5 seconds.</p>
-              <script>setTimeout(()=>location.reload(),5000)</script>
-            </body></html>`);
-        }
-      },
+    pathRewrite: {
+      '^/api': '/admin/api', // Maps storefront /api/xyz to backend /admin/api/xyz
     },
+    logger: console,
   })
 );
 
-// ── Everything else → Expo Metro
-app.use(
-  createProxyMiddleware({
-    target: `http://localhost:${EXPO_PORT}`,
-    changeOrigin: true,
-    ws: true,
-    on: {
-      error(err, req, res) {
-        if (res && !res.headersSent) res.status(502).send('Expo is starting up…');
-      },
-    },
-  })
-);
-
+console.log(`--- Proxy Debug: Attempting to listen on ${PROXY_PORT} ---`);
 app.listen(PROXY_PORT, () => {
-  console.log(`\n🚀  Daluxe Dev Proxy  →  http://localhost:${PROXY_PORT}`);
-  console.log(`   Storefront : http://localhost:${PROXY_PORT}`);
-  console.log(`   Admin panel: http://localhost:${PROXY_PORT}/admin\n`);
+  console.log(`\n🚀 Daluxe Dev Proxy -> http://localhost:${PROXY_PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Error: Port ${PROXY_PORT} is already in use.`);
+  } else {
+    console.error('\n❌ Proxy process failed:', err);
+  }
+  process.exit(1);
 });

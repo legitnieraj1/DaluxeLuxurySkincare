@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminStore, Order, OrderStatus } from '@/lib/store';
 import { Search, X, ChevronDown } from 'lucide-react';
 
@@ -99,10 +99,14 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 const STATUS_TABS: (OrderStatus | 'all')[] = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
 export default function OrdersPage() {
-  const { orders } = useAdminStore();
+  const { orders, fetchOrders } = useAdminStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState<OrderStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const filtered = orders.filter(o => {
     const matchStatus = activeTab === 'all' || o.status === activeTab;

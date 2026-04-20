@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, CartesianGrid
 } from 'recharts';
 import { useAdminStore } from '@/lib/store';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 const monthlyRevenue = [
   { m: 'Nov', rev: 48000 }, { m: 'Dec', rev: 72000 }, { m: 'Jan', rev: 55000 },
@@ -27,7 +27,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsPage() {
-  const { products, orders } = useAdminStore();
+  const { products, orders, fetchProducts, fetchOrders } = useAdminStore();
+
+  useEffect(() => {
+    fetchProducts();
+    fetchOrders();
+  }, [fetchProducts, fetchOrders]);
 
   const { totalRevenue, avgOrderValue, conversionPlaceholder, topProducts, categoryData } = useMemo(() => {
     const delivered = orders.filter(o => o.status === 'delivered');

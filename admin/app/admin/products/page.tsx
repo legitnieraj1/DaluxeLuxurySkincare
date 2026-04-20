@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAdminStore, Product, getStockStatus } from '@/lib/store';
 import { Plus, Pencil, Trash2, X, Upload, Search, ChevronDown, Star, ToggleLeft, ToggleRight } from 'lucide-react';
 import Image from 'next/image';
@@ -43,8 +43,37 @@ function ProductModal({ product, onClose }: { product?: Product; onClose: () => 
     fragrance: product?.fragrance ?? '',
     isActive: product?.isActive ?? true,
     isBestSeller: product?.isBestSeller ?? false,
-    images: product?.images ?? [],
+    images: product?.images ?? [] as any[],
   });
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function handleFileUpload(files: File[]) {
+    setIsUploading(true);
+    for (const file of files) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) {
+        toast.error(`Upload failed: ${error.message}`);
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setForm(f => ({
+        ...f,
+        images: [...f.images, { id: fileName, url: publicUrl, isMain: f.images.length === 0 }]
+      }));
+    }
+    setIsUploading(false);
+  }
 
   function handleSave() {
     const stockStatus = getStockStatus(form.stock);
@@ -211,41 +240,28 @@ function ProductModal({ product, onClose }: { product?: Product; onClose: () => 
               <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
-                  files.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setForm(f => ({
-                        ...f,
-                        images: [...f.images, { id: Date.now().toString(), url: ev.target?.result as string, isMain: f.images.length === 0 }]
-                      }));
-                    };
-                    reader.readAsDataURL(file);
-                  });
+                  handleFileUpload(files);
                 }}
               />
               <div
-                onClick={() => fileRef.current?.click()}
-                className="w-full h-36 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all"
+                onClick={() => !isUploading && fileRef.current?.click()}
+                className={`w-full h-36 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
                 style={{ border: '2px dashed rgba(212,175,55,0.3)', background: 'rgba(212,175,55,0.03)' }}
                 onDragOver={e => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
+                  if (isUploading) return;
                   const files = Array.from(e.dataTransfer.files);
-                  files.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setForm(f => ({
-                        ...f,
-                        images: [...f.images, { id: Date.now().toString(), url: ev.target?.result as string, isMain: f.images.length === 0 }]
-                      }));
-                    };
-                    reader.readAsDataURL(file);
-                  });
+                  handleFileUpload(files);
                 }}
               >
-                <Upload size={24} style={{ color: '#D4AF37' }} />
+                {isUploading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#D4AF37]" />
+                ) : (
+                  <Upload size={24} style={{ color: '#D4AF37' }} />
+                )}
                 <div className="text-center">
-                  <p className="text-sm font-medium" style={{ color: '#FAFAFA' }}>Drag & drop images here</p>
+                  <p className="text-sm font-medium" style={{ color: '#FAFAFA' }}>{isUploading ? 'Uploading...' : 'Drag & drop images here'}</p>
                   <p className="text-xs mt-0.5" style={{ color: '#52525B' }}>or click to browse · Max 6 images</p>
                 </div>
               </div>
@@ -322,11 +338,15 @@ function MultiInput({ label, values, onChange, placeholder }: { label: string; v
 // ─── Main Products Page ───────────────────────────────────────────
 
 export default function ProductsPage() {
-  const { products, deleteProduct } = useAdminStore();
+  const { products, deleteProduct, fetchProducts, isLoading } = useAdminStore();
   const [modal, setModal] = useState<'none' | 'add' | 'edit'>('none');
   const [editing, setEditing] = useState<Product | undefined>();
   const [search, setSearch] = useState('');
   const [delConfirm, setDelConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||

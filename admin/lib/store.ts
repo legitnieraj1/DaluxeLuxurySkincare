@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabaseAdmin } from './supabase/client';
 
 // ─────────────────────────────────────────
 // TYPES
@@ -67,83 +68,7 @@ export interface Customer {
   joinedAt: string;
 }
 
-// ─────────────────────────────────────────
-// SEED DATA
-// ─────────────────────────────────────────
-
-const seedProducts: Product[] = [
-  {
-    id: '1', name: 'Radiance Renewal Serum', tagline: 'Illuminates & revitalizes dull skin',
-    description: 'A potent vitamin C serum with niacinamide to brighten and even skin tone.',
-    category: 'Face Serum', price: 1299, discount: 10, discountType: 'percent',
-    stock: 84, stockStatus: 'instock', images: [], ingredients: ['Vitamin C', 'Niacinamide', 'Hyaluronic Acid'],
-    benefits: ['Brightens skin', 'Reduces dark spots', 'Deep hydration'],
-    skinConcern: 'Dullness, Pigmentation', howToUse: 'Apply 2-3 drops on cleansed face morning and night.',
-    suitableFor: 'All skin types', texture: 'Lightweight fluid', fragrance: 'Fragrance-free',
-    isActive: true, isBestSeller: true, createdAt: new Date().toISOString()
-  },
-  {
-    id: '2', name: 'Barrier Ceramide Moisturizer', tagline: 'Restores & fortifies skin barrier',
-    description: 'Rich ceramide cream that repairs the moisture barrier and soothes sensitive skin.',
-    category: 'Moisturizer', price: 1599, discount: 0, discountType: 'percent',
-    stock: 3, stockStatus: 'low', images: [], ingredients: ['Ceramide NP', 'Ceramide AP', 'Cholesterol'],
-    benefits: ['Locks moisture', 'Reduces redness', 'Strengthens barrier'],
-    skinConcern: 'Dryness, Sensitivity', howToUse: 'Apply on face and neck after serum.',
-    suitableFor: 'Dry & Sensitive skin', texture: 'Rich cream', fragrance: 'Lightly floral',
-    isActive: true, isBestSeller: false, createdAt: new Date().toISOString()
-  },
-  {
-    id: '3', name: 'Botanical Gentle Cleanser', tagline: 'Clean without compromise',
-    description: 'A pH-balanced gel cleanser that removes impurities without stripping natural oils.',
-    category: 'Facewash', price: 799, discount: 50, discountType: 'flat',
-    stock: 0, stockStatus: 'outofstock', images: [], ingredients: ['Aloe Vera', 'Green Tea Extract', 'Glycerin'],
-    benefits: ['Removes impurities', 'Maintains pH balance', 'Hydrates while cleansing'],
-    skinConcern: 'All concerns', howToUse: 'Lather on wet face, massage, rinse thoroughly.',
-    suitableFor: 'All skin types', texture: 'Gel', fragrance: 'Light botanical',
-    isActive: false, isBestSeller: false, createdAt: new Date().toISOString()
-  }
-];
-
-const seedOrders: Order[] = [
-  {
-    id: '1', orderNumber: 'DAL-1001', customer: 'Aanya Sharma',
-    email: 'aanya@email.com', phone: '+91 98765 43210', address: '12 Rose Garden, Sector 21',
-    city: 'New Delhi', pincode: '110001',
-    items: [{ productId: '1', productName: 'Radiance Renewal Serum', quantity: 2, price: 1299 }],
-    total: 2598, status: 'pending', paymentId: 'pay_xyz001', createdAt: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: '2', orderNumber: 'DAL-1002', customer: 'Vikram Mehta',
-    email: 'vikram@email.com', phone: '+91 87654 32109', address: '5 Marine Drive, Flat 3B',
-    city: 'Mumbai', pincode: '400001',
-    items: [{ productId: '2', productName: 'Barrier Ceramide Moisturizer', quantity: 1, price: 1599 }],
-    total: 1599, status: 'shipped', paymentId: 'pay_xyz002', createdAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: '3', orderNumber: 'DAL-1003', customer: 'Priya Kapoor',
-    email: 'priya@email.com', phone: '+91 76543 21098', address: 'Block C, Palm Heights',
-    city: 'Bengaluru', pincode: '560001',
-    items: [
-      { productId: '1', productName: 'Radiance Renewal Serum', quantity: 1, price: 1299 },
-      { productId: '3', productName: 'Botanical Gentle Cleanser', quantity: 1, price: 749 }
-    ],
-    total: 2048, status: 'delivered', paymentId: 'pay_xyz003', createdAt: new Date(Date.now() - 172800000).toISOString()
-  },
-  {
-    id: '4', orderNumber: 'DAL-1004', customer: 'Rohan Das',
-    email: 'rohan@email.com', phone: '+91 65432 10987', address: '8A Elgin Road',
-    city: 'Kolkata', pincode: '700001',
-    items: [{ productId: '2', productName: 'Barrier Ceramide Moisturizer', quantity: 2, price: 1599 }],
-    total: 3198, status: 'confirmed', paymentId: 'pay_xyz004', createdAt: new Date(Date.now() - 7200000).toISOString()
-  }
-];
-
-const seedCustomers: Customer[] = [
-  { id: '1', name: 'Aanya Sharma', email: 'aanya@email.com', phone: '+91 98765 43210', orderCount: 3, totalSpent: 7890, joinedAt: '2025-01-10' },
-  { id: '2', name: 'Vikram Mehta', email: 'vikram@email.com', phone: '+91 87654 32109', orderCount: 1, totalSpent: 1599, joinedAt: '2025-03-02' },
-  { id: '3', name: 'Priya Kapoor', email: 'priya@email.com', phone: '+91 76543 21098', orderCount: 5, totalSpent: 12400, joinedAt: '2024-11-15' },
-  { id: '4', name: 'Rohan Das', email: 'rohan@email.com', phone: '+91 65432 10987', orderCount: 2, totalSpent: 5200, joinedAt: '2025-02-20' }
-];
+// Seed data removed for dynamic Supabase fetching
 
 // ─────────────────────────────────────────
 // STORE
@@ -153,46 +78,199 @@ interface AdminStore {
   products: Product[];
   orders: Order[];
   customers: Customer[];
+  isLoading: boolean;
+  
+  // Fetch Actions
+  fetchProducts: () => Promise<void>;
+  fetchOrders: () => Promise<void>;
+  fetchCustomers: () => Promise<void>;
+  
   // Product Actions
-  addProduct: (p: Omit<Product, 'id' | 'createdAt'>) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (p: Omit<Product, 'id' | 'createdAt' | 'stockStatus'>) => Promise<boolean>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>;
+  deleteProduct: (id: string) => Promise<boolean>;
+  
   // Order Actions
-  addOrder: (o: Omit<Order, 'id'>) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<boolean>;
 }
 
 export const useAdminStore = create<AdminStore>()(
   persist(
-    (set) => ({
-      products: seedProducts,
-      orders: seedOrders,
-      customers: seedCustomers,
+    (set, get) => ({
+      products: [],
+      orders: [],
+      customers: [],
+      isLoading: false,
 
-      addProduct: (p) => set((state) => ({
-        products: [
-          { ...p, id: Date.now().toString(), createdAt: new Date().toISOString() },
-          ...state.products
-        ]
-      })),
+      fetchProducts: async () => {
+        set({ isLoading: true });
+        const { data, error } = await supabaseAdmin
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          const mapped: Product[] = data.map(p => ({
+            id: p.id,
+            name: p.name,
+            tagline: p.tagline,
+            description: p.description,
+            category: p.category,
+            price: Number(p.price),
+            discount: Number(p.discount),
+            discountType: p.discount_type as any,
+            stock: p.stock_quantity,
+            stockStatus: getStockStatus(p.stock_quantity),
+            images: p.images || [],
+            ingredients: p.ingredients || [],
+            benefits: p.benefits || [],
+            skinConcern: p.skin_concern,
+            howToUse: p.how_to_use,
+            suitableFor: p.suitable_for,
+            texture: p.texture,
+            fragrance: p.fragrance,
+            isActive: p.is_active,
+            isBestSeller: p.is_best_seller,
+            createdAt: p.created_at
+          }));
+          set({ products: mapped });
+        }
+        set({ isLoading: false });
+      },
 
-      updateProduct: (id, updates) => set((state) => ({
-        products: state.products.map((p) => p.id === id ? { ...p, ...updates } : p)
-      })),
+      fetchOrders: async () => {
+        set({ isLoading: true });
+        const { data, error } = await supabaseAdmin
+          .from('orders')
+          .select('*, profiles(full_name, email, phone)')
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          const mapped: Order[] = data.map(o => ({
+            id: o.id,
+            orderNumber: o.order_number,
+            customer: o.profiles?.full_name || 'Guest',
+            email: o.profiles?.email || '',
+            phone: o.profiles?.phone || '',
+            address: o.shipping_address?.address || '',
+            city: o.shipping_address?.city || '',
+            pincode: o.shipping_address?.pincode || '',
+            items: [], // Would need a separate join or fetch
+            total: Number(o.total_amount),
+            status: o.status as any,
+            paymentId: o.payment_id || '',
+            createdAt: o.created_at
+          }));
+          set({ orders: mapped });
+        }
+        set({ isLoading: false });
+      },
 
-      deleteProduct: (id) => set((state) => ({
-        products: state.products.filter((p) => p.id !== id)
-      })),
+      fetchCustomers: async () => {
+        const { data, error } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (!error && data) {
+          const mapped: Customer[] = data.map(c => ({
+            id: c.id,
+            name: c.full_name || 'Unnamed',
+            email: c.email || '',
+            phone: c.phone || '',
+            orderCount: 0, // Would need aggregation
+            totalSpent: 0,
+            joinedAt: c.created_at
+          }));
+          set({ customers: mapped });
+        }
+      },
 
-      addOrder: (o) => set((state) => ({
-        orders: [{ ...o, id: Date.now().toString() }, ...state.orders]
-      })),
+      addProduct: async (p) => {
+        const { data, error } = await supabaseAdmin
+          .from('products')
+          .insert([{
+            name: p.name,
+            tagline: p.tagline,
+            description: p.description,
+            category: p.category,
+            price: p.price,
+            discount: p.discount,
+            discount_type: p.discountType,
+            stock_quantity: p.stock,
+            is_active: p.isActive,
+            is_best_seller: p.isBestSeller,
+            ingredients: p.ingredients,
+            benefits: p.benefits,
+            skin_concern: p.skinConcern,
+            how_to_use: p.howToUse,
+            suitable_for: p.suitableFor,
+            texture: p.texture,
+            fragrance: p.fragrance,
+            images: p.images
+          }])
+          .select()
+          .single();
 
-      updateOrderStatus: (id, status) => set((state) => ({
-        orders: state.orders.map((o) => o.id === id ? { ...o, status } : o)
-      })),
+        if (error) return false;
+        await get().fetchProducts();
+        return true;
+      },
+
+      updateProduct: async (id, updates) => {
+        const dbUpdates: any = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.tagline !== undefined) dbUpdates.tagline = updates.tagline;
+        if (updates.description !== undefined) dbUpdates.description = updates.description;
+        if (updates.category !== undefined) dbUpdates.category = updates.category;
+        if (updates.price !== undefined) dbUpdates.price = updates.price;
+        if (updates.discount !== undefined) dbUpdates.discount = updates.discount;
+        if (updates.discountType !== undefined) dbUpdates.discount_type = updates.discountType;
+        if (updates.stock !== undefined) dbUpdates.stock_quantity = updates.stock;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+        if (updates.isBestSeller !== undefined) dbUpdates.is_best_seller = updates.isBestSeller;
+        if (updates.ingredients !== undefined) dbUpdates.ingredients = updates.ingredients;
+        if (updates.benefits !== undefined) dbUpdates.benefits = updates.benefits;
+        if (updates.skinConcern !== undefined) dbUpdates.skin_concern = updates.skinConcern;
+        if (updates.howToUse !== undefined) dbUpdates.how_to_use = updates.howToUse;
+        if (updates.suitableFor !== undefined) dbUpdates.suitable_for = updates.suitableFor;
+        if (updates.texture !== undefined) dbUpdates.texture = updates.texture;
+        if (updates.fragrance !== undefined) dbUpdates.fragrance = updates.fragrance;
+        if (updates.images !== undefined) dbUpdates.images = updates.images;
+
+        const { error } = await supabaseAdmin
+          .from('products')
+          .update(dbUpdates)
+          .eq('id', id);
+
+        if (error) return false;
+        await get().fetchProducts();
+        return true;
+      },
+
+      deleteProduct: async (id) => {
+        const { error } = await supabaseAdmin
+          .from('products')
+          .delete()
+          .eq('id', id);
+
+        if (error) return false;
+        await get().fetchProducts();
+        return true;
+      },
+
+      updateOrderStatus: async (id, status) => {
+        const { error } = await supabaseAdmin
+          .from('orders')
+          .update({ status })
+          .eq('id', id);
+
+        if (error) return false;
+        await get().fetchOrders();
+        return true;
+      },
     }),
-    { name: 'daluxe-admin-store' }
+    { name: 'daluxe-admin-store', skipHydration: true }
   )
 );
 

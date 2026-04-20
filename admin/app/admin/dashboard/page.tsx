@@ -1,7 +1,7 @@
 "use client";
 
 import { useAdminStore, Order, OrderStatus } from '@/lib/store';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid
@@ -41,7 +41,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function DashboardPage() {
-  const { products, orders } = useAdminStore();
+  const { products, orders, fetchProducts, fetchOrders } = useAdminStore();
+
+  useEffect(() => {
+    fetchProducts();
+    fetchOrders();
+  }, [fetchProducts, fetchOrders]);
 
   const stats = useMemo(() => {
     const totalRevenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + o.total, 0);

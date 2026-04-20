@@ -10,10 +10,10 @@ const isMobile = SW < 768;
 
 const DELIVERY_TIMELINE = [
   { step: '01', title: 'Order Confirmed', desc: 'You receive an email confirmation with your order details.', days: 'Day 0' },
-  { step: '02', title: 'Processing & Quality Check', desc: 'Your order is carefully packaged with a final quality inspection.', days: 'Day 1–2' },
-  { step: '03', title: 'Dispatched', desc: 'Your order is handed to our shipping partner. Tracking details are emailed to you.', days: 'Day 2–4' },
-  { step: '04', title: 'In Transit', desc: 'Your package is on its way. Track real-time updates via email or your account.', days: 'Day 4–7' },
-  { step: '05', title: 'Delivered', desc: 'Your DaLuxe products arrive at your doorstep. Enjoy your skincare ritual!', days: 'Day 5–10' },
+  { step: '02', title: 'Processing & Quality Check', desc: 'Your order is carefully packaged with a final quality inspection.', days: 'Day 1' },
+  { step: '03', title: 'Dispatched from Mumbai', desc: 'Your order is handed to our shipping partner. Tracking details are emailed to you.', days: 'Day 2' },
+  { step: '04', title: 'In Transit', desc: 'Your package is on its way. Track real-time updates via email or your account.', days: 'Day 3–4' },
+  { step: '05', title: 'Delivered', desc: 'Your DA LUXE products arrive at your doorstep. Enjoy your skincare ritual!', days: 'Day 3–5' },
 ];
 
 const INFO_CARDS = [
@@ -52,7 +52,7 @@ const INFO_CARDS = [
     title: 'Important Notes',
     items: [
       'Shipping costs are non-refundable for cancelled orders',
-      'DaLuxe is not responsible for delays by the courier',
+      'DA LUXE is not responsible for delays by the courier',
       'Ensure correct address to avoid delivery failures',
       'Undelivered packages are returned after 3 attempts',
     ],
@@ -142,10 +142,10 @@ export default function ShippingPolicyPage({ onNavigate }: { onNavigate?: (page:
           <Text style={sh.trackingTitle}>Track Your Order</Text>
           <LinearGradient colors={['transparent', GOLD, 'transparent']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ width: 50, height: 1, marginVertical: 16 }} />
           <Text style={sh.trackingText}>
-            Once your order is dispatched, you will receive a tracking ID and link via email. You can also check your order status anytime in your DaLuxe profile.
+            Once your order is dispatched, you will receive a tracking ID and link via email/SMS. You can also check your order status anytime in your DA LUXE profile.
           </Text>
           <Text style={sh.trackingText}>
-            For any shipping-related queries, reach out to us at care@daluxe.in and our team will assist you within 24 hours.
+            For any shipping-related queries, reach out to us at mydaluxe@gmail.com and our team will assist you within 24 hours.
           </Text>
         </Animated.View>
 

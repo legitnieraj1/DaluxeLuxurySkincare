@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Serve the admin under /admin so the proxy can route to it correctly
-  basePath: "/admin",
+  // The app/admin folder structure already provides the /admin prefix.
 
   async headers() {
     return [

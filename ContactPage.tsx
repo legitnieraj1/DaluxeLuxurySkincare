@@ -178,8 +178,8 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
         <Animated.View entering={FadeInDown.duration(600)}><Text style={c.sectionEyebrow}>OTHER WAYS TO REACH US</Text><GoldDivider width={40} /></Animated.View>
         <View style={c.infoCardsRow}>
           <ContactInfoCard icon={Mail} title="Email" lines={['mydaluxe@gmail.com']} index={0} />
-          <ContactInfoCard icon={Phone} title="Phone" lines={['+91 6201 503 466', '+91 8879621636']} index={1} />
-          <ContactInfoCard icon={MapPin} title="Address" lines={['Sanaullah compound dharavi', 'Near by - Tasmia medical', 'Mahim East, Mumbai 400017']} index={2} />
+          <ContactInfoCard icon={Phone} title="Phone" lines={['+91 8879621636']} index={1} />
+          <ContactInfoCard icon={MapPin} title="Address" lines={['Near by - Tasmia medical', 'Mahim East, Mumbai 400017']} index={2} />
           <ContactInfoCard icon={Clock} title="Hours" lines={['Mon–Sat, 10:00 AM–7:00 PM IST']} index={3} />
         </View>
       </View>
@@ -195,7 +195,7 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
         <View style={c.socialRow}>
           {[
             { icon: Instagram, label: 'Instagram', handle: '@daluxe.in' },
-            { icon: MessageCircle, label: 'WhatsApp', handle: '+91 6201 503 466' },
+            { icon: MessageCircle, label: 'WhatsApp', handle: '+91 8879621636' },
             { icon: Mail, label: 'Email', handle: 'mydaluxe@gmail.com' },
           ].map((social, i) => (
             <Animated.View key={i} entering={FadeInUp.delay(200 + i * 150).duration(600)} style={c.socialCard}>
@@ -212,7 +212,7 @@ export default function ContactPage({ externalScrollY, onNavigate }: { externalS
         <LinearGradient colors={['#FDFBF7', '#FAF9F6', '#FDFBF7']} style={StyleSheet.absoluteFillObject} />
         <Animated.View entering={FadeInDown.duration(700)} style={c.closingContent}>
           <Text style={c.closingText}>Your skin deserves the finest care — and so do you.</Text>
-          <Text style={c.closingSignature}>DaLuxe — Luxury, Redefined.</Text>
+          <Text style={c.closingSignature}>DA LUXE — Luxury, Redefined.</Text>
         </Animated.View>
       </View>
 

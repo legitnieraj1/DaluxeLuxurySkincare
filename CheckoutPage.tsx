@@ -19,7 +19,10 @@ export interface CheckoutItem {
 
 interface CheckoutPageProps {
   items: CheckoutItem[];
+  initialTotal?: number;
+  userEmail: string | null;
   onBack: () => void;
+  onLoginRequired: () => void;
   onSuccess: (paymentId: string) => void;
 }
 
@@ -29,10 +32,12 @@ const TEXT = '#1A1A1A';
 
 type Step = 'details' | 'review' | 'payment';
 
-export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageProps) {
+export default function CheckoutPage({ items, initialTotal, userEmail, onBack, onLoginRequired, onSuccess }: CheckoutPageProps) {
   const [step, setStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
+
+  // ... (rest of states)
   const [shipping, setShipping] = useState<number | 'CALCULATING'>(99);
   const [paymentMethod, setPaymentMethod] = useState<'prepaid' | 'cod'>('prepaid');
   const [pincodeError, setPincodeError] = useState('');
@@ -41,15 +46,23 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
   const scrollRef = useRef<ScrollView>(null);
 
   const [form, setForm] = useState({
-    name: '', phone: '', email: '',
+    name: '', phone: '', email: userEmail || '',
     address: '', city: '', pincode: '', state: '',
   });
+
+  // Effect to sync email if user logs in while on checkout
+  React.useEffect(() => {
+    if (userEmail && !form.email) {
+      setForm(p => ({ ...p, email: userEmail }));
+    }
+  }, [userEmail]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const subtotal = initialTotal !== undefined ? initialTotal : items.reduce((s, i) => s + i.price * i.quantity, 0);
   const getShippingAmount = () => (shipping === 'CALCULATING' ? 0 : shipping);
   const displayShipping = shipping === 'CALCULATING' ? '...' : (shipping === 0 ? 'FREE' : `₹${shipping}`);
-  const grandTotal = total + getShippingAmount();
+  const grandTotal = subtotal + getShippingAmount();
   const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
 
   async function checkShipping(pincode: string) {
@@ -92,10 +105,16 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
   }
 
   async function handlePayment() {
+    // CHECK FOR AUTH
+    if (!userEmail) {
+      onLoginRequired();
+      return;
+    }
+
     setLoading(true);
 
     const orderPayload = {
-      user_id: null,
+      user_id: null, // Next.js backend will extract from token
       total_amount: grandTotal,
       email: form.email,
       shipping_address: {
@@ -291,10 +310,10 @@ export default function CheckoutPage({ items, onBack, onSuccess }: CheckoutPageP
             ))}
 
             <View style={s.priceBox}>
-              <PriceLine label="Subtotal" value={`₹${total.toLocaleString('en-IN')}`} />
+              <PriceLine label="Items Subtotal" value={`₹${subtotal.toLocaleString('en-IN')}`} />
               <PriceLine label="Shipping" value={displayShipping} green={shipping === 0} />
               <View style={s.divider} />
-              <PriceLine label="Total" value={`₹${grandTotal.toLocaleString('en-IN')}`} bold />
+              <PriceLine label="Final Total" value={`₹${grandTotal.toLocaleString('en-IN')}`} bold />
             </View>
 
             <View style={s.addrBox}>

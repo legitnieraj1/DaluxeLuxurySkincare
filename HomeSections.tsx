@@ -112,18 +112,19 @@ const ProductCarouselSection = ({ title, products, onAddToCart, onProductClick, 
 const SkinAssessment = ({ onStartScan }: any) => {
   return (
     <View style={aiStyles.container}>
-      <LinearGradient colors={['#0F2F46', '#0B1D2A']} style={aiStyles.gradient}>
+      <LinearGradient colors={['#FDFBF7', '#F4EFEA']} style={aiStyles.gradient}>
+        <View style={aiStyles.goldBorderTop} />
         
         {/* Banner content layout */}
         <View style={aiStyles.row}>
           {/* Left Text */}
           <View style={aiStyles.textCol}>
-            <Text style={aiStyles.badge}>✨ NEW</Text>
-            <Text style={aiStyles.headline}>Unveil your skin’s secrets</Text>
-            <Text style={aiStyles.subtext}>AI-Powered analysis in 2 minutes. Completely FREE.</Text>
+            <Text style={aiStyles.badge}>✨ NEW INNOVATION</Text>
+            <Text style={aiStyles.headline}>Unveil your skin’s secret needs</Text>
+            <Text style={aiStyles.subtext}>Our proprietary AI identifies your unique concerns and builds a personalized ritual in 2 minutes.</Text>
             <TouchableOpacity style={aiStyles.ctaBtn} onPress={onStartScan}>
-              <Text style={aiStyles.ctaText}>Start Scan</Text>
-              <ArrowRight color="#0B1D2A" size={16} />
+              <Text style={aiStyles.ctaText}>START ANALYSIS</Text>
+              <ArrowRight color="#FFF" size={16} />
             </TouchableOpacity>
           </View>
           
@@ -163,10 +164,10 @@ const CampaignBanners = ({ onNavigate }: any) => {
            </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
-           <LinearGradient colors={['#EAE6F5', '#CDC6E5']} style={promoStyles.bg}>
+           <LinearGradient colors={['#FDFBF7', '#F4EFEA']} style={promoStyles.bg}>
               <Text style={promoStyles.tag}>BOTANICAL ACTIVES</Text>
               <Text style={promoStyles.desc}>Licorice, Alpha Arbutin, and Vitamin C help reduce pigmentation and even out skin tone gently.</Text>
-              <Text style={promoStyles.link}>Shop Now →</Text>
+              <Text style={promoStyles.link}>Discover Ritual →</Text>
            </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity style={promoStyles.banner} activeOpacity={0.9} onPress={() => onNavigate && onNavigate('collection')}>
@@ -296,16 +297,17 @@ const cardStyles = StyleSheet.create({
 
 const aiStyles = StyleSheet.create({
   container: { width: '100%', paddingHorizontal: 20, paddingVertical: 40, alignItems: 'center', backgroundColor: '#F8F6F0' },
-  gradient: { width: '100%', maxWidth: 1200, borderRadius: 30, overflow: 'hidden' },
+  gradient: { width: '100%', maxWidth: 1200, borderRadius: 30, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(201,162,39,0.15)' },
+  goldBorderTop: { height: 4, width: '100%', backgroundColor: '#E9C349' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', padding: 40 },
   textCol: { flex: 1, minWidth: 280, gap: 16 },
-  badge: { color: '#D4AF37', fontWeight: '800', letterSpacing: 2 },
-  headline: { fontSize: 32, fontWeight: '300', color: '#FFF', ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }) },
-  subtext: { color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 24, maxWidth: 350 },
-  ctaBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#FFF', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 30, gap: 12, marginTop: 10 },
-  ctaText: { color: '#0F2F46', fontWeight: '700', fontSize: 14, letterSpacing: 1 },
+  badge: { color: '#B8962E', fontWeight: '800', fontSize: 10, letterSpacing: 4, textTransform: 'uppercase' },
+  headline: { fontSize: 32, fontWeight: '300', color: '#1A1A1A', ...Platform.select({ web: { fontFamily: 'Georgia, serif' } as any }) },
+  subtext: { color: 'rgba(26,26,26,0.6)', fontSize: 15, lineHeight: 24, maxWidth: 350 },
+  ctaBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#1A1A1A', paddingVertical: 14, paddingHorizontal: 28, borderRadius: 30, gap: 12, marginTop: 10 },
+  ctaText: { color: '#FFF', fontWeight: '700', fontSize: 12, letterSpacing: 2 },
   visCol: { flex: 1, minWidth: 280, alignItems: 'center', justifyContent: 'center', minHeight: 200 },
-  faceRound: { width: 180, height: 180, borderRadius: 90, borderWidth: 3, borderColor: 'rgba(212,175,55,0.4)', overflow: 'hidden' },
+  faceRound: { width: 180, height: 180, borderRadius: 90, borderWidth: 3, borderColor: '#E9C349', overflow: 'hidden' },
 });
 
 const promoStyles = StyleSheet.create({

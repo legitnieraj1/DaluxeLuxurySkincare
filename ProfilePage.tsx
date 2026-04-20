@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Package, Truck, CheckCircle2, ChevronLeft, LogOut, ExternalLink } from 'lucide-react-native';
+import { Package, Truck, CheckCircle2, ChevronLeft, LogOut, ExternalLink, RefreshCcw, AlertCircle } from 'lucide-react-native';
+import { Image } from 'react-native';
+import { COLLECTION_PRODUCTS } from './CollectionPage';
 
 const GOLD = '#C9A227';
 const TEXT = '#1A1A1A';
@@ -12,7 +14,25 @@ export default function ProfilePage({ userEmail, onLogout, onBack }: { userEmail
 
   useEffect(() => {
     fetchOrders();
+    handleCallback();
   }, []);
+
+  const handleCallback = () => {
+    if (Platform.OS !== 'web') return;
+    const url = new URL(window.location.href);
+    const status = url.searchParams.get('status');
+    const orderId = url.searchParams.get('orderId');
+    const error = url.searchParams.get('error');
+
+    if (status === 'success') {
+      alert(`Success! Order ${orderId} has been placed.`);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (status === 'error' || status === 'failed') {
+      alert(`Payment Error: ${error || 'Unknown error'}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -33,6 +53,11 @@ export default function ProfilePage({ userEmail, onLogout, onBack }: { userEmail
     } finally {
       setLoading(false);
     }
+  };
+
+  const getProductImage = (productId: string) => {
+    const product = COLLECTION_PRODUCTS.find(p => p.id === productId);
+    return product ? product.image : null;
   };
 
   const getStatusIcon = (status: string) => {
@@ -111,6 +136,31 @@ export default function ProfilePage({ userEmail, onLogout, onBack }: { userEmail
                   )}
                 </View>
               </View>
+
+              {/* Order Items Section */}
+              <View style={s.itemsSection}>
+                {order.items && order.items.map((item: any, i: number) => (
+                  <View key={item.id || i} style={s.itemRow}>
+                    <View style={s.itemImageWrapper}>
+                      <Image 
+                        source={getProductImage(item.product_id)} 
+                        style={s.itemImage} 
+                        resizeMode="contain" 
+                      />
+                    </View>
+                    <View style={s.itemInfo}>
+                      <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={s.itemMeta}>Qty: {item.quantity} · ₹{item.price}</Text>
+                    </View>
+                  </View>
+                ))}
+                {!order.items?.length && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 }}>
+                    <AlertCircle size={14} color="rgba(0,0,0,0.3)" />
+                    <Text style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)' }}>Standard Delivery Package</Text>
+                  </View>
+                )}
+              </View>
             </View>
           ))
         )}
@@ -151,6 +201,45 @@ const s = StyleSheet.create({
   statusText: { fontSize: 13, fontWeight: '700', letterSpacing: 1 },
   trackingLink: { fontSize: 12, color: GOLD, fontWeight: '600', textDecorationLine: 'underline' },
   trackingSub: { fontSize: 11, color: 'rgba(26,26,26,0.5)', marginTop: 4 },
+
+  itemsSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  itemImageWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemImage: {
+    width: '100%',
+    height: '100%',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXT,
+    marginBottom: 2,
+  },
+  itemMeta: {
+    fontSize: 11,
+    color: 'rgba(0,0,0,0.5)',
+  },
 
   emptyState: { alignItems: 'center', paddingVertical: 60, opacity: 0.8 },
   emptyText: { marginTop: 16, fontSize: 14, color: 'rgba(26,26,26,0.5)', marginBottom: 12 },

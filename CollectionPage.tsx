@@ -10,6 +10,7 @@ import {
   Dimensions,
   Pressable,
   useWindowDimensions,
+  TextInput,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -31,6 +32,7 @@ import Animated, {
   Extrapolation,
   runOnJS,
 } from 'react-native-reanimated';
+import { supabaseClient } from './lib/supabaseClient';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
 import {
@@ -1265,8 +1267,12 @@ export const CartDrawer = ({
 }: {
   items: CartItem[]; visible: boolean; onClose: () => void;
   onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void;
-  onCheckout?: () => void;
+  onCheckout?: (items: CartItem[], total: number) => void;
 }) => {
+  const [promoInput, setPromoInput] = React.useState('');
+  const [appliedPromo, setAppliedPromo] = React.useState<string | null>(null);
+  const [discount, setDiscount] = React.useState(0);
+  const [promoError, setPromoError] = React.useState<string | null>(null);
   const translateX = useSharedValue(800);
   const overlayOpacity = useSharedValue(0);
 
@@ -1306,7 +1312,26 @@ export const CartDrawer = ({
   if (!visible && translateX.value >= 790) return null;
 
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const discountedTotal = Math.max(0, total - discount);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleApplyPromo = () => {
+    const code = promoInput.trim().toUpperCase();
+    if (code === 'DALUXE10') {
+      const d = Math.round(total * 0.1);
+      setDiscount(d);
+      setAppliedPromo(code);
+      setPromoError(null);
+    } else {
+      setPromoError('Invalid promo code');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setDiscount(0);
+    setAppliedPromo(null);
+    setPromoInput('');
+  };
 
   return (
     <View style={cart.overlay} pointerEvents={visible ? 'box-none' : 'none'}>
@@ -1371,12 +1396,54 @@ export const CartDrawer = ({
 
         {items.length > 0 && (
           <View style={cart.footer}>
+            {/* Promo Code Section */}
+            <View style={cart.promoContainer}>
+              {appliedPromo ? (
+                <View style={cart.promoApplied}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={14} color="#C9A227" />
+                    <Text style={cart.promoAppliedText}>Code {appliedPromo} applied</Text>
+                  </View>
+                  <TouchableOpacity onPress={handleRemovePromo}>
+                    <Text style={cart.promoRemoveText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={cart.promoInputRow}>
+                  <TextInput
+                    style={cart.promoInput}
+                    placeholder="PROMO CODE"
+                    placeholderTextColor="#AAA"
+                    value={promoInput}
+                    onChangeText={setPromoInput}
+                    autoCapitalize="characters"
+                  />
+                  <TouchableOpacity style={cart.promoBtn} onPress={handleApplyPromo}>
+                    <Text style={cart.promoBtnText}>APPLY</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {promoError && <Text style={cart.promoError}>{promoError}</Text>}
+            </View>
+
             <View style={cart.totalRow}>
-              <Text style={cart.totalLabel}>Order Total</Text>
-              <Text style={cart.totalValue}>₹{total.toLocaleString('en-IN')}</Text>
+              <Text style={cart.totalLabel}>Subtotal</Text>
+              <Text style={[cart.totalValue, discount > 0 && { fontSize: 16, textDecorationLine: 'line-through', opacity: 0.5 }]}>₹{total.toLocaleString('en-IN')}</Text>
+            </View>
+
+            {discount > 0 && (
+              <View style={[cart.totalRow, { marginBottom: 12 }]}>
+                <Text style={[cart.totalLabel, { color: '#C9A227' }]}>Discount (10%)</Text>
+                <Text style={[cart.totalValue, { color: '#C9A227' }]}>- ₹{discount.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+
+            <View style={cart.totalRow}>
+              <Text style={cart.totalLabel}>Final Total</Text>
+              <Text style={cart.totalValue}>₹{discountedTotal.toLocaleString('en-IN')}</Text>
             </View>
             <Text style={cart.taxNote}>Inclusive of all taxes · Free shipping on orders ₹999+</Text>
-            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85} onPress={() => { onClose(); onCheckout?.(); }}>
+            <TouchableOpacity style={cart.checkoutBtn} activeOpacity={0.85} onPress={() => { onClose(); onCheckout?.(items, discountedTotal); }}>
               <LinearGradient colors={['#C9A227', '#E9C349', '#C9A227']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={cart.checkoutGradient}>
                 <Text style={cart.checkoutText}>PROCEED TO CHECKOUT</Text>
               </LinearGradient>
@@ -1464,6 +1531,7 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeConcern, setActiveConcern] = useState<string | null>(initialConcern || null);
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
+  const [dbProducts, setDbProducts] = useState<ProductType[]>([]);
   const scrollRef = useRef<ScrollView>(null);
   const [flyItems, setFlyItems] = useState<FlyItem[]>([]);
   const [liveProducts, setLiveProducts] = useState(COLLECTION_PRODUCTS);
@@ -1471,29 +1539,76 @@ export default function CollectionPage({ onNavigateToProduct, scrollY, onViewCha
   useEffect(() => {
     const fetchInventory = async () => {
       try {
-        const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
-        const res = await fetch(`${API_URL}/api/products`);
-        const data = await res.json();
-        if (data.products) {
-          const merged = COLLECTION_PRODUCTS.map(cp => {
-            const dbP = data.products.find((p: any) => p.id === cp.id || p.name.includes(cp.shortName));
-            if (dbP) {
-              return { 
-                ...cp, 
-                price: dbP.price || cp.price, 
-                stock_message: dbP.stock_message, 
-                priceDisplay: dbP.price ? `₹${dbP.price}.00` : cp.priceDisplay 
+        const { data: dbProducts, error } = await supabaseClient
+          .from('products')
+          .select('*');
+
+        if (!error && dbProducts) {
+          // DATABASE-FIRST MERGE:
+          // We map over database products so new items added in admin actually show up.
+          const merged = dbProducts
+            .filter((dbP: any) => dbP.is_active !== false)
+            .map((dbP: any) => {
+              // Try to find matching static content for high-quality fallbacks
+              const staticP = COLLECTION_PRODUCTS.find(cp => 
+                cp.id === dbP.id || 
+                dbP.name.toUpperCase().includes(cp.shortName?.toUpperCase()) || 
+                cp.id === dbP.slug
+              );
+
+              // Use DB values as primary, Static values as rich supplemental data
+              return {
+                id: dbP.id,
+                name: dbP.name,
+                displayName: dbP.name,
+                subtitle: dbP.tagline || staticP?.subtitle || '',
+                category: dbP.category || staticP?.category || 'cleanse',
+                tagline: dbP.tagline || staticP?.tagline || '',
+                price: Number(dbP.price),
+                priceDisplay: `₹${dbP.price}.00`,
+                stock_quantity: dbP.stock_quantity,
+                image: dbP.images?.[0]?.url ? { uri: dbP.images[0].url } : staticP?.image,
+                images: dbP.images || staticP?.images || [],
+                description: dbP.description || staticP?.description || '',
+                themeColor: staticP?.themeColor || '#C9A227',
+                themeBg: staticP?.themeBg || '#FDFBF7',
+                themeGradient: staticP?.themeGradient || ['#FDFBF7', '#FAF9F6'],
+                highlights: staticP?.highlights || [],
+                benefits: dbP.benefits || staticP?.benefits || [],
+                ingredients: dbP.ingredients || staticP?.ingredients || [],
+                skinConcern: dbP.skin_concern || staticP?.concerns?.[0] || '',
+                howToUse: dbP.how_to_use || staticP?.howToUse || '',
+                suitableFor: dbP.suitable_for ? [dbP.suitable_for] : staticP?.suitableFor || [],
+                texture: dbP.texture || staticP?.texture || '',
+                fragrance: dbP.fragrance || staticP?.fragrance || '',
+                // Preserve additional fields for the detail view
+                ...(staticP || {}),
+                // Ensure ID and Name are not overwritten by static fallback if they differ
+                id: dbP.id,
+                name: dbP.name,
               };
-            }
-            return cp;
-          });
+            });
+
           setLiveProducts(merged);
         }
       } catch (err) {
-        console.warn('Failed to load live inventory:', err);
+        console.warn('Failed to load real-time inventory:', err);
       }
     };
+
     fetchInventory();
+
+    // Subscribe to real-time changes
+    const channel = supabaseClient
+      .channel('public:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        fetchInventory();
+      })
+      .subscribe();
+
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -2383,4 +2498,48 @@ const cart = StyleSheet.create({
     paddingVertical: 18, alignItems: 'center', borderRadius: 16,
   },
   checkoutText: { color: '#1A1A1A', fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+
+  // Promo Code Styles
+  promoContainer: { marginBottom: 20 },
+  promoInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E8E8EE',
+    borderRadius: 12,
+    paddingRight: 6,
+  },
+  promoInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 2,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  promoBtn: {
+    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  promoBtnText: { color: '#FFF', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  promoApplied: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(201,162,39,0.08)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,39,0.2)',
+  },
+  promoAppliedText: { color: '#C9A227', fontSize: 12, fontWeight: '600' },
+  promoRemoveText: { color: '#D32F2F', fontSize: 11, fontWeight: '700' },
+  promoError: { color: '#D32F2F', fontSize: 11, marginTop: 4, marginLeft: 4, fontWeight: '500' },
 });

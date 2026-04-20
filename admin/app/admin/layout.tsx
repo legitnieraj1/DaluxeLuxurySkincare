@@ -2,8 +2,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Toaster, toast } from 'sonner';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -16,6 +18,32 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Listen for new orders
+    const channel = supabaseAdmin
+      .channel('admin-orders')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          const newOrder = payload.new as any;
+          toast.success(`New Order: ${newOrder.order_number}`, {
+            description: `Total: ₹${newOrder.total_amount}`,
+            duration: 5000,
+            action: {
+              label: 'View',
+              onClick: () => window.location.href = '/admin/orders'
+            }
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseAdmin.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen w-full" style={{ backgroundColor: '#0B0B0B' }}>
@@ -66,6 +94,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <main className="flex-1 flex flex-col overflow-hidden">
         {children}
       </main>
+      <Toaster position="top-right" theme="dark" richColors />
     </div>
   );
 }

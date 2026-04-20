@@ -689,6 +689,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<'product' | 'collection' | 'our-story' | 'contact' | 'login' | 'checkout' | 'profile' | 'skin-assessment' | 'terms' | 'privacy-policy' | 'refund-policy' | 'return-policy' | 'shipping-policy'>(getInitialPage);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
 
   React.useEffect(() => {
     // Detect if the URL contains an OAuth callback (PKCE or implicit).
@@ -733,10 +734,17 @@ export default function App() {
             window.history.replaceState({}, '', path);
           }
           
-          // Redirect to profile if they just logged in, OR if they are a logged-in user hitting the login page
+          // Redirect to pending page if exists, otherwise profile/login
           if (isAuthRedirect || path === '/login') {
-            window.history.replaceState({}, '', '/profile');
-            setCurrentPage('profile');
+            if (pendingRedirect) {
+              const target = pendingRedirect as any;
+              setPendingRedirect(null);
+              setCurrentPage(target);
+              window.history.replaceState({}, '', `/${target}`);
+            } else {
+              window.history.replaceState({}, '', '/profile');
+              setCurrentPage('profile');
+            }
           } else if (path === '/profile') {
             setCurrentPage('profile');
           }
@@ -761,8 +769,15 @@ export default function App() {
           if (window.location.search.includes('code=') || window.location.hash) {
             window.history.replaceState({}, '', path);
           }
-          // Always redirect from login to profile on sign-in
-          if (path === '/login' || path === '/') {
+          
+          // Handle pending redirect after manual login
+          if (pendingRedirect) {
+            const target = pendingRedirect as any;
+            setPendingRedirect(null);
+            setCurrentPage(target);
+            window.history.replaceState({}, '', `/${target}`);
+          } else if (path === '/login' || path === '/') {
+            // Always redirect from login to profile on sign-in if no pending redirect
             window.history.replaceState({}, '', '/profile');
             setCurrentPage('profile');
           }
@@ -801,6 +816,7 @@ export default function App() {
   const [cartVisible, setCartVisible] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
   const [selectedConcern, setSelectedConcern] = useState<string | null>(null);
+  const [checkoutTotal, setCheckoutTotal] = useState(0);
 
   // Catch PhonePe success redirect, clear cart, and navigate to Orders
   React.useEffect(() => {
@@ -1394,7 +1410,14 @@ export default function App() {
               priceDisplay: i.product.priceDisplay,
               sizeDetail: i.product.sizeDetail,
             }))}
+            initialTotal={checkoutTotal}
+            userEmail={userEmail}
             onBack={() => { setCurrentPage('product'); setCartVisible(false); }}
+            onLoginRequired={() => {
+              setPendingRedirect('checkout');
+              setCurrentPage('login');
+              if (Platform.OS === 'web') window.history.replaceState({}, '', '/login');
+            }}
             onSuccess={() => {
               setCartItems([]);
               setTimeout(() => setCurrentPage('product'), 2500);
@@ -1517,7 +1540,9 @@ export default function App() {
         onClose={() => setCartVisible(false)}
         onUpdateQuantity={updateQuantity}
         onRemove={removeFromCart}
-        onCheckout={() => {
+        onCheckout={(items, total) => {
+          setCartItems(items);
+          setCheckoutTotal(total);
           setCartVisible(false);
           setCurrentPage('checkout');
         }}

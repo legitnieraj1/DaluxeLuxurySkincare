@@ -17,7 +17,6 @@ const TIMELINE_STEPS = [
 
 const HIGHLIGHT_RULES = [
   { type: 'warning', icon: XCircle, text: 'Orders that have been dispatched or shipped cannot be cancelled.' },
-  { type: 'warning', icon: XCircle, text: 'Perishable or time-sensitive products are non-cancellable.' },
   { type: 'warning', icon: XCircle, text: 'Products marked "Non-Cancellable" at the time of purchase cannot be cancelled.' },
   { type: 'info', icon: CheckCircle, text: 'Damaged or defective products will be replaced at no extra cost. and the replaced product will be delivered with in 7 days' },
   { type: 'info', icon: CheckCircle, text: 'Refunds are processed within 5–7 business days after approval.' },
