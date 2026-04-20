@@ -93,7 +93,8 @@ async function handleRequest(req: NextRequest) {
       }
 
       const accessToken = await getAccessToken();
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
+      const adminApiUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'https://daluxeadminpanel.vercel.app').replace(/\/$/, '');
 
       const paymentPayload = {
         merchantOrderId,
@@ -102,7 +103,7 @@ async function handleRequest(req: NextRequest) {
         paymentFlow: {
           type: 'PG_CHECKOUT',
           merchantUrls: {
-            redirectUrl: `${appUrl}/api/phonepe?action=callback&orderId=${merchantOrderId}`,
+            redirectUrl: `${adminApiUrl}/api/phonepe?action=callback&orderId=${merchantOrderId}&storefront=${encodeURIComponent(appUrl)}`,
           },
         },
         metaInfo: { udf1: user.id, udf2: user.email || '' },
@@ -130,8 +131,12 @@ async function handleRequest(req: NextRequest) {
   if (action === 'callback') {
     try {
       const orderId = searchParams.get('orderId');
+      const storefrontUrl = searchParams.get('storefront')
+        ? decodeURIComponent(searchParams.get('storefront')!)
+        : (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, '');
+
       if (!orderId) {
-        return NextResponse.redirect(new URL('/profile?status=error&error=Missing+orderId', req.url).toString().replace('/admin/api/phonepe', ''));
+        return NextResponse.redirect(`${storefrontUrl}/profile?status=error&error=Missing+orderId`);
       }
 
       const accessToken = await getAccessToken();
@@ -141,7 +146,7 @@ async function handleRequest(req: NextRequest) {
       const statusData = await statusRes.json();
       const state = statusData.state || statusData.orderState || statusData.data?.state || statusData.data?.orderState;
 
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
+      const appUrl = storefrontUrl;
 
       if (state === 'COMPLETED') {
         // Check if order already exists
