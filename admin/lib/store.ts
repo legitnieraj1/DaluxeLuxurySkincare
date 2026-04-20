@@ -140,37 +140,39 @@ export const useAdminStore = create<AdminStore>()(
 
       fetchOrders: async () => {
         set({ isLoading: true });
-        const { data, error } = await supabaseAdmin
-          .from('orders')
-          .select('*, profiles(full_name, email, phone), order_items(*)')
-          .order('created_at', { ascending: false });
-          
-        if (!error && data) {
-          const currentProducts = get().products;
-          const mapped: Order[] = data.map(o => ({
-            id: o.id,
-            orderNumber: o.order_number,
-            customer: o.profiles?.full_name || 'Guest',
-            email: o.profiles?.email || '',
-            phone: o.profiles?.phone || '',
-            address: o.shipping_address?.address || '',
-            city: o.shipping_address?.city || '',
-            pincode: o.shipping_address?.pincode || '',
-            items: (o.order_items || []).map((item: any) => {
-              const matchedProduct = currentProducts.find(p => p.id === item.product_id);
-              return {
-                productId: item.product_id,
-                productName: matchedProduct ? matchedProduct.name : item.product_id,
-                quantity: item.quantity,
-                price: item.price,
-              };
-            }),
-            total: Number(o.total_amount),
-            status: o.status as any,
-            paymentId: o.payment_id || '',
-            createdAt: o.created_at
-          }));
-          set({ orders: mapped });
+        try {
+          const res = await fetch('/api/admin/orders');
+          const json = await res.json();
+          if (json.success && json.data) {
+            const data = json.data;
+            const currentProducts = get().products;
+            const mapped: Order[] = data.map((o: any) => ({
+              id: o.id,
+              orderNumber: o.order_number,
+              customer: o.profiles?.full_name || 'Guest',
+              email: o.profiles?.email || o.email || '',
+              phone: o.profiles?.phone || o.phone || '',
+              address: o.shipping_address?.address_line1 || o.shipping_address?.address || '',
+              city: o.shipping_address?.city || '',
+              pincode: o.shipping_address?.pincode || '',
+              items: (o.order_items || []).map((item: any) => {
+                const matchedProduct = currentProducts.find(p => p.id === item.product_id);
+                return {
+                  productId: item.product_id,
+                  productName: matchedProduct ? matchedProduct.name : item.product_id,
+                  quantity: item.quantity,
+                  price: item.price,
+                };
+              }),
+              total: Number(o.total_amount),
+              status: o.status as any,
+              paymentId: o.payment_id || o.transaction_id || '',
+              createdAt: o.created_at
+            }));
+            set({ orders: mapped });
+          }
+        } catch(e) {
+          console.error("Failed to fetch orders via API", e);
         }
         set({ isLoading: false });
       },
