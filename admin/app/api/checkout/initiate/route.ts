@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { razorpay } from '@/lib/razorpay';
+import { getRazorpay } from '@/lib/razorpay';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
@@ -7,20 +7,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount, currency = 'INR', receipt = `rcpt_${uuidv4()}` } = body;
 
-    // Validate amount
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
-    // Amount is required to be an integer in paise
     const options = {
-      amount: Math.round(amount * 100), 
+      amount: Math.round(amount * 100),
       currency,
       receipt,
     };
 
-    const order = await razorpay.orders.create(options);
-
+    const order = await getRazorpay().orders.create(options);
     return NextResponse.json(order);
   } catch (error: any) {
     console.error('Error creating Razorpay order:', error);
