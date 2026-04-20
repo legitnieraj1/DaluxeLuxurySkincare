@@ -78,7 +78,7 @@ export const Footer = ({ onNavigate }: { onNavigate?: (page: string) => void }) 
         <View style={{ width: '100%', maxWidth: 800, height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 40 }} />
 
         <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 24, letterSpacing: 1, textAlign: 'center' }}>
-          © {new Date().getFullYear()} Daluxe Luxury Skincare. All rights reserved.
+          © {new Date().getFullYear()} DA LUXE. All rights reserved.
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

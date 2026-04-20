@@ -130,7 +130,7 @@ export default function ReturnPolicyPage({ onNavigate }: { onNavigate?: (page: s
             If you wish to exchange a product for a different variant, please initiate a return request and place a new order for the desired product. The refund from the returned product will be processed to your original payment method.
           </Text>
           <Text style={rt.exchangeText}>
-            For defective products, we offer a one-time direct replacement at no additional cost. Contact care@daluxe.in with your order details and photos of the defect.
+            For defective products, we offer a one-time direct replacement at no additional cost. Contact mydaluxe@gmail.com with your order details and photos of the defect.
           </Text>
         </Animated.View>
 

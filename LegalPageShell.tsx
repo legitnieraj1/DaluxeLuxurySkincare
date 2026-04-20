@@ -156,7 +156,7 @@ export default function LegalPageShell({
             <LinearGradient colors={[GOLD, '#524000']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFillObject, { borderRadius: 6 }]} />
             <Text style={ls.ctaButtonText}>CONTACT US</Text>
           </TouchableOpacity>
-          <Text style={ls.ctaEmail}>care@daluxe.in</Text>
+          <Text style={ls.ctaEmail}>mydaluxe@gmail.com</Text>
         </Animated.View>
       </View>
 
