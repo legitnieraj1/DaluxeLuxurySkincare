@@ -62,6 +62,15 @@ async function handleRequest(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action') || 'verify';
 
+  if (action === 'test') {
+    return NextResponse.json({
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+      computedAppUrl: (process.env.NEXT_PUBLIC_APP_URL || 'https://daluxeofficial.in').replace(/\/$/, ''),
+      computedAdminUrl: (process.env.NEXT_PUBLIC_ADMIN_URL || 'https://daluxeadminpanel.vercel.app').replace(/\/$/, '')
+    });
+  }
+
   // ─── INITIATE ───
   if (action === 'initiate') {
     try {
