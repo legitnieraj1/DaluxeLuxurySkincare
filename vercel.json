@@ -3,11 +3,11 @@
     "rewrites": [
         {
             "source": "/admin/:path*",
-            "destination": "https://daluxe-admin.vercel.app/admin/:path*"
+            "destination": "https://daluxe-luxury-admin-git-main-nierajs-projects.vercel.app/admin/:path*"
         },
         {
             "source": "/api/:path*",
-            "destination": "https://daluxe-admin.vercel.app/api/:path*"
+            "destination": "https://daluxe-luxury-admin-git-main-nierajs-projects.vercel.app/api/:path*"
         },
         {
             "source": "/(.*)",
