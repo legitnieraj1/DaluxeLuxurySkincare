@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (orderError) return res.status(500).json({ success: false, error: 'Failed to create order' });
 
       const orderItems = cartItems.map((item: any) => ({
-        order_id: order.id, product_id: item.product_id, quantity: item.quantity, price: item.price,
+        order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price,
       }));
 
       await supabaseAdmin.from('order_items').insert(orderItems);
