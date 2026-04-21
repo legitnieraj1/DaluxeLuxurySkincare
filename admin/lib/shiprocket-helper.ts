@@ -77,7 +77,7 @@ export async function createShiprocketOrder(input: ShiprocketOrderInput): Promis
     const payload = {
       order_id: input.orderNumber,          // Shiprocket uses this as their reference
       order_date: orderDate,
-      pickup_location: 'Primary',           // Must match the pickup location name in your Shiprocket account
+      pickup_location: process.env.SHIPROCKET_PICKUP_NAME || 'Primary', // Must match the nickname in Shiprocket settings
       billing_customer_name: input.shippingAddress.name || 'Customer',
       billing_last_name: '',
       billing_address: input.shippingAddress.address_line1 || '',
