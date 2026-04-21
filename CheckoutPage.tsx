@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Platform, Animated, ActivityIndicator, Image,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView, ImageBackground, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, ShoppingBag, MapPin, User, Lock, Check } from 'lucide-react-native';
@@ -33,9 +33,14 @@ const TEXT = '#1A1A1A';
 type Step = 'details' | 'review' | 'payment';
 
 export default function CheckoutPage({ items, initialTotal, userEmail, onBack, onLoginRequired, onSuccess }: CheckoutPageProps) {
+  const { width: windowWidth } = useWindowDimensions();
   const [step, setStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
+
+  const desktopBg = require('./assets/bgdesktopskinassesment.png');
+  const mobileBg = require('./assets/backgroundskinassesment-mobile.png');
+  const bgSource = windowWidth < 768 ? mobileBg : desktopBg;
 
   // ... (rest of states)
   const [shipping, setShipping] = useState<number | 'CALCULATING'>(99);
@@ -98,23 +103,17 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
     if (!form.address.trim()) e.address = 'Address is required';
     if (!form.city.trim()) e.city = 'City is required';
-    if (!form.pincode.trim() || !/^\d{6}$/.test(form.pincode)) e.pincode = '6-digit pincode required';
+    if (!form.pincode.trim() || !/^\d{6}$/.test(form.pincode.trim())) e.pincode = 'Valid 6-digit PIN code required';
     if (!form.state.trim()) e.state = 'State is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  async function handlePayment() {
-    // CHECK FOR AUTH
-    if (!userEmail) {
-      onLoginRequired();
-      return;
-    }
-
+  async function handleCodCheckout() {
+    if (!validate()) return;
     setLoading(true);
 
     const orderPayload = {
-      user_id: null, // Next.js backend will extract from token
       total_amount: grandTotal,
       email: form.email,
       shipping_address: {
@@ -126,66 +125,49 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
     
     const cartPayload = items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price }));
 
-    // Get Session Token
-    const { supabaseClient } = require('./lib/supabaseClient');
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    const token = session?.access_token || '';
-    const authHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-
-    // PRE-FLIGHT STOCK VALIDATION
     try {
-      const validateRes = await fetch(`${API_URL}/api/checkout?action=validate`, {
-        method: 'POST', headers: authHeaders,
-        body: JSON.stringify({ cart_items: cartPayload })
+      const res = await fetch(`${API_URL}/api/checkout?action=cod`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderPayload, cartItems: cartPayload })
       });
-      const validateData = await validateRes.json();
-      if (!validateRes.ok || !validateData.success) {
-        setLoading(false);
-        alert(validateData.error || 'Some items may be out of stock.');
-        return;
+      const data = await res.json();
+      if (data.success) {
+        setPaymentDone(true);
+        onSuccess(data.order.order_number);
+      } else {
+        alert(data.error || 'Failed to place order');
       }
-    } catch (e: any) {
+    } catch(e) {
+      alert('Network error');
+    } finally {
       setLoading(false);
-      alert('Network error. Please check your connection and try again.');
-      return;
     }
+  }
 
-    // COD FLOW
-    if (paymentMethod === 'cod') {
-      try {
-        const res = await fetch(`${API_URL}/api/checkout?action=cod`, {
-          method: 'POST', headers: authHeaders,
-          body: JSON.stringify({ orderPayload, cartItems: cartPayload })
-        });
-        const data = await res.json();
-        setLoading(false);
-        if (data.success) {
-          setPaymentDone(true);
-          setTimeout(() => onSuccess(data.order.order_number), 2000);
-        } else {
-          alert('COD Creation failed: ' + (data.error || 'Unknown error'));
-        }
-      } catch (e: any) { setLoading(false); alert(e.message); }
-      return;
-    }
+  async function handlePrepaidCheckout() {
+    if (!validate()) return;
+    setLoading(true);
 
-    // PHONEPE PREPAID FLOW
     if (Platform.OS === 'web') {
       try {
-        const res = await fetch(`${API_URL}/api/phonepe?action=initiate`, {
-          method: 'POST', 
-          headers: authHeaders,
+        const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            amount: grandTotal,
-            cart_items: cartPayload,
-            shipping_address: orderPayload.shipping_address,
-            email: orderPayload.email
+            amount: grandTotal, 
+            cart_items: items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price })),
+            shipping_address: {
+              name: form.name, phone: form.phone,
+              address_line1: form.address, address_line2: '',
+              city: form.city, state: form.state, pincode: form.pincode
+            },
+            email: form.email
           })
         });
         const data = await res.json();
-        
-        if (data.success && data.data?.redirectUrl) {
-          window.location.href = data.data.redirectUrl;
+        if (data.success && data.redirect_url) {
+          window.location.href = data.redirect_url;
         } else {
           setLoading(false);
           alert('Payment gateway error: ' + (data.error || 'Could not initiate payment'));
@@ -199,11 +181,20 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
     }
   }
 
+  async function handlePayment() {
+    if (!userEmail) {
+      onLoginRequired();
+      return;
+    }
+    if (paymentMethod === 'cod') await handleCodCheckout();
+    else await handlePrepaidCheckout();
+  }
+
   // ─── Success screen ───────────────────────────────────────────────
   if (paymentDone) {
     return (
       <View style={s.successContainer}>
-        <LinearGradient colors={['#FAF8F3', '#FFFDF9']} style={StyleSheet.absoluteFill} />
+        <ImageBackground source={bgSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
         <LinearGradient colors={[GOLD, GOLD_LIGHT]} style={s.successCircle}>
           <Check color="#fff" size={36} strokeWidth={3} />
         </LinearGradient>
@@ -226,12 +217,14 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
     (t === 'review' && step === 'payment');
 
   return (
-    // KeyboardAvoidingView fixes inputs being covered by soft keyboard
-    <KeyboardAvoidingView
-      style={s.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <LinearGradient colors={['#FAF8F3', '#FFFDF9']} style={StyleSheet.absoluteFill} />
+    <View style={s.root}>
+      <ImageBackground source={bgSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      
+      {/* KeyboardAvoidingView fixes inputs being covered by soft keyboard */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
 
       {/* Header */}
       <View style={s.header}>
