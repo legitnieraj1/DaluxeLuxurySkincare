@@ -35,7 +35,7 @@ async function handleRequest(req: NextRequest) {
     }
 
     try {
-      const PICKUP_POSTCODE = parseInt(process.env.SHIPROCKET_PICKUP_POSTCODE || '560001');
+      const PICKUP_POSTCODE = parseInt(process.env.SHIPROCKET_PICKUP_POSTCODE || '400017');
       const codParam = payment === 'cod' ? 1 : 0;
 
       const rateData: any = await ShiprocketService.checkServiceability({
@@ -176,11 +176,20 @@ async function handleRequest(req: NextRequest) {
             shipment_id:         srResult.shipment_id || null,
             shiprocket_order_id: srResult.shiprocket_order_id || null,
             awb_code:            srResult.awb_code || null,
+            shipment_status:     'synced'
+          }).eq('id', order.id);
+        } else {
+          // Log failure state if srResult is null (returned from helper on error)
+          await supabaseAdmin.from('orders').update({
+            shipment_status: 'failed_sync'
           }).eq('id', order.id);
         }
-      } catch (srErr) {
+      } catch (srErr: any) {
         console.error('[Shiprocket COD Error]:', srErr);
-        // Non-fatal — order already created
+        // Save error to DB for admin visibility
+        await supabaseAdmin.from('orders').update({
+          shipment_status: `error: ${srErr.message || 'unknown'}`
+        }).eq('id', order.id);
       }
 
       return NextResponse.json({ success: true, order: { order_number: order.order_number } });

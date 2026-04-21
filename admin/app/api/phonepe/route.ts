@@ -231,11 +231,18 @@ async function handleRequest(req: NextRequest) {
               shipment_id:         srResult.shipment_id || null,
               shiprocket_order_id: srResult.shiprocket_order_id || null,
               awb_code:            srResult.awb_code || null,
+              shipment_status:     'synced'
+            }).eq('id', order.id);
+          } else {
+            await supabaseAdmin.from('orders').update({
+              shipment_status: 'failed_sync'
             }).eq('id', order.id);
           }
-        } catch (srErr) {
+        } catch (srErr: any) {
           console.error('[Shiprocket PhonePe Error]:', srErr);
-          // Non-fatal — payment & order already confirmed
+          await supabaseAdmin.from('orders').update({
+            shipment_status: `error: ${srErr.message || 'unknown'}`
+          }).eq('id', order.id);
         }
 
         return NextResponse.redirect(`${appUrl}/profile?status=success&orderId=${orderId}`);
