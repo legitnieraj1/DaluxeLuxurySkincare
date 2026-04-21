@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAdminStore, Product, getStockStatus } from '@/lib/store';
-import { supabaseAdmin } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin-service';
 import { Plus, Pencil, Trash2, X, Upload, Search, ChevronDown, Star, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';

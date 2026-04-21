@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin-service';
 import { createShiprocketOrder } from '@/lib/shiprocket-helper';
 
 const PHONEPE_CLIENT_ID = process.env.PHONEPE_CLIENT_ID!;

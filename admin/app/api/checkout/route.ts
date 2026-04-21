@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin-service';
 import { ShiprocketService } from '@/lib/shiprocket';
 import { createShiprocketOrder, getShippingRate } from '@/lib/shiprocket-helper';
 
