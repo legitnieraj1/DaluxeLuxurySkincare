@@ -7,6 +7,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, ShoppingBag, MapPin, User, Lock, Check } from 'lucide-react-native';
 
+import { supabaseClient } from './lib/supabaseClient';
+
 export interface CheckoutItem {
   id: string;
   name: string;
@@ -151,9 +153,20 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
 
     if (Platform.OS === 'web') {
       try {
-        const res = await fetch(`${API_URL}/api/checkout/phonepe/initiate`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+        if (!token) {
+          setLoading(false);
+          onLoginRequired();
+          return;
+        }
+
+        const res = await fetch(`${API_URL}/api/phonepe?action=initiate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ 
             amount: grandTotal, 
             cart_items: items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price })),
@@ -166,8 +179,8 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
           })
         });
         const data = await res.json();
-        if (data.success && data.redirect_url) {
-          window.location.href = data.redirect_url;
+        if (data.success && data.data?.redirectUrl) {
+          window.location.href = data.data.redirectUrl;
         } else {
           setLoading(false);
           alert('Payment gateway error: ' + (data.error || 'Could not initiate payment'));
