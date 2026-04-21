@@ -370,6 +370,7 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
