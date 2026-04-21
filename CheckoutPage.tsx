@@ -128,9 +128,20 @@ export default function CheckoutPage({ items, initialTotal, userEmail, onBack, o
     const cartPayload = items.map(i => ({ product_id: i.id, name: i.name, quantity: i.quantity, price: i.price }));
 
     try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setLoading(false);
+        onLoginRequired();
+        return;
+      }
+
       const res = await fetch(`${API_URL}/api/checkout?action=cod`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ orderPayload, cartItems: cartPayload })
       });
       const data = await res.json();
