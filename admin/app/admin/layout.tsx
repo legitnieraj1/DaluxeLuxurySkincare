@@ -1,11 +1,12 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles } from 'lucide-react';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toaster, toast } from 'sonner';
-import { supabaseAdmin } from '@/lib/supabase/client';
+import { createClient, supabaseAdmin } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -18,8 +19,18 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
+    // Get current user
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email || null);
+    };
+    getUser();
+
     // Listen for new orders
     const channel = supabaseAdmin
       .channel('admin-orders')
@@ -44,6 +55,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       supabaseAdmin.removeChannel(channel);
     };
   }, []);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to sign out');
+    } else {
+      router.push('/login');
+      router.refresh();
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full" style={{ backgroundColor: '#0B0B0B' }}>
@@ -82,10 +103,20 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Footer */}
-        <div className="px-4 pb-6">
+        <div className="px-4 pb-6 mt-auto">
           <div className="gold-divider mb-4" />
-          <div className="px-3 py-2">
-            <p className="text-[10px] tracking-widest uppercase" style={{ color: '#3F3F46' }}>v1.0.0 · Daluxe Admin</p>
+          
+          <button 
+            onClick={handleSignOut}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-all duration-150 sign-out-btn mb-4"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
+
+          <div className="px-3 border-l" style={{ borderColor: 'rgba(212,175,55,0.2)' }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-1" style={{ color: '#FAFAFA' }}>{userEmail || 'Admin'}</p>
+            <p className="text-[9px] tracking-widest uppercase" style={{ color: '#3F3F46' }}>v1.0.0 · Daluxe Admin</p>
           </div>
         </div>
       </aside>
