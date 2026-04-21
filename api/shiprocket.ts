@@ -11,7 +11,10 @@ let cachedShiprocketToken: string | null = null;
 let shiprocketTokenExpiresAt: number = 0;
 
 export async function getShiprocketToken(): Promise<string | null> {
-  if (!SHIPROCKET_EMAIL || !SHIPROCKET_PASSWORD) {
+  const email = (SHIPROCKET_EMAIL || '').replace(/^['"]|['"]$/g, '').trim();
+  const password = (SHIPROCKET_PASSWORD || '').replace(/^['"]|['"]$/g, '').trim();
+
+  if (!email || !password) {
     console.warn('[Shiprocket] Missing credentials, skipping Shiprocket integration');
     return null;
   }
@@ -24,7 +27,7 @@ export async function getShiprocketToken(): Promise<string | null> {
     const res = await fetch(`${SHIPROCKET_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: SHIPROCKET_EMAIL, password: SHIPROCKET_PASSWORD }),
+      body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!data.token) {
@@ -84,7 +87,7 @@ export async function createShiprocketOrder(params: ShiprocketOrderParams): Prom
     const orderPayload = {
       order_id: params.order_number,
       order_date: params.order_date,
-      pickup_location: 'Home',
+      pickup_location: 'Primary',
       billing_customer_name: params.billing_customer_name,
       billing_last_name: '',
       billing_address: params.billing_address,

@@ -136,9 +136,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }).eq('id', order.id);
           console.log('[Checkout/COD] Shiprocket synced for', orderNumber);
         } else {
-          console.warn('[Checkout/COD] Shiprocket failed for', orderNumber, srResult.error);
+          console.error('[Checkout/COD] Shiprocket failed for', orderNumber, 'Error:', srResult.error);
         }
-      }).catch(e => console.error('[Checkout/COD] Shiprocket error:', e));
+      }).catch(srErr => {
+        console.error('[Checkout/COD] Shiprocket fatal exception:', srErr);
+      });
 
       return res.status(200).json({ success: true, order: { order_number: order.order_number } });
     } catch (error: any) {
