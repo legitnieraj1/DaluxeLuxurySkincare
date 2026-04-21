@@ -154,10 +154,12 @@ async function handleRequest(req: NextRequest) {
       });
       const statusData = await statusRes.json();
       const state = statusData.state || statusData.orderState || statusData.data?.state || statusData.data?.orderState;
+      
+      const isSuccessful = ['COMPLETED', 'SUCCESS', 'PAYMENT_SUCCESS'].includes(state);
 
       const appUrl = storefrontUrl;
 
-      if (state === 'COMPLETED') {
+      if (isSuccessful) {
         // Check if order already exists
         const { data: existing } = await supabaseAdmin.from('orders').select('order_number').eq('transaction_id', orderId).single();
         if (existing) {
@@ -246,9 +248,15 @@ async function handleRequest(req: NextRequest) {
         }
 
         return NextResponse.redirect(`${appUrl}/profile?status=success&orderId=${orderId}`);
-      }
+      } else {
+        console.warn('[PhonePe Callback] Payment not successful. State:', state);
+        // Log the failure to pending_orders for debugging
+        await supabaseAdmin.from('pending_orders').update({
+          status: `failed: ${state || 'unknown'}`,
+        }).eq('transaction_id', orderId);
 
-      return NextResponse.redirect(`${appUrl}/profile?status=failed&error=Payment+State:+${state}`);
+        return NextResponse.redirect(`${appUrl}/profile?status=error&error=Payment+failed+with+state+${state || 'unknown'}`);
+      }
     } catch (e: any) {
       console.error('[PhonePe Callback Error]:', e);
       const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8081').replace(/\/$/, '');
