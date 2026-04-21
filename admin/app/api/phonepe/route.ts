@@ -174,15 +174,15 @@ async function handleRequest(req: NextRequest) {
         const shippingAddr = pending.shipping_address ? JSON.parse(pending.shipping_address) : {};
         const orderNumber = `DLX-${Date.now().toString(36).toUpperCase()}`;
 
-        // Create Official Order
         const { data: order, error: orderErr } = await supabaseAdmin.from('orders').insert({
           user_id: pending.user_id,
           order_number: orderNumber,
           total_amount: pending.amount,
           payment_method: 'phonepe',
+          payment_gateway: 'phonepe',
           status: 'confirmed',
           shipping_address: shippingAddr,
-          email: pending.email,
+          email: pending.email || 'customer@daluxeskincare.com',
           transaction_id: orderId,
         }).select().single();
 

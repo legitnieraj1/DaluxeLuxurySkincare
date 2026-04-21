@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const user = await getUser(req);
       if (!user) return res.status(401).json({ success: false, error: 'Unauthorized. Please log in.' });
 
-      const { amount, cart_items, shipping_address } = req.body;
+      const { amount, cart_items, shipping_address, email } = req.body;
       if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'Invalid payment amount' });
 
       const merchantOrderId = `DALUXE-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -78,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           cart_items: JSON.stringify(cart_items),
           shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
           amount,
+          email: email || user.email || 'customer@daluxeskincare.com',
           status: 'initiated',
           created_at: new Date().toISOString(),
         });

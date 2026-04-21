@@ -77,9 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         user_id: user.id, order_number: orderNumber, total_amount: orderPayload.total_amount,
         payment_gateway: 'cod', status: 'confirmed', shipment_status: 'pending',
         shipping_address: orderPayload.shipping_address,
+        email: orderPayload.email || user.email || 'customer@daluxeskincare.com',
       }).select().single();
 
-      if (orderError) return res.status(500).json({ success: false, error: 'Failed to create order' });
+      if (orderError) {
+        console.error('[Checkout/COD] Order creation failed:', orderError);
+        return res.status(500).json({ success: false, error: `Failed to create order: ${orderError.message}` });
+      }
 
       const orderItems = cartItems.map((item: any) => ({
         order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price,

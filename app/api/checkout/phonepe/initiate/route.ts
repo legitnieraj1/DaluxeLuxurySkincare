@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    const { amount, cart_items, shipping_address } = await request.json();
+    const { amount, cart_items, shipping_address, email } = await request.json();
     if (!amount || amount <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid payment amount' }, { status: 400 });
     }
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
         cart_items: JSON.stringify(cart_items),
         shipping_address: shipping_address ? JSON.stringify(shipping_address) : null,
         amount,
+        email: email || user.email || 'customer@daluxeskincare.com',
         status: 'initiated',
         created_at: new Date().toISOString(),
       });

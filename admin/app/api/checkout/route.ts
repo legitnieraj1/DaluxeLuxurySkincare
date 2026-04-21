@@ -120,6 +120,7 @@ async function handleRequest(req: NextRequest) {
         order_number: orderNumber, 
         total_amount: orderPayload.total_amount,
         payment_method: 'cod', 
+        payment_gateway: 'cod',
         status: 'confirmed', 
         shipping_address: orderPayload.shipping_address,
         email: orderPayload.email,
