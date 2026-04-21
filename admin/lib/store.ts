@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabaseAdmin } from './supabase/client';
+import { supabaseAdmin } from './supabase/admin-service';
 
 // ─────────────────────────────────────────
 // TYPES

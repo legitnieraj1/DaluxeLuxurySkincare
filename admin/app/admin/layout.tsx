@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Sparkles, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Toaster, toast } from 'sonner';
-import { createClient, supabaseAdmin } from '@/lib/supabase/client';
+import { createAdminBrowserClient } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/admin-service';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -21,7 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const supabase = createClient();
+  const supabase = createAdminBrowserClient();
 
   useEffect(() => {
     // Get current user

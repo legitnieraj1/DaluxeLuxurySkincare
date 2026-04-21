@@ -1,7 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Admin client using service role key (bypass RLS) for backend operations like decrementing stock.
-export const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+/**
+ * Standard browser client for frontend Auth operations
+ */
+export const createAdminBrowserClient = () => createBrowserClient(supabaseUrl, supabaseAnonKey);
