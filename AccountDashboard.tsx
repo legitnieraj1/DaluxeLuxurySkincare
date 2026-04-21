@@ -386,49 +386,46 @@ const OrdersSection = ({ userEmail, onTrackOrder }: { userEmail: string; onTrack
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
-  
-  const API_URL = (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) || '';
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        const token = session?.access_token || '';
-        const res = await fetch(`${API_URL}/api/orders/user`, {
-          headers: { 'Authorization': `Bearer ${token}` },
+        const userId = session?.user?.id;
+        if (!userId) { setOrders([]); setLoading(false); return; }
+
+        // Query Supabase directly by user_id — avoids broken API proxy URL in production
+        const { data: rawOrders, error } = await supabaseClient
+          .from('orders')
+          .select('*, order_items(id, product_id, name, quantity, price)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) { console.error('[Orders] Supabase error:', error.message); setOrders([]); setLoading(false); return; }
+
+        const transformed = (rawOrders || []).map((order: any) => {
+          const products = (order.order_items || []).map((item: any) => ({
+            name: item.name || 'Product',
+            qty: item.quantity || item.qty || 1,
+            price: item.price,
+            image: null,
+            imageUrl: null,
+          }));
+          const addr = order.shipping_address || {};
+          const addressStr = typeof addr === 'string' ? addr :
+            [addr.address_line1, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
+          return {
+            ...order,
+            products,
+            items_count: products.length,
+            address: addressStr,
+            tracking_id: order.awb_code || order.shipment_id || null,
+            payment_status: order.payment_gateway === 'cod' ? 'COD' : 'Paid',
+            expected_delivery: order.expected_delivery || null,
+          };
         });
-        const data = await res.json();
-        if (data.success && data.orders) {
-          // Transform API data to match UI expectations
-          const transformed = data.orders.map((order: any) => {
-            const products = (order.items || order.order_items || []).map((item: any) => {
-              const localProd = require('./CollectionPage').COLLECTION_PRODUCTS.find((p: any) => p.id === item.product_id || p.id === Number(item.product_id));
-              return {
-                name: item.name || item.products?.name || 'Product',
-                qty: item.quantity || item.qty,
-                price: item.price,
-                image: localProd ? localProd.image : null, 
-                imageUrl: item.image_url || item.products?.image_url || item.products?.images?.[0] || null,
-              };
-            });
-            const addr = order.shipping_address || {};
-            const addressStr = typeof addr === 'string' ? addr :
-              [addr.address_line1, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
-            return {
-              ...order,
-              products,
-              items_count: products.length,
-              address: addressStr,
-              tracking_id: order.awb_code || order.shipment_id || null,
-              payment_status: order.payment_gateway === 'cod' ? 'COD' : 'Paid',
-              expected_delivery: order.expected_delivery || null,
-            };
-          });
-          setOrders(transformed);
-        } else {
-          setOrders([]);
-        }
+        setOrders(transformed);
       } catch (e) { console.error('[Orders] Fetch error:', e); setOrders([]); }
       finally { setLoading(false); }
     })();

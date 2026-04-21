@@ -159,8 +159,8 @@ export const useAdminStore = create<AdminStore>()(
                 const matchedProduct = currentProducts.find(p => p.id === item.product_id);
                 return {
                   productId: item.product_id,
-                  productName: matchedProduct ? matchedProduct.name : item.product_id,
-                  quantity: item.quantity,
+                  productName: item.products?.name || item.name || (matchedProduct ? matchedProduct.name : `Product ${item.product_id}`),
+                  quantity: item.quantity || item.qty || 1,
                   price: item.price,
                 };
               }),

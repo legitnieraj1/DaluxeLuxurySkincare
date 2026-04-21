@@ -77,6 +77,8 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_order_id   TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS expected_delivery      DATE;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_url           TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS email                TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_gateway       TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_status       TEXT DEFAULT 'pending';
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS updated_at           TIMESTAMPTZ DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id    ON public.orders(user_id);
@@ -87,10 +89,14 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id   UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
   product_id TEXT NOT NULL, -- Sticking to TEXT/ID map for storefront compat
+  name       TEXT, -- Product name stored at order time
   quantity   INTEGER NOT NULL DEFAULT 1,
   price      NUMERIC(10,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure name column exists if table was already created
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS name TEXT;
 
 -- ── PENDING ORDERS ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.pending_orders (
