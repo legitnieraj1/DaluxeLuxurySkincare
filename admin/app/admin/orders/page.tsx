@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAdminStore, Order, OrderStatus } from '@/lib/store';
 import { Search, X, ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const STATUS_BADGE: Record<OrderStatus, string> = {
   pending: 'badge-pending', confirmed: 'badge-confirmed', processing: 'badge-confirmed',
@@ -99,6 +100,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 const STATUS_TABS: (OrderStatus | 'all')[] = ['all', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
 export default function OrdersPage() {
+  const router = useRouter();
   const { orders, fetchOrders } = useAdminStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState<OrderStatus | 'all'>('all');
@@ -160,9 +162,11 @@ export default function OrdersPage() {
               <tr><td colSpan={6} className="px-5 py-12 text-center text-sm" style={{ color: '#3F3F46' }}>No orders match this filter</td></tr>
             )}
             {filtered.map(order => (
-              <tr key={order.id} className="table-row-hover" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
-                onClick={() => setSelectedOrder(order)}>
-                <td className="px-5 py-4 font-mono text-xs" style={{ color: '#D4AF37' }}>{order.orderNumber}</td>
+              <tr key={order.id} className="table-row-hover cursor-pointer" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                onClick={() => router.push(`/admin/orders/${order.id}`)}>
+                <td className="px-5 py-4 font-mono text-xs">
+                  <span className="gold-text hover:underline">{order.orderNumber}</span>
+                </td>
                 <td className="px-5 py-4">
                   <p className="font-medium text-sm" style={{ color: '#FAFAFA' }}>{order.customer}</p>
                   <p className="text-xs mt-0.5" style={{ color: '#52525B' }}>{order.email}</p>

@@ -40,6 +40,8 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  productImage?: string;
+  productDescription?: string;
 }
 
 export interface Order {
@@ -160,8 +162,10 @@ export const useAdminStore = create<AdminStore>()(
                 return {
                   productId: item.product_id,
                   productName: item.name || `Product`,
-                  quantity: item.quantity || item.qty || 1,
-                  price: item.price,
+                  quantity: Number(item.quantity || item.qty || 1),
+                  price: Number(item.price),
+                  productImage: matchedProduct?.images?.[0]?.url || '',
+                  productDescription: matchedProduct?.tagline || matchedProduct?.description || '',
                 };
               }),
               total: Number(o.total_amount),
