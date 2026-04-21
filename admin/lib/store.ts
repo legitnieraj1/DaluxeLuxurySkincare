@@ -57,6 +57,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   paymentId: string;
+  shipmentStatus?: string;
   createdAt: string;
 }
 
@@ -171,6 +172,7 @@ export const useAdminStore = create<AdminStore>()(
               total: Number(o.total_amount),
               status: o.status as any,
               paymentId: o.payment_id || o.transaction_id || '',
+              shipmentStatus: o.shipment_status || '',
               createdAt: o.created_at
             }));
             set({ orders: mapped });

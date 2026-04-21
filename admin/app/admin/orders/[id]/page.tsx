@@ -165,6 +165,21 @@ export default function OrderDetailsPage() {
                   {order.paymentId || 'CASH ON DELIVERY'}
                 </span>
               </div>
+              
+              {/* Shiprocket Status */}
+              {(order as any).shipmentStatus && (
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-2 h-2 rounded-full ${(order as any).shipmentStatus === 'synced' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-[10px] uppercase font-bold tracking-widest" style={{ color: '#71717A' }}>
+                      Shiprocket Sync
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono p-2 rounded bg-black/40 border border-white/5" style={{ color: (order as any).shipmentStatus === 'synced' ? '#FAFAFA' : '#EF4444' }}>
+                    {(order as any).shipmentStatus}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           
