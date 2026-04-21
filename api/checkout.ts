@@ -85,7 +85,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price,
       }));
 
-      await supabaseAdmin.from('order_items').insert(orderItems);
+      const { error: itemsError } = await supabaseAdmin.from('order_items').insert(orderItems);
+      if (itemsError) {
+        console.error('[Checkout/COD] CRITICAL: order_items insert FAILED:', itemsError.message, 'order_id:', order.id, 'items:', JSON.stringify(orderItems));
+        // Continue — order is created, but log the failure for diagnosis
+      } else {
+        console.log('[Checkout/COD] order_items inserted:', orderItems.length, 'items for order', orderNumber);
+      }
       
       for (const item of cartItems) {
         await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });

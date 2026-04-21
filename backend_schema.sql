@@ -173,6 +173,8 @@ CREATE POLICY "Orders Admin"  ON public.orders FOR ALL    USING (public.is_admin
 
 -- Order Items
 CREATE POLICY "Order Items Select" ON public.order_items FOR SELECT USING (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND (user_id = auth.uid() OR public.is_admin())));
+CREATE POLICY "Order Items Insert" ON public.order_items FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND (user_id = auth.uid() OR public.is_admin())));
+CREATE POLICY "Order Items Admin"  ON public.order_items FOR ALL USING (public.is_admin());
 
 -- Profiles
 CREATE POLICY "Profiles Select" ON public.profiles FOR SELECT USING (auth.uid() = id OR public.is_admin());

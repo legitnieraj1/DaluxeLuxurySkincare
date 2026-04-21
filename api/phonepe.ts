@@ -156,7 +156,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           if (order) {
             const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price }));
-            await supabaseAdmin.from('order_items').insert(orderItems);
+            const { error: itemsError } = await supabaseAdmin.from('order_items').insert(orderItems);
+            if (itemsError) {
+              console.error('[PhonePe/Callback] CRITICAL: order_items insert FAILED:', itemsError.message, 'order_id:', order.id, 'items:', JSON.stringify(orderItems));
+            } else {
+              console.log('[PhonePe/Callback] order_items inserted:', orderItems.length, 'for order', orderNumber);
+            }
             await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', orderId);
             for (const item of cartItems) {
               await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
@@ -248,7 +253,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           if (order) {
             const orderItems = cartItems.map((item: any) => ({ order_id: order.id, product_id: item.product_id, name: item.name || item.product_id, quantity: item.quantity, price: item.price }));
-            await supabaseAdmin.from('order_items').insert(orderItems);
+            const { error: itemsError2 } = await supabaseAdmin.from('order_items').insert(orderItems);
+            if (itemsError2) {
+              console.error('[PhonePe/Verify] CRITICAL: order_items insert FAILED:', itemsError2.message, 'order_id:', order.id, 'items:', JSON.stringify(orderItems));
+            } else {
+              console.log('[PhonePe/Verify] order_items inserted:', orderItems.length, 'for order', orderNumber);
+            }
             await supabaseAdmin.from('pending_orders').update({ status: 'completed' }).eq('transaction_id', orderId);
             for (const item of cartItems) {
               await supabaseAdmin.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
