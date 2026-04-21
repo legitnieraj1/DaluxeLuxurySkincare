@@ -45,7 +45,7 @@ const useIsMobile = () => {
 
 const PRODUCTS = [
   {
-    id: 1,
+    id: 'hairserum',
     title: 'Weightless\nPerfection',
     subtitle: 'Ultra Sensitive Smooth',
     name: 'HAIR SERUM',
@@ -58,7 +58,7 @@ const PRODUCTS = [
     bgImage: require('./assets/bg_face_serum.png')
   },
   {
-    id: 2,
+    id: 'faceserum',
     title: 'Reveal\nYour Glow',
     subtitle: 'Ultra Sensitive Glow & Correct',
     name: 'FACE SERUM',
@@ -71,7 +71,7 @@ const PRODUCTS = [
     bgImage: require('./assets/background2.png')
   },
   {
-    id: 3,
+    id: 'nightcream',
     title: 'Overnight\nRestoration',
     subtitle: 'Ultra Sensitive Repair',
     name: 'NIGHT CREAM',
@@ -819,7 +819,23 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('daluxe_cart');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            // Re-validate and re-map items to latest COLLECTION_PRODUCTS
+            return parsed.map((item: any) => {
+              const masterProduct = COLLECTION_PRODUCTS.find(p => p.id === (item.product?.id || item.id));
+              if (masterProduct) {
+                return { product: masterProduct, quantity: item.quantity || 1 };
+              }
+              return null;
+            }).filter(Boolean) as CartItem[];
+          }
+        } catch (e) {
+          console.error("Cart hydration failed", e);
+        }
+      }
     }
     return [];
   });
@@ -852,20 +868,23 @@ export default function App() {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
 
-      const { data: dbCart } = await supabaseClient.from('cart_items').select('quantity, products(*)').eq('user_id', user.id);
+      const { data: dbCart } = await supabaseClient.from('cart_items').select('quantity, product_id').eq('user_id', user.id);
       
       // Merge
-      const dbItems = (dbCart || []).filter(item => item.products).map(item => ({ product: item.products, quantity: item.quantity }));
-      const mergedMap = new Map();
+      const dbItems = (dbCart || []).map(item => {
+        const masterProduct = COLLECTION_PRODUCTS.find(p => p.id === item.product_id);
+        return masterProduct ? { product: masterProduct, quantity: item.quantity } : null;
+      }).filter(Boolean) as CartItem[];
+
+      const mergedMap = new Map<string, CartItem>();
       dbItems.forEach(item => mergedMap.set(item.product.id, item));
       
-      let needsDbUpdate = false;
       cartItems.forEach(lItem => {
         if (mergedMap.has(lItem.product.id)) {
-          mergedMap.get(lItem.product.id).quantity = Math.max(mergedMap.get(lItem.product.id).quantity, lItem.quantity);
+          const existing = mergedMap.get(lItem.product.id)!;
+          existing.quantity = Math.max(existing.quantity, lItem.quantity);
         } else {
           mergedMap.set(lItem.product.id, lItem);
-          needsDbUpdate = true;
         }
       });
       
@@ -874,7 +893,11 @@ export default function App() {
 
       // Force push guest cart items that weren't in DB
       for (const m of mergedArray) {
-        await supabaseClient.from('cart_items').upsert({ user_id: user.id, product_id: m.product.id, quantity: m.quantity }, { onConflict: 'user_id,product_id' });
+        await supabaseClient.from('cart_items').upsert({ 
+          user_id: user.id, 
+          product_id: m.product.id, 
+          quantity: m.quantity 
+        }, { onConflict: 'user_id,product_id' });
       }
     };
     syncDbCart();

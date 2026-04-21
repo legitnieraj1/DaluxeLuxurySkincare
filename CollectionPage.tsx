@@ -1716,7 +1716,7 @@ export const CartDrawer = ({
             </View>
           ) : (
             <View style={{ paddingTop: 8 }}>
-              {items.map((item, idx) => (
+              {items.filter(item => item.product && item.product.shortName && item.product.priceDisplay).map((item, idx) => (
                 <Animated.View key={item.product.id} entering={FadeInDown.delay(idx * 60).duration(300)} style={cart.item}>
                   <View style={cart.itemImgWrap}>
                     <Image source={item.product.image} style={cart.itemImg} resizeMode="contain" />
