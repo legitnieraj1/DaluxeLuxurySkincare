@@ -51,11 +51,15 @@ const ShopByConcern = ({ onConcernClick }: any) => {
 // --------------------------------------------------------------------------
 // 2. PRODUCT CARDS & CAROUSELS (Best Sellers, Face Serums, etc.)
 // --------------------------------------------------------------------------
+const CARD_GAP = 12;
+const mobileCardWidth = () => (Dimensions.get('window').width - 40 - CARD_GAP) / 2;
+
 const ProductCard = ({ product, onPurchase, onClick }: any) => {
   const isMobile = useIsMobile();
+  const cardW = isMobile ? mobileCardWidth() : 260;
   return (
-    <View style={cardStyles.container}>
-      <TouchableOpacity activeOpacity={0.8} onPress={() => onClick && onClick(product)} style={[cardStyles.imageArea, isMobile && { height: 200 }]}>
+    <View style={[cardStyles.container, { width: cardW }]}>
+      <TouchableOpacity activeOpacity={0.8} onPress={() => onClick && onClick(product)} style={[cardStyles.imageArea, isMobile && { height: (mobileCardWidth() * 0.85) }]}>
          <Image source={product.image} style={cardStyles.image} resizeMode="contain" />
          {product.rating >= 4.5 && (
             <View style={cardStyles.ratingBadge}>
@@ -401,12 +405,12 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, color: 'rgba(26,26,26,0.5)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   tabTextActive: { color: '#B8962E', fontWeight: '700' },
   
-  scrollMob: { paddingHorizontal: 20, gap: 20 },
+  scrollMob: { paddingHorizontal: 20, gap: CARD_GAP },
   scrollDesk: { paddingHorizontal: 40, gap: 24, justifyContent: 'center', minWidth: '100%' },
 });
 
 const cardStyles = StyleSheet.create({
-  container: { width: 260, backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1, borderColor: '#EAEAEA', overflow: 'hidden', padding: 16 },
+  container: { backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1, borderColor: '#EAEAEA', overflow: 'hidden', padding: 16 },
   imageArea: { height: 220, width: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F8F8', borderRadius: 16, marginBottom: 16 },
   image: { width: '90%', height: '90%' },
   ratingBadge: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#EEE' },

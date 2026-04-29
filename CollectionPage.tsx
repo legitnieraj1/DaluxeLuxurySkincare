@@ -278,7 +278,14 @@ export const COLLECTION_PRODUCTS = [
     size: '30 G',
     sizeDetail: '30g / 1.0 fl oz',
     rating: 4.8,
-    image: require('./assets/night cream product cARD.png'),
+    image: require('./assets/nightcream1.png'),
+    gallery: [
+      require('./assets/nightcream1.png'),
+      require('./assets/nightcream2.png'),
+      require('./assets/nightcream3.png'),
+      require('./assets/nightcream4.png'),
+      require('./assets/nightcream5.png'),
+    ],
     video: require('./assets/Skincare_jar_rotating_on_pedestal_delpmaspu_.mp4'),
     themeColor: '#8B2252',
     themeBg: '#F6ECF0',
@@ -322,6 +329,7 @@ export const COLLECTION_PRODUCTS = [
       { text: 'Deep hydration with soft glow. My skin has never been this calm overnight.', author: 'Pooja V.', rating: 5 },
       { text: 'Lightweight and non-greasy formula that actually works. My acne hasn’t flared up since!', author: 'Shruti L.', rating: 5 },
     ],
+    storyImage: require('./assets/nightcream3.png'),
   },
   {
     id: 'hairoil',
@@ -591,7 +599,7 @@ export const COMBOS_DATA = {
   'hair-combo': COLLECTION_PRODUCTS.find(p => p.id === 'hair-combo'),
 } as const;
 
-export type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any; video?: any };
+export type ProductType = typeof COLLECTION_PRODUCTS[0] & { storyImage?: any; video?: any; gallery?: any[] };
 export type CartItem = { product: ProductType; quantity: number };
 
 const CATEGORIES = [
@@ -1328,6 +1336,93 @@ const dc = StyleSheet.create({
   },
 });
 
+// ════════════════════════════════════════════════
+// PRODUCT IMAGE CAROUSEL
+// ════════════════════════════════════════════════
+const ProductImageCarousel = ({ product, isMob }: { product: ProductType; isMob: boolean }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const gallery = product.gallery || [product.image];
+  const scrollRef = useRef<ScrollView>(null);
+
+  const onScroll = (event: any) => {
+    if (containerWidth === 0) return;
+    const x = event.nativeEvent.contentOffset.x;
+    const index = Math.round(x / containerWidth);
+    if (index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  const scrollToImage = (index: number) => {
+    if (containerWidth === 0) return;
+    scrollRef.current?.scrollTo({ x: index * containerWidth, animated: true });
+    setActiveIndex(index);
+  };
+
+  return (
+    <View 
+      style={[d.heroImageCol, isMob && { minWidth: '100%', maxWidth: '100%' }]}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      <Animated.View 
+        entering={FadeInLeft.duration(600).delay(100)} 
+        style={[d.heroImageBg, { backgroundColor: 'transparent', overflow: 'hidden', padding: 0 }]}
+      >
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          style={{ width: '100%', aspectRatio: 1 }}
+        >
+          {containerWidth > 0 && gallery.map((img, i) => (
+            <View key={i} style={{ width: containerWidth, aspectRatio: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Image 
+                source={img} 
+                style={[d.heroImage, { width: '100%', height: '100%' }]} 
+                resizeMode="contain" 
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Thumbnails */}
+      {gallery.length > 1 && (
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'center', 
+          gap: 10, 
+          marginTop: 16,
+          flexWrap: 'wrap'
+        }}>
+          {gallery.map((img, i) => (
+            <TouchableOpacity 
+              key={i} 
+              onPress={() => scrollToImage(i)}
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: activeIndex === i ? GOLD : 'rgba(0,0,0,0.05)',
+                padding: 4,
+                backgroundColor: WHITE,
+                overflow: 'hidden'
+              }}
+            >
+              <Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
 const ProductLandingPage = ({
   product,
   onBack,
@@ -1360,12 +1455,8 @@ const ProductLandingPage = ({
         </TouchableOpacity>
 
         <View style={[d.heroRow, isMob && { flexDirection: 'column', gap: 24 }]}>
-          {/* Product Image */}
-          <Animated.View entering={FadeInLeft.duration(600).delay(100)} style={[d.heroImageCol, isMob && { minWidth: '100%', maxWidth: '100%' }]}>
-            <View style={[d.heroImageBg, { backgroundColor: 'transparent', overflow: 'hidden' }]}>
-              <Image source={product.image} style={[d.heroImage, { width: '100%', height: '100%' }]} resizeMode="contain" />
-            </View>
-          </Animated.View>
+          {/* Product Image Carousel */}
+          <ProductImageCarousel product={product} isMob={isMob} />
 
           {/* Product Info */}
           <Animated.View entering={FadeInRight.delay(200).duration(500)} style={[d.heroInfoCol, isMob && { minWidth: '100%', paddingTop: 0 }]}>
@@ -1453,6 +1544,21 @@ const ProductLandingPage = ({
         </View>
       </View>
 
+      {/* ── New Section: Lifestyle Gallery ── */}
+      {product.id === 'nightcream' && (
+        <View style={{ paddingVertical: 60, backgroundColor: CREAM_SOFT }}>
+           <Text style={[d.sectionHeading, { textAlign: 'center', marginBottom: 40 }]}>Luxury in Every Detail</Text>
+           <View style={{ flexDirection: isMob ? 'column' : 'row', gap: 20, paddingHorizontal: isMob ? 16 : 40, justifyContent: 'center' }}>
+              <Animated.View entering={FadeInUp.delay(100)} style={{ flex: 1, height: isMob ? 300 : 500, borderRadius: 20, overflow: 'hidden' }}>
+                <Image source={require('./assets/nightcream4.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </Animated.View>
+              <Animated.View entering={FadeInUp.delay(300)} style={{ flex: 1, height: isMob ? 300 : 500, borderRadius: 20, overflow: 'hidden' }}>
+                <Image source={require('./assets/nightcream5.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </Animated.View>
+           </View>
+        </View>
+      )}
+
       {/* ── Section 4: Key Benefits ── */}
       <View style={[d.benefitsSection, isMob && { paddingHorizontal: 16, paddingVertical: 36 }]}>
         <Text style={[d.sectionHeading, isMob && { fontSize: 24, lineHeight: 32 }]}>Key Benefits</Text>
@@ -1501,21 +1607,26 @@ const ProductLandingPage = ({
       </View>
 
       {/* ── Section 6: Texture & How to Use ── */}
-      <View style={[d.usageSection, isMob && { paddingHorizontal: 16, paddingVertical: 36 }]}>
-        <View style={[d.usageGrid, isMob && { flexDirection: 'column', gap: 24 }]}>
-          <View style={[d.usageCol, isMob && { minWidth: '100%' }]}>
+      <View style={[d.usageSection, isMob && { paddingHorizontal: 16, paddingVertical: 48 }]}>
+        <View style={[d.usageGrid, isMob && { flexDirection: 'column', gap: 40 }]}>
+          <View style={[d.usageCol, isMob && { flex: 0, minWidth: '100%' }]}>
             <Text style={d.usageColTitle}>Texture & Feel</Text>
+            {product.id === 'nightcream' && (
+              <View style={{ width: '100%', height: 200, borderRadius: 16, overflow: 'hidden', marginBottom: 20, backgroundColor: '#F8F8F8' }}>
+                <Image source={require('./assets/nightcream2.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </View>
+            )}
             <Text style={d.usageText}>{product.texture}</Text>
-            <View style={{ height: 16 }} />
+            <View style={{ height: 20 }} />
             <Text style={d.usageSmallLabel}>Fragrance</Text>
             <Text style={d.usageText}>{product.fragrance}</Text>
           </View>
           {!isMob && <View style={d.usageDividerV} />}
-          {isMob && <View style={{ width: '100%', height: 1, backgroundColor: BORDER }} />}
-          <View style={[d.usageCol, isMob && { minWidth: '100%' }]}>
+          {isMob && <View style={{ width: '100%', height: 1, backgroundColor: BORDER, marginVertical: 10 }} />}
+          <View style={[d.usageCol, isMob && { flex: 0, minWidth: '100%' }]}>
             <Text style={d.usageColTitle}>How to Use</Text>
             <Text style={d.usageText}>{product.howToUse}</Text>
-            <View style={{ height: 16 }} />
+            <View style={{ height: 20 }} />
             <View style={d.usageWhenRow}>
               {product.whenToUse.toLowerCase().includes('night') && <Moon color={product.themeColor} size={18} />}
               {(product.whenToUse.toLowerCase().includes('morning') || product.whenToUse.toLowerCase().includes('am')) && <Sun color={product.themeColor} size={18} />}

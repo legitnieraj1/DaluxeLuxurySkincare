@@ -32,6 +32,8 @@ import RefundPolicyPage from './RefundPolicyPage';
 import ReturnPolicyPage from './ReturnPolicyPage';
 import ShippingPolicyPage from './ShippingPolicyPage';
 import { supabaseClient } from './lib/supabaseClient';
+import WhatsAppChat from './WhatsAppChat';
+import SplashLoader from './SplashLoader';
 import './assets/output.css';
 
 const { height, width } = Dimensions.get('window');
@@ -663,6 +665,7 @@ const ProductItem = ({ product, index, scrollX }: any) => {
 
 
 export default function App() {
+  const [splashDone, setSplashDone] = useState(false);
   const scrollRef = React.useRef<any>(null);
   const mainScrollRef = React.useRef<any>(null);
   const scrollX = useSharedValue(0);
@@ -1159,8 +1162,8 @@ export default function App() {
   return (
     <View style={[styles.container, (isCollection || currentPage === 'our-story' || currentPage === 'contact') && { backgroundColor: '#FDFBF7' }]}>
 
-      {/* Navbar (Fixed - always visible except profile) */}
-      {currentPage !== 'profile' && (
+      {/* Navbar (Fixed - hidden on mobile landing/collection, always hidden on profile) */}
+      {currentPage !== 'profile' && !(isMobile && (currentPage === 'product' || currentPage === 'collection')) && (
       <Animated.View pointerEvents="box-none" style={[styles.navbar, isMobile && mobileStyles.navbar, navbarAnimatedStyle as any]}>
         {!hideNavbarLinks ? (
           <TouchableOpacity onPress={() => setCurrentPage('product')}>
@@ -1714,6 +1717,14 @@ export default function App() {
           setCurrentPage('checkout');
         }}
       />
+
+      {/* WhatsApp Chat */}
+      {!['checkout', 'login', 'skin-assessment'].includes(currentPage) && (
+        <WhatsAppChat />
+      )}
+
+      {/* Splash Loader */}
+      {!splashDone && <SplashLoader onDone={() => setSplashDone(true)} />}
 
     </View>
   );
